@@ -17,6 +17,7 @@ import { prisma } from "@/lib/prisma";
 import { can, PERMISSION_LABELS, type Permission, type Role } from "@/lib/rbac";
 import {
   getDirectory,
+  filterDirectory,
   getLeaveBalances,
   getPayslip,
   getPendingApprovals,
@@ -198,15 +199,7 @@ function buildAllHrTools(caller: ToolCaller) {
           .describe("Optional case-insensitive substring to filter by."),
       }),
       execute: withPermission(caller, "directory:read:self", async ({ filter }) => {
-        let people = await getDirectory(caller);
-        if (filter) {
-          const f = filter.toLowerCase();
-          people = people.filter((p) =>
-            [p.name, p.department, p.title].some((v) =>
-              v.toLowerCase().includes(f),
-            ),
-          );
-        }
+        const people = filterDirectory(await getDirectory(caller), filter);
         return { count: people.length, people };
       }),
     }),
