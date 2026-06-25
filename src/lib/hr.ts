@@ -70,6 +70,27 @@ export async function getDirectory(caller: Caller): Promise<DirectoryEntry[]> {
   }));
 }
 
+export type DepartmentCount = { department: string; count: number };
+
+/**
+ * Headcount per department, within the caller's directory scope (so a manager
+ * only ever aggregates their own reports, HR/Admin the whole company). Sorted
+ * largest-first. Powers the HR/Admin dashboard breakdown and is a building
+ * block for the Sprint 3 KPIs.
+ */
+export async function getDepartmentBreakdown(
+  caller: Caller,
+): Promise<DepartmentCount[]> {
+  const rows = await prisma.employee.groupBy({
+    by: ["department"],
+    where: directoryWhere(caller),
+    _count: { _all: true },
+  });
+  return rows
+    .map((r) => ({ department: r.department, count: r._count._all }))
+    .sort((a, b) => b.count - a.count);
+}
+
 export type LeaveBalanceView = {
   type: string;
   totalDays: number;
