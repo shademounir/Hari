@@ -105,7 +105,8 @@
     "filters": "Filtres",
     "searchPlaceholder": "Rechercher un collaborateur…",
     "optionPlaceholder": "Filtrer…",
-    "noResults": "Aucun employé ne correspond aux filtres sélectionnés."
+    "noResults": "Aucun employé ne correspond aux filtres sélectionnés.",
+    "directReport": "Subordonné direct"
   },
   "employmentStatus": {
     "ACTIVE": "Actif",
