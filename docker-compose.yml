@@ -1,0 +1,53 @@
+# One-command dev stack:  docker compose up --build
+# Brings up Postgres (with pgvector), Adminer (DB UI), and the Next.js app.
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: hr
+      POSTGRES_PASSWORD: hr
+      POSTGRES_DB: hr
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./docker/db-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hr -d hr"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  adminer:
+    image: adminer:latest
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      # Override the host inside the compose network (point at the db service).
+      DATABASE_URL: postgresql://hr:hr@db:5432/hr?schema=public
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      # Bind-mount source for hot reload; keep container's node_modules + .next.
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    # Apply migrations (required), seed (best-effort so a transient embedding
+    # hiccup can't block startup — re-run later with `docker compose exec app
+    # npx prisma db seed`), then run the dev server.
+    command: sh -c "npx prisma migrate deploy && (npx prisma db seed || echo '⚠ seed incomplete — continuing') && npm run dev"
+
+volumes:
+  db-data:

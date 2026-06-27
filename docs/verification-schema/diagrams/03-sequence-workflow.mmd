@@ -1,0 +1,26 @@
+sequenceDiagram
+    participant RH as Equipe RH
+    participant App as Application
+    participant DB as Base de donnees (hr_core)
+    participant Collab as Collaborateur
+    participant Agent as Agent IA
+
+    RH->>App: Creer un workflow (type = Onboarding / Offboarding)
+    App->>DB: INSERT hr_core.workflow(employee_id, type, status='In Progress')
+    App->>Agent: Generer les etapes associees au poste/departement
+    Agent->>DB: INSERT hr_core.workflow_task[] (title, description)
+    App-->>Collab: Notification du parcours assigne
+
+    loop Pour chaque tache
+        Collab->>App: Marquer une tache comme completee
+        App->>DB: UPDATE workflow_task.is_completed = true
+        App->>App: Verifie si toutes les taches sont terminees
+    end
+
+    alt Toutes les taches terminees
+        App->>DB: UPDATE workflow.status = 'Completed'
+        App-->>RH: Notification de cloture du workflow
+    else Etape en retard
+        App->>DB: SELECT workflow_task non completees
+        App-->>RH: Alerte de suivi
+    end

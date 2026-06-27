@@ -1,0 +1,211 @@
+openapi: 3.0.3
+info:
+  title: HARI API
+  version: "1.0.0"
+  description: |
+    Documentation des endpoints HTTP exposés par l'application HARI (Next.js App Router).
+
+    L'application n'expose volontairement que deux familles d'endpoints :
+    - `/api/auth/*` — Auth.js v5 (authentification par identifiants, sessions JWT).
+    - `/api/chat` — point d'entrée unique de l'assistant IA conversationnel, qui orchestre
+      lui-même les "outils" RH (`lib/ai/tools.ts`) listés en §x-ai-tools ci-dessous.
+
+    Toute autre donnée (annuaire, congés, paie, etc.) est servie par des composants serveur
+    Next.js qui appellent directement `lib/hr.ts` — il n'y a pas d'API REST CRUD séparée à
+    documenter, par conception (cf. `AGENTS.md`, "Authorization is always server-side").
+servers:
+  - url: http://localhost:3000
+    description: Développement local (docker compose / npm run dev)
+
+tags:
+  - name: Auth
+    description: Authentification (Auth.js v5 — provider Credentials, sessions JWT)
+  - name: Chat
+    description: Assistant IA conversationnel RH (streaming, appels d'outils RBAC)
+
+paths:
+  /api/auth/session:
+    get:
+      tags: [Auth]
+      summary: Récupérer la session courante
+      description: Retourne la session JWT décodée (utilisateur, rôle, employeeId) ou un objet vide si non authentifié.
+      responses:
+        "200":
+          description: Session courante (vide si non connecté)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+
+  /api/auth/csrf:
+    get:
+      tags: [Auth]
+      summary: Obtenir le jeton CSRF requis pour /api/auth/callback/credentials
+      responses:
+        "200":
+          description: Jeton CSRF
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  csrfToken:
+                    type: string
+
+  /api/auth/providers:
+    get:
+      tags: [Auth]
+      summary: Lister les providers d'authentification configurés
+      responses:
+        "200":
+          description: Liste des providers (ici uniquement "credentials")
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /api/auth/callback/credentials:
+    post:
+      tags: [Auth]
+      summary: Se connecter avec email + mot de passe
+      description: |
+        Vérifie les identifiants contre `auth.User` (bcrypt), puis émet une session JWT
+        contenant `role` et `employeeId` (cf. `src/lib/auth.ts`).
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [email, password, csrfToken]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+                csrfToken:
+                  type: string
+      responses:
+        "302":
+          description: Redirection vers le dashboard (succès) ou /login?error=... (échec)
+        "401":
+          description: Identifiants invalides
+
+  /api/auth/signout:
+    post:
+      tags: [Auth]
+      summary: Déconnexion — invalide la session courante
+      responses:
+        "302":
+          description: Redirection vers la page de login
+
+  /api/chat:
+    post:
+      tags: [Chat]
+      summary: Envoyer un message à l'assistant IA HARI
+      description: |
+        Point d'entrée unique du chat. Authentification obligatoire (401 sinon, vérifié
+        *avant* tout appel modèle — voir `tests/api.chat.test.ts`). La réponse est un flux
+        SSE (Vercel AI SDK UI Message Stream) contenant le texte généré, le raisonnement,
+        et les appels d'outils RH exécutés sous garde RBAC (`withPermission`, voir
+        `x-ai-tools` ci-dessous). Un outil refusé ne lève pas d'erreur HTTP : il renvoie
+        `{ denied: true }` dans le flux, rendu comme une carte "accès refusé" côté client.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatRequest"
+      responses:
+        "200":
+          description: Flux SSE de la réponse (texte, raisonnement, appels d'outils)
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        "401":
+          description: Non authentifié
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Unauthorized
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: authjs.session-token
+      description: Cookie de session JWT posé par Auth.js après /api/auth/callback/credentials.
+
+  schemas:
+    Session:
+      type: object
+      properties:
+        user:
+          type: object
+          properties:
+            id: { type: string }
+            name: { type: string }
+            email: { type: string, format: email }
+            role:
+              type: string
+              enum: [EMPLOYEE, MANAGER, HR_ADMIN, SUPER_ADMIN]
+            employeeId: { type: string, nullable: true }
+        expires: { type: string, format: date-time }
+
+    ChatRequest:
+      type: object
+      required: [messages]
+      properties:
+        messages:
+          type: array
+          description: Historique de conversation au format UIMessage du Vercel AI SDK.
+          items:
+            type: object
+        modelId:
+          type: string
+          description: Identifiant de modèle OpenRouter optionnel (sinon modèle par défaut).
+          nullable: true
+
+x-ai-tools:
+  description: >
+    Outils internes invocables par le modèle pendant un appel à /api/chat
+    (src/lib/ai/tools.ts). Chacun est gardé par une permission RBAC
+    (src/lib/rbac.ts) ; un appel refusé renvoie { denied: true, permission, reason }
+    au lieu de lever une exception.
+  tools:
+    - name: searchHandbook
+      permission: handbook:read
+      input: { query: string }
+      description: Recherche RAG (pgvector) dans le manuel employé.
+    - name: getEmployeeDirectory
+      permission: directory:read:self
+      input: { filter?: string }
+      description: Liste les employés visibles selon le rôle (soi-même, équipe, ou toute l'entreprise).
+    - name: getLeaveBalance
+      permission: leave:read:self
+      input: {}
+      description: Solde de congés restant de l'utilisateur courant.
+    - name: requestTimeOff
+      permission: leave:request
+      input: { type: VACATION|SICK|PERSONAL, startDate: string, endDate: string, reason?: string }
+      description: Soumet une demande de congé pour l'utilisateur courant.
+    - name: listPendingApprovals
+      permission: leave:approve
+      input: {}
+      description: Liste les demandes de congé en attente d'approbation par l'appelant.
+    - name: approveLeave
+      permission: leave:approve
+      input: { requestId: string, decision: APPROVE|REJECT }
+      description: Approuve ou rejette une demande de congé (uniquement ses propres rapports, sauf portée globale).
+    - name: getPayslip
+      permission: payslip:read:self | payslip:read:any
+      input: { employeeId?: string }
+      description: Résumé de fiche de paie (soi-même par défaut, ou un tiers si permission élevée).

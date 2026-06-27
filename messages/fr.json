@@ -1,0 +1,232 @@
+{
+  "metadata": {
+    "title": "HARI — Plateforme RH propulsée par l'IA",
+    "description": "Un starter de plateforme RH propulsée par l'IA : outils IA contrôlés par RBAC, RAG sur le guide et interface de chat générative, sur Next.js + pgvector + Vercel AI SDK."
+  },
+  "common": {
+    "you": "Vous",
+    "none": "—"
+  },
+  "languageSwitcher": {
+    "label": "Langue",
+    "en": "English",
+    "fr": "Français"
+  },
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "assistant": "Assistant IA",
+    "directory": "Annuaire",
+    "timeOff": "Congés",
+    "settings": "Paramètres",
+    "signOut": "Se déconnecter",
+    "openNavigation": "Ouvrir la navigation",
+    "navigation": "Navigation",
+    "primary": "Principal",
+    "changeTheme": "Changer de thème",
+    "themeLight": "Clair",
+    "themeDark": "Sombre",
+    "themeSystem": "Système",
+    "skipToContent": "Aller au contenu",
+    "mainContent": "Contenu principal"
+  },
+  "roles": {
+    "EMPLOYEE": "Collaborateur",
+    "MANAGER": "Manager",
+    "HR_ADMIN": "Admin RH",
+    "SUPER_ADMIN": "Super Admin"
+  },
+  "permissions": {
+    "directory:read:self": "Voir son propre profil",
+    "directory:read:team": "Voir ses subordonnés directs",
+    "directory:read:all": "Voir tout l'annuaire de l'entreprise",
+    "salary:read:all": "Voir la rémunération de chacun",
+    "leave:request": "Demander des congés",
+    "leave:read:self": "Voir ses propres congés",
+    "leave:read:team": "Voir les congés de l'équipe",
+    "leave:approve": "Approuver / refuser les congés",
+    "payslip:read:self": "Voir ses propres fiches de paie",
+    "payslip:read:any": "Voir les fiches de paie de chacun",
+    "handbook:read": "Interroger le guide (RAG)",
+    "employee:manage": "Gérer les dossiers des employés",
+    "admin:settings": "Gérer les paramètres de la plateforme"
+  },
+  "leaveType": {
+    "VACATION": "Congés",
+    "SICK": "Maladie",
+    "PERSONAL": "Personnel"
+  },
+  "leaveStatus": {
+    "PENDING": "En attente",
+    "APPROVED": "Approuvée",
+    "REJECTED": "Refusée"
+  },
+  "dashboard": {
+    "welcome": "Bon retour, {name}",
+    "signedInAs": "Vous êtes connecté en tant que {role}. Ce que vous voyez ci-dessous dépend de vos permissions.",
+    "peopleInCompany": "Personnes dans l'entreprise",
+    "peopleYouCanSee": "Personnes que vous pouvez voir",
+    "vacationDaysLeft": "Jours de congés restants",
+    "pendingApprovals": "Validations en attente",
+    "assistantTitle": "Demandez à l'assistant IA",
+    "rbacAware": "Sensible au RBAC",
+    "assistantDescription": "L'assistant répond aux questions sur le guide avec citations (RAG), exécute des actions RH via des outils contrôlés par permissions, diffuse son raisonnement et affiche des résultats enrichis. Essayez l'une de ces questions :",
+    "example1": "« Quelle est notre politique de congé parental ? »",
+    "example2": "« Montre-moi l'annuaire de l'équipe. »",
+    "example3": "« Combien de jours de congés me reste-t-il, et pose-en 2 lundi prochain. »",
+    "openAssistant": "Ouvrir l'assistant IA"
+  },
+  "directory": {
+    "title": "Annuaire",
+    "scopeAll": "Tout le monde dans l'entreprise.",
+    "scopeTeam": "Vous et vos subordonnés directs.",
+    "scopeSelf": "Uniquement votre propre profil — les managers et les RH en voient plus.",
+    "name": "Nom",
+    "jobTitle": "Poste",
+    "department": "Département",
+    "location": "Lieu",
+    "manager": "Manager",
+    "salary": "Salaire",
+    "status": "Statut",
+    "employmentType": "Type",
+    "filters": "Filtres",
+    "searchPlaceholder": "Rechercher un collaborateur…",
+    "optionPlaceholder": "Filtrer…",
+    "noResults": "Aucun employé ne correspond aux filtres sélectionnés."
+  },
+  "employmentStatus": {
+    "ACTIVE": "Actif",
+    "ON_LEAVE": "En congé",
+    "TERMINATED": "Parti"
+  },
+  "employmentTypeLabel": {
+    "FULL_TIME": "Temps plein",
+    "PART_TIME": "Temps partiel",
+    "CONTRACTOR": "Prestataire"
+  },
+  "timeOff": {
+    "title": "Congés",
+    "description": "Astuce : demandez des congés ou validez des demandes en interrogeant l'assistant IA.",
+    "outOf": "/ {count, plural, one {# jour} other {# jours}}",
+    "myRequests": "Mes demandes",
+    "pendingApprovals": "Validations en attente",
+    "employee": "Employé",
+    "type": "Type",
+    "dates": "Dates",
+    "days": "Jours",
+    "reason": "Motif",
+    "status": "Statut",
+    "empty": "Rien pour le moment."
+  },
+  "settings": {
+    "title": "Paramètres",
+    "description": "La matrice RBAC unique qui contrôle l'interface, les actions serveur et les outils IA.",
+    "permissionMatrix": "Matrice des permissions",
+    "permission": "Permission",
+    "aiToolsByRole": "Outils IA par rôle",
+    "aiToolsDescription": "L'assistant ne reçoit que les outils qu'un rôle peut utiliser — les outils hors périmètre ne sont jamais injectés, donc le modèle ne peut pas les invoquer.",
+    "tool": "Outil",
+    "allowed": "Autorisé",
+    "notAllowed": "Non autorisé",
+    "modelRegistry": "Registre des modèles IA",
+    "modelRegistryDescription": "Le chat utilise par défaut les modèles gratuits d'OpenRouter ; la passerelle Vercel AI est sélectionnable par requête. Configurez les clés via les variables d'environnement.",
+    "reasoning": "raisonnement",
+    "default": "par défaut",
+    "localization": "Localisation",
+    "localizationDescription": "Devise et fuseau horaire utilisés dans toute l'application et par l'assistant IA.",
+    "currency": "Devise",
+    "timezone": "Fuseau horaire",
+    "save": "Enregistrer"
+  },
+  "chat": {
+    "assistant": "Assistant IA",
+    "modelLabel": "Modèle IA",
+    "greeting": "Comment puis-je aider, {name} ?",
+    "greetingDescription": "Posez des questions sur les politiques, vos congés, l'annuaire ou vos fiches de paie.",
+    "suggestion1": "Quelle est notre politique de congé parental ?",
+    "suggestion2": "Combien de jours de congés me reste-t-il ?",
+    "suggestion3": "Montre-moi l'annuaire de l'équipe",
+    "suggestion4": "Montre-moi ma dernière fiche de paie",
+    "placeholder": "Posez votre question… (Maj+Entrée pour un saut de ligne)",
+    "send": "Envoyer le message",
+    "stop": "Arrêter la génération",
+    "messageLabel": "Message",
+    "conversation": "Conversation",
+    "you": "Vous",
+    "assistantLabel": "Assistant",
+    "error": "Une erreur s'est produite. Vérifiez que la clé API du fournisseur est définie dans votre environnement."
+  },
+  "reasoning": {
+    "thinking": "Réflexion…",
+    "thoughtProcess": "Raisonnement"
+  },
+  "citations": {
+    "resultsFor": "Résultats du guide pour « {query} »",
+    "empty": "Aucune section correspondante.",
+    "match": "{pct} % de correspondance"
+  },
+  "leave": {
+    "daysRemainingLabel": "Jours de {type} restants",
+    "duration": "{type} · {count, plural, one {# jour} other {# jours}}",
+    "approvalResult": "La demande {type} de {days} jour(s) de {name} a été {status, select, APPROVED {approuvée} REJECTED {refusée} other {mise à jour}}.",
+    "noPendingApprovals": "Aucune demande en attente de validation."
+  },
+  "directoryCard": {
+    "empty": "Aucune personne correspondante.",
+    "perYear": "/ an"
+  },
+  "payslip": {
+    "gross": "Brut",
+    "tax": "Impôt (22 %)",
+    "net": "Net"
+  },
+  "tools": {
+    "status": {
+      "searchHandbook": "Recherche dans le guide",
+      "getEmployeeDirectory": "Consultation de l'annuaire",
+      "getLeaveBalance": "Vérification du solde de congés",
+      "requestTimeOff": "Envoi de la demande de congés",
+      "listPendingApprovals": "Récupération des validations en attente",
+      "approveLeave": "Traitement de la validation",
+      "getPayslip": "Récupération de la fiche de paie"
+    },
+    "error": "Erreur de l'outil",
+    "summary": {
+      "getCurrentDateTime": "La date, l'heure et le jour actuels (utilitaire).",
+      "getDateInfo": "Jour de la semaine / week-end pour une date donnée (utilitaire).",
+      "businessDaysBetween": "Nombre de jours ouvrés entre deux dates (utilitaire).",
+      "searchHandbook": "Recherche dans le guide de l'employé (RAG) et cite les sections.",
+      "getEmployeeDirectory": "Liste les employés que l'utilisateur est autorisé à voir.",
+      "getLeaveBalance": "Les soldes de congés de l'utilisateur.",
+      "requestTimeOff": "Soumet une demande de congés pour l'utilisateur.",
+      "listPendingApprovals": "Liste les demandes en attente de validation par l'utilisateur.",
+      "approveLeave": "Approuve ou refuse une demande en attente.",
+      "getPayslip": "Une fiche de paie — la sienne, ou celle de toute personne visible avec des droits élevés."
+    }
+  },
+  "login": {
+    "pitchTitle": "Un starter de plateforme RH propulsée par l'IA.",
+    "pitchDescription": "Une implémentation de référence montrant des outils IA contrôlés par RBAC, le RAG sur votre guide, le raisonnement en streaming et une interface de chat générative — sur Next.js, Postgres + pgvector et le Vercel AI SDK.",
+    "demoBuild": "Version démo · choisissez un rôle pour explorer comment les permissions façonnent l'expérience.",
+    "signIn": "Se connecter",
+    "chooseRole": "Choisissez un rôle de démonstration — chacun a des permissions différentes.",
+    "orManually": "ou connectez-vous manuellement",
+    "enter": "Entrer",
+    "signInAs": "Se connecter en tant que {name}, {role}",
+    "passwordNote": "Tous les comptes de démonstration utilisent le mot de passe <code>{password}</code>",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "emailPlaceholder": "email@hari.ma",
+    "passwordPlaceholder": "Mot de passe",
+    "signingIn": "Connexion…",
+    "invalidCredentials": "E-mail ou mot de passe invalide.",
+    "demo": {
+      "EMPLOYEE": "Ne voit que ses propres données. L'assistant IA n'a accès qu'à des outils en libre-service (pas de vue sur les autres employés ni de droits de validation).",
+      "MANAGER": "A une visibilité sur son équipe directe et peut approuver leurs demandes de congés.",
+      "HR_ADMIN": "Accès global à l'annuaire de toute l'entreprise, aux rémunérations et aux fiches de paie.",
+      "SUPER_ADMIN": "Possède tous les droits RH, plus l'accès aux paramètres techniques de la plateforme."
+    },
+    "demoModeBadge": "Mode démo activé",
+    "demoModeDisabled": "Le mode de connexion démo est désactivé dans cet environnement.",
+    "demoPasswordHint": "Le mode one-click est réservé à la démonstration locale et ne doit pas être utilisé comme mécanisme de production."
+  }
+}

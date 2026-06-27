@@ -1,0 +1,232 @@
+{
+  "metadata": {
+    "title": "HARI — AI HR Platform Starter",
+    "description": "An AI-powered HR platform starter: RBAC-gated AI tools, handbook RAG, and generative chat UI on Next.js + pgvector + Vercel AI SDK."
+  },
+  "common": {
+    "you": "You",
+    "none": "—"
+  },
+  "languageSwitcher": {
+    "label": "Language",
+    "en": "English",
+    "fr": "Français"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "assistant": "AI Assistant",
+    "directory": "Directory",
+    "timeOff": "Time Off",
+    "settings": "Settings",
+    "signOut": "Sign out",
+    "openNavigation": "Open navigation",
+    "navigation": "Navigation",
+    "primary": "Primary",
+    "changeTheme": "Change theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeSystem": "System",
+    "skipToContent": "Skip to content",
+    "mainContent": "Main content"
+  },
+  "roles": {
+    "EMPLOYEE": "Employee",
+    "MANAGER": "Manager",
+    "HR_ADMIN": "HR Admin",
+    "SUPER_ADMIN": "Super Admin"
+  },
+  "permissions": {
+    "directory:read:self": "View own profile",
+    "directory:read:team": "View direct reports",
+    "directory:read:all": "View entire company directory",
+    "salary:read:all": "View anyone's compensation",
+    "leave:request": "Request time off",
+    "leave:read:self": "View own leave",
+    "leave:read:team": "View team leave",
+    "leave:approve": "Approve / reject leave",
+    "payslip:read:self": "View own payslips",
+    "payslip:read:any": "View anyone's payslips",
+    "handbook:read": "Ask the handbook (RAG)",
+    "employee:manage": "Manage employee records",
+    "admin:settings": "Manage platform settings"
+  },
+  "leaveType": {
+    "VACATION": "Vacation",
+    "SICK": "Sick",
+    "PERSONAL": "Personal"
+  },
+  "leaveStatus": {
+    "PENDING": "Pending",
+    "APPROVED": "Approved",
+    "REJECTED": "Rejected"
+  },
+  "dashboard": {
+    "welcome": "Welcome back, {name}",
+    "signedInAs": "You're signed in as {role}. What you see below is shaped by your permissions.",
+    "peopleInCompany": "People in company",
+    "peopleYouCanSee": "People you can see",
+    "vacationDaysLeft": "Vacation days left",
+    "pendingApprovals": "Pending approvals",
+    "assistantTitle": "Ask the AI Assistant",
+    "rbacAware": "RBAC-aware",
+    "assistantDescription": "The assistant answers handbook questions with citations (RAG), runs HR actions through permission-checked tools, streams its reasoning, and renders rich results inline. Try one of these:",
+    "example1": "“What's our parental leave policy?”",
+    "example2": "“Show me the team directory.”",
+    "example3": "“How many vacation days do I have left, and request 2 of them next Monday.”",
+    "openAssistant": "Open AI Assistant"
+  },
+  "directory": {
+    "title": "Directory",
+    "scopeAll": "Everyone in the company.",
+    "scopeTeam": "You and your direct reports.",
+    "scopeSelf": "Just your own profile — managers and HR see more.",
+    "name": "Name",
+    "jobTitle": "Title",
+    "department": "Department",
+    "location": "Location",
+    "manager": "Manager",
+    "salary": "Salary",
+    "status": "Status",
+    "employmentType": "Type",
+    "filters": "Filters",
+    "searchPlaceholder": "Search team members…",
+    "optionPlaceholder": "Filter…",
+    "noResults": "No employees match the selected filters."
+  },
+  "employmentStatus": {
+    "ACTIVE": "Active",
+    "ON_LEAVE": "On leave",
+    "TERMINATED": "Terminated"
+  },
+  "employmentTypeLabel": {
+    "FULL_TIME": "Full-time",
+    "PART_TIME": "Part-time",
+    "CONTRACTOR": "Contractor"
+  },
+  "timeOff": {
+    "title": "Time Off",
+    "description": "Tip: request time off or approve requests by asking the AI Assistant.",
+    "outOf": "/ {count, plural, one {# day} other {# days}}",
+    "myRequests": "My requests",
+    "pendingApprovals": "Pending approvals",
+    "employee": "Employee",
+    "type": "Type",
+    "dates": "Dates",
+    "days": "Days",
+    "reason": "Reason",
+    "status": "Status",
+    "empty": "Nothing here yet."
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "The single RBAC matrix that gates the UI, server actions, and AI tools.",
+    "permissionMatrix": "Permission matrix",
+    "permission": "Permission",
+    "aiToolsByRole": "AI tools by role",
+    "aiToolsDescription": "The assistant is only given the tools a role may use — out-of-scope tools are never injected, so the model can't attempt them.",
+    "tool": "Tool",
+    "allowed": "Allowed",
+    "notAllowed": "Not allowed",
+    "modelRegistry": "AI model registry",
+    "modelRegistryDescription": "Chat defaults to OpenRouter free models; the Vercel AI Gateway is selectable per request. Configure keys via environment variables.",
+    "reasoning": "reasoning",
+    "default": "default",
+    "localization": "Localization",
+    "localizationDescription": "Currency and timezone used across the app and by the AI assistant.",
+    "currency": "Currency",
+    "timezone": "Timezone",
+    "save": "Save"
+  },
+  "chat": {
+    "assistant": "AI Assistant",
+    "modelLabel": "AI model",
+    "greeting": "How can I help, {name}?",
+    "greetingDescription": "Ask about policies, your time off, the directory, or payslips.",
+    "suggestion1": "What is our parental leave policy?",
+    "suggestion2": "How many vacation days do I have left?",
+    "suggestion3": "Show me the team directory",
+    "suggestion4": "Show me my latest payslip",
+    "placeholder": "Ask anything… (Shift+Enter for newline)",
+    "send": "Send message",
+    "stop": "Stop generating",
+    "messageLabel": "Message",
+    "conversation": "Conversation",
+    "you": "You",
+    "assistantLabel": "Assistant",
+    "error": "Something went wrong. Check that the provider API key is set in your environment."
+  },
+  "reasoning": {
+    "thinking": "Thinking…",
+    "thoughtProcess": "Thought process"
+  },
+  "citations": {
+    "resultsFor": "Handbook results for “{query}”",
+    "empty": "No matching sections.",
+    "match": "{pct}% match"
+  },
+  "leave": {
+    "daysRemainingLabel": "{type} days remaining",
+    "duration": "{type} · {count, plural, one {# day} other {# days}}",
+    "approvalResult": "{name}'s {days}-day {type} request was {status, select, APPROVED {approved} REJECTED {rejected} other {updated}}.",
+    "noPendingApprovals": "No requests awaiting approval."
+  },
+  "directoryCard": {
+    "empty": "No matching people.",
+    "perYear": "/ yr"
+  },
+  "payslip": {
+    "gross": "Gross",
+    "tax": "Tax (22%)",
+    "net": "Net"
+  },
+  "tools": {
+    "status": {
+      "searchHandbook": "Searching the handbook",
+      "getEmployeeDirectory": "Looking up the directory",
+      "getLeaveBalance": "Checking leave balance",
+      "requestTimeOff": "Submitting time-off request",
+      "listPendingApprovals": "Fetching pending approvals",
+      "approveLeave": "Processing approval",
+      "getPayslip": "Retrieving payslip"
+    },
+    "error": "Tool error",
+    "summary": {
+      "getCurrentDateTime": "The current date, time, and weekday (utility).",
+      "getDateInfo": "Weekday / weekend status for a given date (utility).",
+      "businessDaysBetween": "Working-day count between two dates (utility).",
+      "searchHandbook": "Search the employee handbook (RAG) and cite sections.",
+      "getEmployeeDirectory": "List employees the caller is allowed to see.",
+      "getLeaveBalance": "The caller's own time-off balances.",
+      "requestTimeOff": "Submit a time-off request for the caller.",
+      "listPendingApprovals": "List requests awaiting the caller's approval.",
+      "approveLeave": "Approve or reject a pending request.",
+      "getPayslip": "A payslip — own, or anyone visible with elevated rights."
+    }
+  },
+  "login": {
+    "pitchTitle": "An AI-powered HR platform starter.",
+    "pitchDescription": "A reference implementation showing RBAC-gated AI tools, RAG over your handbook, streaming reasoning, and generative chat UI — on Next.js, Postgres + pgvector, and the Vercel AI SDK.",
+    "demoBuild": "Demo build · pick any role to explore how permissions shape the experience.",
+    "signIn": "Sign in",
+    "chooseRole": "Choose a demo role — each has different permissions.",
+    "orManually": "or sign in manually",
+    "enter": "Enter",
+    "signInAs": "Sign in as {name}, {role}",
+    "passwordNote": "All demo accounts use the password <code>{password}</code>",
+    "email": "Email",
+    "password": "Password",
+    "emailPlaceholder": "email@hari.ma",
+    "passwordPlaceholder": "Password",
+    "signingIn": "Signing in…",
+    "invalidCredentials": "Invalid email or password.",
+    "demo": {
+      "EMPLOYEE": "Sees only their own data. The AI assistant only gets self-service tools (no view of other employees, no approval rights).",
+      "MANAGER": "Has visibility over their direct team and can approve their leave requests.",
+      "HR_ADMIN": "Company-wide access to the directory, compensation, and payslips.",
+      "SUPER_ADMIN": "Holds all HR rights, plus access to the platform's technical settings."
+    },
+    "demoModeBadge": "Demo mode enabled",
+    "demoModeDisabled": "Demo one-click login is disabled in this environment.",
+    "demoPasswordHint": "One-click demo login is reserved for local demonstration and must not be used as a production authentication mechanism."
+  }
+}

@@ -1,0 +1,55 @@
+name: tests
+
+# Runs the deterministic suite (`npm test`) on every push/PR: needs Postgres but
+# no OpenRouter key, since the live suites are excluded — so CI is reproducible
+# without secrets or network flakiness.
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+jobs:
+  deterministic:
+    name: deterministic suite (npm test)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: hr
+          POSTGRES_PASSWORD: hr
+          POSTGRES_DB: hr
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U hr -d hr"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://hr:hr@localhost:5432/hr?schema=public
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22" # matches the node:22 Docker base image
+          cache: npm
+
+      - run: npm ci
+
+      - name: Apply migrations + seed (handbook embedding self-skips without a key)
+        run: |
+          npm run db:deploy
+          npm run db:seed
+
+      - name: Build (Next.js)
+        run: npm run build
+        env:
+          AUTH_SECRET: ci-secret-not-used
+
+      - name: Deterministic tests (no OpenRouter key required)
+        run: npm test

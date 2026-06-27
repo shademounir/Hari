@@ -1,0 +1,123 @@
+// HR Platform starter — data model.
+// Note: pgvector's `halfvec` column is declared via Prisma's `Unsupported` type.
+// The HNSW index over it is created in the Prisma migration
+// (`prisma/migrations/0_init`), since Prisma can't model an index on it.
+
+generator client {
+provider = "prisma-client-js"
+}
+
+datasource db {
+provider = "postgresql"
+url = env("DATABASE_URL")
+}
+
+enum Role {
+EMPLOYEE
+MANAGER
+HR_ADMIN
+SUPER_ADMIN
+}
+
+enum LeaveType {
+VACATION
+SICK
+PERSONAL
+}
+
+enum LeaveStatus {
+PENDING
+APPROVED
+REJECTED
+}
+
+/// Auth identity. One User maps to one Employee profile.
+model User {
+id String @id @default(cuid())
+email String @unique
+name String
+passwordHash String
+role Role @default(EMPLOYEE)
+employee Employee?
+createdAt DateTime @default(now())
+}
+
+/// HR profile / org data.
+model Employee {
+id String @id @default(cuid())
+user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+userId String @unique
+title String
+department String
+location String
+startDate DateTime
+status EmploymentStatus @default(ACTIVE)
+employmentType EmploymentType @default(FULL_TIME)
+salary Int // annual, in USD — sensitive: only HR/Super can read via tools
+avatarUrl String?
+
+// Self-referential org chart.
+manager Employee? @relation("Reports", fields: [managerId], references: [id])
+managerId String?
+reports Employee[] @relation("Reports")
+
+leaveBalances LeaveBalance[]
+leaveRequests LeaveRequest[] @relation("Requester")
+approvals LeaveRequest[] @relation("Approver")
+}
+
+model LeaveBalance {
+id String @id @default(cuid())
+employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+employeeId String
+type LeaveType
+totalDays Int
+usedDays Int @default(0)
+
+@@unique([employeeId, type])
+}
+
+model LeaveRequest {
+id String @id @default(cuid())
+employee Employee @relation("Requester", fields: [employeeId], references: [id], onDelete: Cascade)
+employeeId String
+type LeaveType
+startDate DateTime
+endDate DateTime
+days Int
+reason String?
+status LeaveStatus @default(PENDING)
+approver Employee? @relation("Approver", fields: [approverId], references: [id])
+approverId String?
+createdAt DateTime @default(now())
+}
+
+/// Org-wide settings, a single row (id = "singleton"). Editable by a super admin
+/// in Settings; drives currency formatting and the timezone the AI reasons in.
+model OrgSettings {
+  id        String   @id @default("singleton")
+  currency  String   @default("MAD")
+  timezone  String   @default("UTC")
+  updatedAt DateTime @updatedAt
+}
+
+/// Employee-handbook chunks for RAG. `embedding` is a pgvector halfvec(384).
+model HandbookChunk {
+id String @id @default(cuid())
+section String
+content String
+embedding Unsupported("halfvec(384)")?
+createdAt DateTime @default(now())
+}
+
+enum EmploymentStatus {
+ACTIVE
+ON_LEAVE
+TERMINATED
+}
+
+enum EmploymentType {
+FULL_TIME
+PART_TIME
+CONTRACTOR
+}

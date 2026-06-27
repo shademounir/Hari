@@ -1,0 +1,15 @@
+stateDiagram-v2
+    [*] --> EnCours : creation du workflow (onboarding / offboarding)
+
+    state EnCours {
+        [*] --> TacheAssignee
+        TacheAssignee --> TacheCompletee : collaborateur valide la tache
+        TacheCompletee --> TacheAssignee : tache suivante assignee
+        TacheAssignee --> EnRetard : echeance depassee sans validation
+        EnRetard --> TacheCompletee : validation tardive
+    }
+
+    EnCours --> Termine : toutes les taches completees
+    EnCours --> Annule : workflow annule (ex. depart anticipe)
+    Termine --> [*]
+    Annule --> [*]
