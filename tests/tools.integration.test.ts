@@ -325,4 +325,13 @@ describe("calendar utilities — deterministic date math", () => {
     expect(out.timeZone).toBe("Australia/Sydney");
     expect(out.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
+
+  it("getCurrentDateTime reports the org timezone it was built with (not the server's)", async () => {
+    // The org timezone is threaded into the tools so the calendar tool can never
+    // contradict the system prompt's declared "today".
+    const tools = buildHrTools(callers.employee, { timezone: "Australia/Sydney" });
+    const out = await call(tools.getCurrentDateTime, {});
+    expect(out.timeZone).toBe("Australia/Sydney");
+    expect(out.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
 });

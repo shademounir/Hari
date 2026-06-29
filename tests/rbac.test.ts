@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { can, ROLE_PERMISSIONS, visibleDocTiers } from "@/lib/rbac";
+import { can, canAll, canAny, getPermissions, ROLE_PERMISSIONS, visibleDocTiers } from "@/lib/rbac";
 
 describe("RBAC matrix", () => {
   it("employees can read the handbook and request leave, but not approve", () => {
@@ -53,5 +53,38 @@ describe("RBAC matrix", () => {
       for (const p of lower) expect(higher.has(p)).toBe(true);
       expect(higher.size).toBeGreaterThan(lower.size);
     }
+  });
+
+  // SCRUM-039 — permissions centralisées de la matrice MVP HARI.
+  it("employees can request and download their own work certificate, not manage HR documents", () => {
+    expect(can("EMPLOYEE", "document:read")).toBe(true);
+    expect(can("EMPLOYEE", "document:manage")).toBe(false);
+    expect(can("EMPLOYEE", "attestation:request")).toBe(true);
+    expect(can("EMPLOYEE", "attestation:download:self")).toBe(true);
+    expect(can("EMPLOYEE", "attestation:generate")).toBe(false);
+    expect(can("EMPLOYEE", "attestation:download:any")).toBe(false);
+  });
+
+  it("HR admins manage documents and generate/download any work certificate", () => {
+    expect(can("HR_ADMIN", "document:manage")).toBe(true);
+    expect(can("HR_ADMIN", "attestation:generate")).toBe(true);
+    expect(can("HR_ADMIN", "attestation:download:any")).toBe(true);
+  });
+
+  it("only super admins read/manage AI alerts and read audit logs", () => {
+    expect(can("HR_ADMIN", "alert:read")).toBe(false);
+    expect(can("HR_ADMIN", "logs:read")).toBe(false);
+    expect(can("SUPER_ADMIN", "alert:read")).toBe(true);
+    expect(can("SUPER_ADMIN", "alert:manage")).toBe(true);
+    expect(can("SUPER_ADMIN", "logs:read")).toBe(true);
+  });
+
+  it("canAll / canAny / getPermissions behave as expected", () => {
+    expect(canAll("HR_ADMIN", ["directory:read:all", "salary:read:all"])).toBe(true);
+    expect(canAll("MANAGER", ["directory:read:team", "salary:read:all"])).toBe(false);
+    expect(canAny("EMPLOYEE", ["salary:read:all", "handbook:read"])).toBe(true);
+    expect(canAny("EMPLOYEE", ["salary:read:all", "admin:settings"])).toBe(false);
+    expect(getPermissions("EMPLOYEE")).toContain("handbook:read");
+    expect(getPermissions("EMPLOYEE")).not.toContain("admin:settings");
   });
 });

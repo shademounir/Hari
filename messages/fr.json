@@ -49,7 +49,16 @@
     "handbook:read": "Interroger le guide (RAG)",
     "employee:manage": "Gérer les dossiers des employés",
     "admin:settings": "Gérer les paramètres de la plateforme",
-    "kb:manage": "Gérer la base de connaissances"
+    "kb:manage": "Gérer la base de connaissances",
+    "document:read": "Consulter les documents RH validés",
+    "document:manage": "Créer, valider et archiver les documents RH",
+    "attestation:request": "Demander une attestation de travail",
+    "attestation:generate": "Valider et générer une attestation de travail",
+    "attestation:download:self": "Télécharger sa propre attestation",
+    "attestation:download:any": "Télécharger l'attestation de n'importe qui",
+    "alert:read": "Consulter les alertes IA",
+    "alert:manage": "Gérer les alertes IA",
+    "logs:read": "Consulter les événements IA et les journaux d'audit"
   },
   "leaveType": {
     "VACATION": "Congés",

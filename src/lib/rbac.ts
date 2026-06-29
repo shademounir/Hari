@@ -30,6 +30,17 @@ export const PERMISSIONS = [
   "kb:manage", // create/edit/publish/archive KB documents & collections
   "employee:manage", // create/edit employees
   "admin:settings", // platform settings
+
+  // SCRUM-039 — permissions centralisées de la matrice MVP HARI.
+  "document:read", // consulter les documents RH validés
+  "document:manage", // créer, valider, archiver des documents RH
+  "attestation:request", // demander une attestation de travail
+  "attestation:generate", // valider et générer une attestation (PDF)
+  "attestation:download:self", // télécharger son propre PDF
+  "attestation:download:any", // télécharger le PDF de n'importe qui
+  "alert:read", // consulter la console des alertes IA
+  "alert:manage", // changer le statut d'une alerte
+  "logs:read", // consulter les AiEvents et AuditLogs
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
@@ -47,6 +58,15 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   "kb:manage": "Manage the knowledge base",
   "employee:manage": "Manage employee records",
   "admin:settings": "Manage platform settings",
+  "document:read": "View validated HR documents",
+  "document:manage": "Create, validate and archive HR documents",
+  "attestation:request": "Request a work certificate",
+  "attestation:generate": "Validate and generate a work certificate",
+  "attestation:download:self": "Download own work certificate",
+  "attestation:download:any": "Download anyone's work certificate",
+  "alert:read": "View AI alerts",
+  "alert:manage": "Manage AI alerts",
+  "logs:read": "View AI events and audit logs",
 };
 
 const EMPLOYEE: Permission[] = [
@@ -55,6 +75,9 @@ const EMPLOYEE: Permission[] = [
   "leave:read:self",
   "payslip:read:self",
   "handbook:read",
+  "document:read",
+  "attestation:request",
+  "attestation:download:self",
 ];
 
 const MANAGER: Permission[] = [
@@ -70,11 +93,17 @@ const HR_ADMIN: Permission[] = [
   "payslip:read:any",
   "employee:manage",
   "kb:manage",
+  "document:manage",
+  "attestation:generate",
+  "attestation:download:any",
 ];
 
 const SUPER_ADMIN: Permission[] = [
   ...HR_ADMIN,
   "admin:settings",
+  "alert:read",
+  "alert:manage",
+  "logs:read",
 ];
 
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
@@ -87,6 +116,21 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
 /** Does `role` hold `permission`? */
 export function can(role: Role, permission: Permission): boolean {
   return ROLE_PERMISSIONS[role]?.includes(permission) ?? false;
+}
+
+/** All permissions held by `role`. */
+export function getPermissions(role: Role): Permission[] {
+  return ROLE_PERMISSIONS[role] ?? [];
+}
+
+/** Does `role` hold every permission listed? */
+export function canAll(role: Role, permissions: Permission[]): boolean {
+  return permissions.every((p) => can(role, p));
+}
+
+/** Does `role` hold at least one of the permissions listed? */
+export function canAny(role: Role, permissions: Permission[]): boolean {
+  return permissions.some((p) => can(role, p));
 }
 
 /**

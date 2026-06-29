@@ -49,7 +49,16 @@
     "handbook:read": "Ask the handbook (RAG)",
     "employee:manage": "Manage employee records",
     "admin:settings": "Manage platform settings",
-    "kb:manage": "Manage the knowledge base"
+    "kb:manage": "Manage the knowledge base",
+    "document:read": "View validated HR documents",
+    "document:manage": "Create, validate and archive HR documents",
+    "attestation:request": "Request a work certificate",
+    "attestation:generate": "Validate and generate a work certificate",
+    "attestation:download:self": "Download own work certificate",
+    "attestation:download:any": "Download anyone's work certificate",
+    "alert:read": "View AI alerts",
+    "alert:manage": "Manage AI alerts",
+    "logs:read": "View AI events and audit logs"
   },
   "leaveType": {
     "VACATION": "Vacation",
