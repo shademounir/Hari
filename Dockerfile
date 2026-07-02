@@ -8,7 +8,10 @@ WORKDIR /app
 # `prisma generate`, which needs prisma/schema.prisma.
 COPY package.json package-lock.json* ./
 COPY prisma ./prisma
-RUN npm install
+RUN npm config set fetch-retries 5 \
+ && npm config set fetch-retry-mintimeout 20000 \
+ && npm config set fetch-timeout 120000 \
+ && npm install
 
 # Copy the rest of the source (overlaid by the bind-mount in docker-compose).
 COPY . .

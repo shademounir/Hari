@@ -28,7 +28,9 @@
     "themeSystem": "Système",
     "skipToContent": "Aller au contenu",
     "mainContent": "Contenu principal",
-    "knowledgeBase": "Base de connaissances"
+    "knowledgeBase": "Base de connaissances",
+    "breadcrumb": "Fil d'Ariane",
+    "userMenu": "Menu du compte"
   },
   "roles": {
     "EMPLOYEE": "Collaborateur",
@@ -83,7 +85,12 @@
     "example1": "« Quelle est notre politique de congé parental ? »",
     "example2": "« Montre-moi l'annuaire de l'équipe. »",
     "example3": "« Combien de jours de congés me reste-t-il, et pose-en 2 lundi prochain. »",
-    "openAssistant": "Ouvrir l'assistant IA"
+    "openAssistant": "Ouvrir l'assistant IA",
+    "leaveBalances": "Solde de congés",
+    "vacationUsed": "Congés utilisés",
+    "daysUsedOfTotal": "{used} / {total} jours",
+    "remainingShort": "{n} restants",
+    "noBalances": "Aucun solde de congés"
   },
   "directory": {
     "title": "Annuaire",
@@ -255,6 +262,7 @@
     "pitchTitle": "Un starter de plateforme RH propulsée par l'IA.",
     "pitchDescription": "Une implémentation de référence montrant des outils IA contrôlés par RBAC, le RAG sur votre guide, le raisonnement en streaming et une interface de chat générative — sur Next.js, Postgres + pgvector et le Vercel AI SDK.",
     "demoBuild": "Version démo · choisissez un rôle pour explorer comment les permissions façonnent l'expérience.",
+    "tagline": "Ressources Humaines · Intelligence Artificielle",
     "signIn": "Se connecter",
     "chooseRole": "Choisissez un rôle de démonstration — chacun a des permissions différentes.",
     "orManually": "ou connectez-vous manuellement",
@@ -425,5 +433,20 @@
     "ALL_EMPLOYEES": "Tous les employés",
     "MANAGERS": "Managers et plus",
     "HR_ONLY": "RH uniquement"
+  },
+  "topbar": {
+    "descriptor": "Ressources Humaines · IA",
+    "workspace": "Espace {role}",
+    "search": "Rechercher…",
+    "noResults": "Aucun résultat",
+    "notifications": "Notifications",
+    "noNotifications": "Aucune notification",
+    "approvals": "{count, plural, one {# demande à approuver} other {# demandes à approuver}}",
+    "approvalsDesc": "Congés en attente de votre validation",
+    "myPending": "Votre demande de congé est en attente",
+    "myPendingDesc": "{count, plural, one {# en cours de traitement} other {# en cours de traitement}}",
+    "approvalItem": "{name} · congé {type}",
+    "myPendingItem": "Votre demande {type} est en attente",
+    "viewAll": "Tout voir"
   }
 }

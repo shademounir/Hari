@@ -9,7 +9,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Bot, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { HariLogo } from "@/components/brand/logo";
 
 export default async function LoginPage() {
   const session = await auth();
@@ -21,21 +22,25 @@ export default async function LoginPage() {
 
   return (
     <main className="min-h-dvh grid lg:grid-cols-2">
-      {/* Brand / pitch side */}
-      <section className="hidden lg:flex flex-col justify-between bg-neutral-950 text-neutral-100 p-12">
-        <div className="flex items-center gap-2 font-semibold">
-          <Bot className="size-6" />
-          HARI
-        </div>
-        <div className="space-y-4 max-w-md">
-          <p className="text-3xl font-semibold leading-tight">
+      {/* Brand / pitch side — always-dark brand panel */}
+      <section className="relative hidden lg:flex flex-col justify-between overflow-hidden bg-brand-panel text-brand-panel-foreground p-12">
+        <div className="pointer-events-none absolute -right-24 -top-24 size-96 rounded-full bg-brand-gradient opacity-30 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-32 -left-16 size-96 rounded-full bg-brand-gradient opacity-20 blur-3xl" />
+
+        <HariLogo variant="onDark" className="relative" />
+
+        <div className="relative space-y-4 max-w-md">
+          <p className="text-4xl font-extrabold leading-tight tracking-tight">
             {t("pitchTitle")}
           </p>
-          <p className="text-neutral-400">
+          <p className="text-base leading-relaxed text-brand-panel-muted">
             {t("pitchDescription")}
           </p>
+          <p className="text-sm font-medium uppercase tracking-[0.18em] text-brand-panel-muted">
+            {t("tagline")}
+          </p>
         </div>
-        <p className="text-xs text-neutral-400">
+        <p className="relative text-xs text-brand-panel-muted">
           {t("demoBuild")}
         </p>
       </section>
@@ -46,6 +51,7 @@ export default async function LoginPage() {
           <LanguageSwitcher />
         </div>
         <div className="w-full max-w-md space-y-6">
+          <HariLogo className="lg:hidden" />
           <div className="space-y-1">
             <h1 className="text-2xl font-semibold">{t("signIn")}</h1>
             <p className="text-sm text-muted-foreground">
