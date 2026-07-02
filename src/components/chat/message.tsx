@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Bot, User } from "lucide-react";
 import { Reasoning } from "./reasoning";
 import { ToolCall } from "./tool-call";
+import { EndConversation } from "./generative/end-conversation";
 import { Markdown } from "./markdown";
 import type { CitationTarget } from "./citations-rehype";
 
@@ -104,6 +105,12 @@ export const ChatMessage = memo(function ChatMessage({
 
           if (part.type.startsWith("tool-")) {
             return <ToolCall key={i} part={part as never} streaming={streaming} />;
+          }
+
+          // The input guard's "conversation closed" signal (no tool call).
+          if (part.type === "data-conversationClosed") {
+            const reason = (part as { data?: { reason?: string } }).data?.reason;
+            return <EndConversation key={i} reason={reason} />;
           }
 
           return null;

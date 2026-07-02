@@ -11,6 +11,9 @@ vi.mock("ai", () => ({
   streamText: streamTextMock,
   convertToModelMessages: vi.fn(async (messages) => messages),
   stepCountIs: vi.fn(() => () => false),
+  hasToolCall: vi.fn(() => () => false),
+  createUIMessageStream: vi.fn(() => ({})),
+  createUIMessageStreamResponse: vi.fn(() => new Response("ok", { status: 200 })),
 }));
 
 const getChatModelMock = vi.fn(() => "mock-model");

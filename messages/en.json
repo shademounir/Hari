@@ -30,7 +30,8 @@
     "mainContent": "Main content",
     "knowledgeBase": "Knowledge Base",
     "breadcrumb": "Breadcrumb",
-    "userMenu": "Account menu"
+    "userMenu": "Account menu",
+    "alerts": "Alerts"
   },
   "roles": {
     "EMPLOYEE": "Employee",
@@ -51,7 +52,8 @@
     "handbook:read": "Ask the handbook (RAG)",
     "employee:manage": "Manage employee records",
     "admin:settings": "Manage platform settings",
-    "kb:manage": "Manage the knowledge base"
+    "kb:manage": "Manage the knowledge base",
+    "alerts:read": "View AI alerts"
   },
   "leaveType": {
     "VACATION": "Vacation",
@@ -186,6 +188,19 @@
       "session_expired": "Your session has expired. Please reload and sign in again.",
       "network": "Can't reach the server. Check your connection and try again.",
       "generic": "Something went wrong. Please try again."
+    },
+    "closed": {
+      "title": "Conversation ended",
+      "body": "The assistant ended this conversation. Start a new chat to continue.",
+      "reason": {
+        "ABUSE": "Abusive or harassing messages",
+        "DISALLOWED_REQUEST": "A disallowed action was requested",
+        "SAFETY": "Safety concern",
+        "OFF_TOPIC_PERSISTENT": "Repeatedly out of scope",
+        "oversize": "Message too long",
+        "prompt_injection": "Prompt-injection attempt",
+        "system_exfiltration": "Attempt to reveal system instructions"
+      }
     }
   },
   "reasoning": {
@@ -246,7 +261,8 @@
       "requestTimeOff": "Submit a time-off request for you.",
       "listPendingApprovals": "List requests awaiting your approval.",
       "approveLeave": "Approve or reject a pending request.",
-      "getPayslip": "A payslip — your own, or anyone visible with elevated rights."
+      "getPayslip": "A payslip — your own, or anyone visible with elevated rights.",
+      "endConversation": "End the conversation and lock the chat — used only to decline abuse or unsafe requests."
     }
   },
   "login": {
@@ -442,6 +458,54 @@
     "myPendingDesc": "{count, plural, one {# in progress} other {# in progress}}",
     "approvalItem": "{name} · {type} leave",
     "myPendingItem": "Your {type} request is pending",
-    "viewAll": "View all"
+    "viewAll": "View all",
+    "alertDesc": "AI guardrail alert"
+  },
+  "alerts": {
+    "title": "AI Alerts",
+    "description": "Guardrail and observability alerts raised by the AI assistant.",
+    "empty": "No alerts to show.",
+    "system": "System",
+    "colAlert": "Alert",
+    "colSeverity": "Severity",
+    "colWho": "Triggered by",
+    "colWhen": "When",
+    "colStatus": "Status",
+    "colActions": "Actions",
+    "filter": {
+      "all": "All",
+      "OPEN": "Open",
+      "ACKNOWLEDGED": "Acknowledged",
+      "RESOLVED": "Resolved"
+    },
+    "status": {
+      "OPEN": "Open",
+      "ACKNOWLEDGED": "Acknowledged",
+      "RESOLVED": "Resolved"
+    },
+    "severity": {
+      "INFO": "Info",
+      "WARNING": "Warning",
+      "CRITICAL": "Critical"
+    },
+    "action": {
+      "acknowledge": "Acknowledge",
+      "resolve": "Resolve"
+    },
+    "kind": {
+      "AI_GUARD_BLOCK": {
+        "title": "Input blocked by guardrail"
+      },
+      "AI_REFUSAL": {
+        "title": "Repeated tool refusals"
+      },
+      "AI_ERROR": {
+        "title": "Assistant error"
+      },
+      "CONVERSATION_CLOSED": {
+        "title": "Assistant ended a conversation"
+      }
+    },
+    "colDetail": "Detail"
   }
 }

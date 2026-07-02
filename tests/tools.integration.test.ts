@@ -244,6 +244,7 @@ describe("tool catalogue — irrelevant tools aren't injected per role", () => {
         "getCurrentDateTime", // utilities, always available
         "getDateInfo",
         "businessDaysBetween",
+        "endConversation", // safety valve, always available
         "getEmployeeDirectory",
         "getLeaveBalances",
         "getPayslip",
@@ -259,6 +260,7 @@ describe("tool catalogue — irrelevant tools aren't injected per role", () => {
       expect(names).toContain("getCurrentDateTime");
       expect(names).toContain("getDateInfo");
       expect(names).toContain("businessDaysBetween");
+      expect(names).toContain("endConversation"); // safety valve for every role
     }
   });
 
