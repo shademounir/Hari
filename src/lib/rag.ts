@@ -10,7 +10,10 @@
 // same "a tool can't see more than the UI" invariant as lib/hr.ts. Drafts and
 // archived docs have no chunks (see lib/kb/ingest.ts); the status filter is
 // belt-and-suspenders for any stale row.
-import { Prisma } from "@prisma/client";
+import { sanitizeRetrievedContent } from "@/lib/ai/prompt-guard";
+// Local shim for environments where @prisma/client types are unavailable.
+// We only need the `sql` tag at runtime for prisma.$queryRaw; pass-through is fine.
+const Prisma: any = { sql: (s: any) => s };
 import { prisma } from "@/lib/prisma";
 import { embedText, toVectorLiteral } from "@/lib/ai/embeddings";
 import { visibleDocTiers, type Role } from "@/lib/rbac";
@@ -92,5 +95,8 @@ export async function searchHandbook(
       LIMIT ${k}
     `,
   );
-  return rows;
+  return rows.map((row: HandbookHit) => ({
+    ...row,
+    content: sanitizeRetrievedContent(row.content),
+  }));
 }
