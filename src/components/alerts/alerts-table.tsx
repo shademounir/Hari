@@ -31,7 +31,15 @@ type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
 const SEVERITY_VARIANT: Record<AlertSeverity, BadgeVariant> = {
   INFO: "outline",
   WARNING: "secondary",
-  CRITICAL: "destructive",
+  // Base variant; CRITICAL overrides the tint below with a solid red so the
+  // label keeps enough contrast (the shared `destructive` badge tint doesn't).
+  CRITICAL: "secondary",
+};
+
+const SEVERITY_CLASS: Record<AlertSeverity, string> = {
+  INFO: "",
+  WARNING: "",
+  CRITICAL: "border-transparent bg-destructive text-white",
 };
 
 const STATUS_VARIANT: Record<AlertStatus, BadgeVariant> = {
@@ -67,7 +75,9 @@ export function AlertsTable({ rows }: { rows: AlertRow[] }) {
           {rows.map((a) => (
             <TableRow key={a.id}>
               <TableCell>
-                <Badge variant={SEVERITY_VARIANT[a.severity]}>{t(`severity.${a.severity}`)}</Badge>
+                <Badge variant={SEVERITY_VARIANT[a.severity]} className={SEVERITY_CLASS[a.severity]}>
+                  {t(`severity.${a.severity}`)}
+                </Badge>
               </TableCell>
               <TableCell className="font-medium">{t(`kind.${a.kind}.title`)}</TableCell>
               <TableCell>
