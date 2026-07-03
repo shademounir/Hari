@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useCallback, useId, useState, useSyncExternalStore } from "react";
 import { useTranslations } from "next-intl";
 import { Link2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -27,18 +27,26 @@ export function SlugField({
   const t = useTranslations("kb");
   const id = useId();
   const [value, setValue] = useState(defaultValue);
-  const [collectionId, setCollectionId] = useState("");
 
-  // Mirror the collection <select> so the preview path stays accurate.
-  useEffect(() => {
-    if (!collections) return;
-    const sel = document.querySelector<HTMLSelectElement>('select[name="collectionId"]');
-    if (!sel) return;
-    setCollectionId(sel.value);
-    const onChange = () => setCollectionId(sel.value);
-    sel.addEventListener("change", onChange);
-    return () => sel.removeEventListener("change", onChange);
-  }, [collections]);
+  // Mirror the collection <select> (external DOM control) so the preview path
+  // stays accurate — subscribed directly, without a setState-in-effect.
+  const subscribe = useCallback(
+    (onChange: () => void) => {
+      if (!collections) return () => {};
+      const sel = document.querySelector<HTMLSelectElement>('select[name="collectionId"]');
+      sel?.addEventListener("change", onChange);
+      return () => sel?.removeEventListener("change", onChange);
+    },
+    [collections],
+  );
+  const collectionId = useSyncExternalStore(
+    subscribe,
+    () =>
+      collections
+        ? document.querySelector<HTMLSelectElement>('select[name="collectionId"]')?.value ?? ""
+        : "",
+    () => "",
+  );
 
   const effective = slugify(value);
   const changed = warnOnChange && !!originalSlug && !!effective && effective !== originalSlug;

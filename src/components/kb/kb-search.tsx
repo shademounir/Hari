@@ -33,23 +33,25 @@ export function KbSearch() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  useEffect(() => {
-    if (!open) {
+  // Reset the palette on close in the open-change handler (not an effect) so we
+  // don't setState while merely reacting to the `open` flag. Routed through here
+  // by every close path: Escape/backdrop, selecting a result (go), and ⌘K toggle.
+  const onOpenChange = (next: boolean) => {
+    setOpen(next);
+    if (!next) {
       setQ("");
-      setResults([]);
       setActive(0);
     }
-  }, [open]);
+  };
 
   useEffect(() => {
     if (!open) return;
     const query = q.trim();
-    if (query.length < 2) {
-      setResults([]);
-      return;
-    }
-    setLoading(true);
+    if (query.length < 2) return; // too short to search; the render shows the hint
+    // Debounce the fetch; loading flips inside the callback so there's no
+    // setState synchronously in the effect body.
     const id = setTimeout(async () => {
+      setLoading(true);
       try {
         const res = await fetch(`/api/kb/search?q=${encodeURIComponent(query)}`);
         const data = (await res.json()) as { results: KbSearchResult[] };
@@ -65,7 +67,7 @@ export function KbSearch() {
   }, [q, open]);
 
   const go = (r: KbSearchResult) => {
-    setOpen(false);
+    onOpenChange(false);
     router.push(r.url);
   };
 
@@ -83,7 +85,7 @@ export function KbSearch() {
   };
 
   return (
-    <Dialog.Root open={open} onOpenChange={setOpen}>
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Trigger render={<Button size="sm" variant="outline" />}>
         <Search className="size-4" /> {t("searchLabel")}
         <kbd className="ml-1 hidden rounded border bg-muted px-1 text-[10px] text-muted-foreground sm:inline">
@@ -111,7 +113,8 @@ export function KbSearch() {
             />
           </div>
           <ul className="max-h-80 overflow-auto p-1">
-            {results.map((r, i) => (
+            {q.trim().length >= 2 &&
+              results.map((r, i) => (
               <li key={r.id}>
                 <button
                   type="button"

@@ -25,13 +25,15 @@ const schema = {
   },
 };
 
-const heading =
-  (Tag: "h2" | "h3", cls: string) =>
-  ({ id, children }: { id?: string; children?: ReactNode }) => (
+const heading = (Tag: "h2" | "h3", cls: string) => {
+  const Heading = ({ id, children }: { id?: string; children?: ReactNode }) => (
     <Tag id={id} className={`scroll-mt-24 ${cls}`}>
       {children}
     </Tag>
   );
+  Heading.displayName = `Heading(${Tag})`;
+  return Heading;
+};
 
 const components = {
   h1: ({ children }: { children?: ReactNode }) => (

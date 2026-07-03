@@ -97,6 +97,7 @@ async function LeaveTable({
     days: number;
     status: string;
     reason: string | null;
+    decisionNote: string | null;
   }[];
   showWho: boolean;
 }) {
@@ -121,6 +122,7 @@ async function LeaveTable({
             <TableHead>{t("dates")}</TableHead>
             <TableHead>{t("days")}</TableHead>
             <TableHead>{t("reason")}</TableHead>
+            <TableHead>{tc("decisionNote")}</TableHead>
             <TableHead className="text-right">{t("status")}</TableHead>
           </TableRow>
         </TableHeader>
@@ -135,6 +137,9 @@ async function LeaveTable({
               <TableCell>{r.days}</TableCell>
               <TableCell className="max-w-[16rem] truncate text-muted-foreground">
                 {r.reason ?? tc("none")}
+              </TableCell>
+              <TableCell className="max-w-[16rem] truncate text-muted-foreground">
+                {r.decisionNote ?? tc("none")}
               </TableCell>
               <TableCell className="text-right">
                 <Badge variant={STATUS_VARIANT[r.status] ?? "outline"}>

@@ -92,7 +92,8 @@ model LeaveRequest {
   startDate  DateTime
   endDate    DateTime
   days       Int
-  reason     String?
+  reason     String? // the requester's stated reason for the leave
+  decisionNote String? // the approver's note (required on rejection) — SCRUM-071 B1
   status     LeaveStatus @default(PENDING)
   approver   Employee?   @relation("Approver", fields: [approverId], references: [id])
   approverId String?

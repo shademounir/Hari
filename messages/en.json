@@ -5,7 +5,9 @@
   },
   "common": {
     "you": "You",
-    "none": "—"
+    "none": "—",
+    "cancel": "Cancel",
+    "decisionNote": "Decision note"
   },
   "languageSwitcher": {
     "label": "Language",
@@ -16,6 +18,7 @@
     "dashboard": "Dashboard",
     "assistant": "AI Assistant",
     "directory": "Directory",
+    "team": "My Team",
     "timeOff": "Time Off",
     "settings": "Settings",
     "signOut": "Sign out",
@@ -47,6 +50,7 @@
     "leave:request": "Request time off",
     "leave:read:self": "View own leave",
     "leave:approve": "Approve / reject leave",
+    "dashboard:read:team": "View team KPI dashboard",
     "payslip:read:self": "View own payslips",
     "payslip:read:any": "View anyone's payslips",
     "handbook:read": "Ask the handbook (RAG)",
@@ -112,6 +116,73 @@
     "FULL_TIME": "Full-time",
     "PART_TIME": "Part-time",
     "CONTRACTOR": "Contractor"
+  },
+  "team": {
+    "title": "Team Dashboard",
+    "description": "Key metrics for the people who report to you.",
+    "last7Days": "Last 7 days",
+    "kpi": {
+      "headcount": "Team headcount",
+      "pendingRequests": "Pending HR requests",
+      "aiTurns7d": "AI assistant turns",
+      "aiRefusals7d": "AI refusals"
+    },
+    "anomaly": {
+      "normal": "Normal",
+      "elevated": "Elevated",
+      "high": "High",
+      "insufficient_data": "No baseline"
+    },
+    "capacity": {
+      "title": "Team capacity",
+      "description": "How many teammates are on leave each day over the coming weeks. Darker means more people off — and a higher risk of being short-staffed.",
+      "busiest": "Busiest day: {date} — {count} of {total} teammates off ({pct}%).",
+      "allClear": "No overlapping leave ahead — full coverage every day.",
+      "onLeave": "on leave",
+      "risk": "Risk of being short-staffed",
+      "none": "None",
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "fewer": "Fewer off",
+      "more": "More off"
+    },
+    "pendingApprovals": "Pending approvals",
+    "noPending": "No pending requests from your team.",
+    "employee": "Employee",
+    "type": "Type",
+    "dates": "Dates",
+    "days": "Days",
+    "reason": "Reason",
+    "actions": "Actions",
+    "approve": "Approve",
+    "reject": "Reject",
+    "status": "Status",
+    "leaveHistory": "Leave history",
+    "filters": "Filters",
+    "searchPlaceholder": "Search by employee name…",
+    "optionPlaceholder": "Filter options…",
+    "filterStatus": "Status",
+    "filterType": "Type",
+    "filterDepartment": "Department",
+    "clearFilters": "Clear filters",
+    "noMatching": "No leave requests match these filters.",
+    "selectAll": "Select all",
+    "selectRow": "Select {name}",
+    "selectedCount": "{count, plural, one {# selected} other {# selected}}",
+    "approveSelected": "Approve selected",
+    "rejectSelected": "Reject selected",
+    "rejectDialog": {
+      "title": "Reject request",
+      "titleBulk": "Reject {count} requests",
+      "description": "A reason is required. It is shared with the employee.",
+      "placeholder": "Explain why this request is being rejected…"
+    },
+    "toast": {
+      "approved": "{count, plural, one {# request approved} other {# requests approved}}",
+      "rejected": "{count, plural, one {# request rejected} other {# requests rejected}}",
+      "failed": "Nothing changed — the request may have already been handled."
+    }
   },
   "timeOff": {
     "title": "Time Off",

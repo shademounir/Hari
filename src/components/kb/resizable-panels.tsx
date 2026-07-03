@@ -37,10 +37,15 @@ export function ResizablePanels({
     setWidth(c);
   };
 
+  // Adopt the persisted width AFTER mount, on purpose: reading localStorage during
+  // render (lazy init) would hydration-mismatch the SSR'd default, and the width is
+  // also driven live by dragging — so useSyncExternalStore doesn't fit. One-time
+  // post-mount sync is the right tool here.
   useEffect(() => {
     const saved = Number(localStorage.getItem(storageKey));
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- post-mount adoption of persisted width (see above)
     if (saved) apply(saved);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-run only when the storage key changes; `apply` is stable
   }, [storageKey]);
 
   const persist = () => localStorage.setItem(storageKey, String(widthRef.current));

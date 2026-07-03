@@ -24,6 +24,7 @@ export const PERMISSIONS = [
   "leave:request", // submit time-off
   "leave:read:self",
   "leave:approve", // approve/reject requests
+  "dashboard:read:team", // view aggregated team KPIs (headcount, pending, AI usage)
   "payslip:read:self",
   "payslip:read:any",
   "handbook:read", // RAG over the handbook / read the knowledge base
@@ -42,6 +43,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   "leave:request": "Request time off",
   "leave:read:self": "View own leave",
   "leave:approve": "Approve / reject leave",
+  "dashboard:read:team": "View team KPI dashboard",
   "payslip:read:self": "View own payslips",
   "payslip:read:any": "View anyone's payslips",
   "handbook:read": "Ask the handbook (RAG)",
@@ -63,6 +65,7 @@ const MANAGER: Permission[] = [
   ...EMPLOYEE,
   "directory:read:team",
   "leave:approve",
+  "dashboard:read:team",
 ];
 
 const HR_ADMIN: Permission[] = [

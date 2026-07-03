@@ -6,6 +6,7 @@ import {
   CalendarDays,
   BookOpen,
   BellRing,
+  Gauge,
   Settings,
 } from "lucide-react";
 import type { Permission } from "@/lib/rbac";
@@ -20,6 +21,7 @@ export type NavKey =
   | "dashboard"
   | "assistant"
   | "directory"
+  | "team"
   | "timeOff"
   | "knowledgeBase"
   | "alerts"
@@ -37,6 +39,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/", key: "dashboard", icon: LayoutDashboard },
   { href: "/chat", key: "assistant", icon: Bot },
   { href: "/directory", key: "directory", icon: Users },
+  { href: "/team", key: "team", icon: Gauge, permission: "dashboard:read:team" },
   { href: "/time-off", key: "timeOff", icon: CalendarDays },
   { href: "/kb", key: "knowledgeBase", icon: BookOpen },
   { href: "/alerts", key: "alerts", icon: BellRing, permission: "alerts:read" },
