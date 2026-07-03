@@ -38,6 +38,7 @@ export default async function AlertsPage({
     subjectName: a.subjectName,
     createdAt: a.createdAt.toISOString(),
     acknowledgedByName: a.acknowledgedByName,
+    resolvedByName: a.resolvedByName,
     resolvedAt: a.resolvedAt?.toISOString() ?? null,
   }));
 

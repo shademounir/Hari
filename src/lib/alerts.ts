@@ -26,6 +26,7 @@ export type AlertView = {
   resolvedAt: Date | null;
   subjectName: string | null; // who triggered it (null if system / deleted)
   acknowledgedByName: string | null;
+  resolvedByName: string | null;
 };
 
 export type CreateAlertInput = {
@@ -92,6 +93,7 @@ const SELECT = {
   resolvedAt: true,
   subject: { select: { name: true } },
   acknowledgedBy: { select: { name: true } },
+  resolvedBy: { select: { name: true } },
 } satisfies Prisma.AlertSelect;
 
 type AlertRow = Prisma.AlertGetPayload<{ select: typeof SELECT }>;
@@ -108,6 +110,7 @@ const toView = (a: AlertRow): AlertView => ({
   resolvedAt: a.resolvedAt,
   subjectName: a.subject?.name ?? null,
   acknowledgedByName: a.acknowledgedBy?.name ?? null,
+  resolvedByName: a.resolvedBy?.name ?? null,
 });
 
 /** Open (un-resolved) alerts for the bell. Empty unless the caller may read alerts. */
@@ -149,16 +152,15 @@ export async function acknowledgeAlert(actor: AlertActor, id: string): Promise<b
 }
 
 /**
- * Resolve an alert (from any non-resolved state), stamping when. Deliberately does
- * NOT touch `ackById`: that field records the *acknowledger*, so overwriting it here
- * would make `acknowledgedByName` show the resolver. (A precise "who resolved" is a
- * follow-up: a separate `resolvedById` column.)
+ * Resolve an alert (from any non-resolved state), stamping the resolver + time.
+ * Uses `resolvedById` (not `ackById`) so the acknowledger and the resolver stay
+ * distinct in the audit.
  */
 export async function resolveAlert(actor: AlertActor, id: string): Promise<boolean> {
   if (!can(actor.role, "alerts:read")) return false;
   const res = await prisma.alert.updateMany({
     where: { id, status: { not: "RESOLVED" } },
-    data: { status: "RESOLVED", resolvedAt: new Date() },
+    data: { status: "RESOLVED", resolvedAt: new Date(), resolvedById: actor.userId },
   });
   return res.count > 0;
 }
@@ -172,7 +174,7 @@ export async function reopenAlert(actor: AlertActor, id: string): Promise<boolea
   if (!can(actor.role, "alerts:read")) return false;
   const res = await prisma.alert.updateMany({
     where: { id, status: "RESOLVED" },
-    data: { status: "OPEN", resolvedAt: null, ackById: null },
+    data: { status: "OPEN", resolvedAt: null, resolvedById: null, ackById: null },
   });
   return res.count > 0;
 }

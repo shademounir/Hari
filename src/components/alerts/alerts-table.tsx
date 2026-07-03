@@ -22,6 +22,7 @@ export type AlertRow = {
   subjectName: string | null;
   createdAt: string; // ISO
   acknowledgedByName: string | null;
+  resolvedByName: string | null;
   resolvedAt: string | null; // ISO, when resolved
 };
 
@@ -62,7 +63,7 @@ export function AlertsTable({ rows }: { rows: AlertRow[] }) {
     }
     if (a.status === "RESOLVED" && a.resolvedAt) {
       const when = format.dateTime(new Date(a.resolvedAt), { dateStyle: "medium" });
-      return a.acknowledgedByName ? `${when} · ${t("by", { name: a.acknowledgedByName })}` : when;
+      return a.resolvedByName ? `${when} · ${t("by", { name: a.resolvedByName })}` : when;
     }
     return null;
   }
