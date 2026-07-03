@@ -469,7 +469,7 @@
     "colAlert": "Alert",
     "colSeverity": "Severity",
     "colWho": "Triggered by",
-    "colWhen": "When",
+    "colWhen": "Raised",
     "colStatus": "Status",
     "colActions": "Actions",
     "filter": {

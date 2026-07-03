@@ -469,7 +469,7 @@
     "colAlert": "Alerte",
     "colSeverity": "Gravité",
     "colWho": "Déclenchée par",
-    "colWhen": "Quand",
+    "colWhen": "Créée le",
     "colStatus": "Statut",
     "colActions": "Actions",
     "filter": {

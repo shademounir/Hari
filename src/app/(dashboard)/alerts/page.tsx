@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import type { AlertStatus } from "@prisma/client";
 import { requireUser } from "@/lib/session";
 import { can } from "@/lib/rbac";
-import { getAlerts, alertDetail } from "@/lib/alerts";
+import { getAlerts, getAlertStatusCounts, alertDetail } from "@/lib/alerts";
 import { PageHeader } from "@/components/layout/page-header";
 import { ButtonLink } from "@/components/ui/button-link";
 import { AlertsTable, type AlertRow } from "@/components/alerts/alerts-table";
@@ -25,7 +25,10 @@ export default async function AlertsPage({
   const { status: raw } = await searchParams;
   const status = isStatus(raw) ? raw : undefined; // undefined = "all"
 
-  const alerts = await getAlerts({ role: user.role }, status ? { status } : undefined);
+  const [alerts, counts] = await Promise.all([
+    getAlerts({ role: user.role }, status ? { status } : undefined),
+    getAlertStatusCounts({ role: user.role }),
+  ]);
   const t = await getTranslations("alerts");
 
   // Serialize for the client table (Dates → ISO; detail precomputed once).
@@ -42,10 +45,11 @@ export default async function AlertsPage({
     resolvedAt: a.resolvedAt?.toISOString() ?? null,
   }));
 
-  // Server-rendered status filter — plain links, no client state.
-  const tabs: { key: "all" | AlertStatus; href: string }[] = [
-    { key: "all", href: "/alerts" },
-    ...STATUSES.map((s) => ({ key: s, href: `/alerts?status=${s}` })),
+  // Server-rendered status filter — plain links, no client state. Each tab shows
+  // its count so the workload is visible before you click.
+  const tabs: { key: "all" | AlertStatus; href: string; count: number }[] = [
+    { key: "all", href: "/alerts", count: counts.all },
+    ...STATUSES.map((s) => ({ key: s, href: `/alerts?status=${s}`, count: counts[s] })),
   ];
   const active = status ?? "all";
 
@@ -63,6 +67,7 @@ export default async function AlertsPage({
               aria-current={active === tab.key ? "page" : undefined}
             >
               {t(`filter.${tab.key}`)}
+              <span className="ml-1.5 text-xs opacity-60">{tab.count}</span>
             </ButtonLink>
           ))}
         </div>

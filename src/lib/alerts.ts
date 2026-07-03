@@ -125,6 +125,20 @@ export async function getOpenAlerts(actor: { role: Role }, limit = 20): Promise<
   return rows.map(toView);
 }
 
+export type AlertStatusCounts = { OPEN: number; ACKNOWLEDGED: number; RESOLVED: number; all: number };
+
+/** Per-status totals for the /alerts filter tabs. Zeroed unless the caller may read alerts. */
+export async function getAlertStatusCounts(actor: { role: Role }): Promise<AlertStatusCounts> {
+  const counts: AlertStatusCounts = { OPEN: 0, ACKNOWLEDGED: 0, RESOLVED: 0, all: 0 };
+  if (!can(actor.role, "alerts:read")) return counts;
+  const grouped = await prisma.alert.groupBy({ by: ["status"], _count: { _all: true } });
+  for (const g of grouped) {
+    counts[g.status] = g._count._all;
+    counts.all += g._count._all;
+  }
+  return counts;
+}
+
 /** Full alert list for the /alerts page, optionally filtered by status. */
 export async function getAlerts(
   actor: { role: Role },
