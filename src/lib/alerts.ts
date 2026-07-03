@@ -148,12 +148,31 @@ export async function acknowledgeAlert(actor: AlertActor, id: string): Promise<b
   return res.count > 0;
 }
 
-/** Resolve an alert (from any non-resolved state), stamping the resolver + time. */
+/**
+ * Resolve an alert (from any non-resolved state), stamping when. Deliberately does
+ * NOT touch `ackById`: that field records the *acknowledger*, so overwriting it here
+ * would make `acknowledgedByName` show the resolver. (A precise "who resolved" is a
+ * follow-up: a separate `resolvedById` column.)
+ */
 export async function resolveAlert(actor: AlertActor, id: string): Promise<boolean> {
   if (!can(actor.role, "alerts:read")) return false;
   const res = await prisma.alert.updateMany({
     where: { id, status: { not: "RESOLVED" } },
-    data: { status: "RESOLVED", ackById: actor.userId, resolvedAt: new Date() },
+    data: { status: "RESOLVED", resolvedAt: new Date() },
+  });
+  return res.count > 0;
+}
+
+/**
+ * Reopen a resolved alert, returning it to a pristine OPEN (clears the resolver
+ * timestamp and any acknowledger) so it re-enters triage and the bell. For the
+ * "closed by mistake" case. No-op unless the caller may read alerts.
+ */
+export async function reopenAlert(actor: AlertActor, id: string): Promise<boolean> {
+  if (!can(actor.role, "alerts:read")) return false;
+  const res = await prisma.alert.updateMany({
+    where: { id, status: "RESOLVED" },
+    data: { status: "OPEN", resolvedAt: null, ackById: null },
   });
   return res.count > 0;
 }

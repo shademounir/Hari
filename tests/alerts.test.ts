@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { can } from "@/lib/rbac";
-import { getOpenAlerts, getAlerts, alertDetail } from "@/lib/alerts";
+import { getOpenAlerts, getAlerts, reopenAlert, alertDetail } from "@/lib/alerts";
 
 describe("alerts — RBAC gating", () => {
   it("only HR_ADMIN / SUPER_ADMIN hold alerts:read", () => {
@@ -16,6 +16,11 @@ describe("alerts — RBAC gating", () => {
     expect(await getOpenAlerts({ role: "MANAGER" })).toEqual([]);
     expect(await getAlerts({ role: "EMPLOYEE" })).toEqual([]);
     expect(await getAlerts({ role: "MANAGER" }, { status: "OPEN" })).toEqual([]);
+  });
+
+  it("triage helpers no-op for roles without alerts:read (no DB access)", async () => {
+    expect(await reopenAlert({ role: "EMPLOYEE", userId: "u1" }, "any")).toBe(false);
+    expect(await reopenAlert({ role: "MANAGER", userId: "u1" }, "any")).toBe(false);
   });
 });
 

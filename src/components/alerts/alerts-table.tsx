@@ -1,11 +1,8 @@
 "use client";
 
-import { useTransition } from "react";
 import { useTranslations, useFormatter } from "next-intl";
 import type { AlertKind, AlertSeverity, AlertStatus } from "@prisma/client";
-import { Check, CheckCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -14,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { acknowledgeAlertAction, resolveAlertAction } from "@/app/(dashboard)/alerts/actions";
+import { AlertRowActions } from "./alert-row-actions";
 
 export type AlertRow = {
   id: string;
@@ -24,6 +21,8 @@ export type AlertRow = {
   detail: string | null;
   subjectName: string | null;
   createdAt: string; // ISO
+  acknowledgedByName: string | null;
+  resolvedAt: string | null; // ISO, when resolved
 };
 
 type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
@@ -51,10 +50,21 @@ const STATUS_VARIANT: Record<AlertStatus, BadgeVariant> = {
 export function AlertsTable({ rows }: { rows: AlertRow[] }) {
   const t = useTranslations("alerts");
   const format = useFormatter();
-  const [pending, startTransition] = useTransition();
 
   if (rows.length === 0) {
     return <p className="py-10 text-center text-sm text-muted-foreground">{t("empty")}</p>;
+  }
+
+  // Small "who / when" line under the status badge, from data we already fetch.
+  function auditLine(a: AlertRow): string | null {
+    if (a.status === "ACKNOWLEDGED" && a.acknowledgedByName) {
+      return t("by", { name: a.acknowledgedByName });
+    }
+    if (a.status === "RESOLVED" && a.resolvedAt) {
+      const when = format.dateTime(new Date(a.resolvedAt), { dateStyle: "medium" });
+      return a.acknowledgedByName ? `${when} · ${t("by", { name: a.acknowledgedByName })}` : when;
+    }
+    return null;
   }
 
   return (
@@ -72,58 +82,39 @@ export function AlertsTable({ rows }: { rows: AlertRow[] }) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {rows.map((a) => (
-            <TableRow key={a.id}>
-              <TableCell>
-                <Badge variant={SEVERITY_VARIANT[a.severity]} className={SEVERITY_CLASS[a.severity]}>
-                  {t(`severity.${a.severity}`)}
-                </Badge>
-              </TableCell>
-              <TableCell className="font-medium">{t(`kind.${a.kind}.title`)}</TableCell>
-              <TableCell>
-                {a.detail ? (
-                  <code className="rounded bg-muted px-1 py-0.5 text-xs">{a.detail}</code>
-                ) : (
-                  <span className="text-muted-foreground">—</span>
-                )}
-              </TableCell>
-              <TableCell className="text-sm text-muted-foreground">
-                {a.subjectName ?? t("system")}
-              </TableCell>
-              <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
-                {format.dateTime(new Date(a.createdAt), { dateStyle: "medium", timeStyle: "short" })}
-              </TableCell>
-              <TableCell>
-                <Badge variant={STATUS_VARIANT[a.status]}>{t(`status.${a.status}`)}</Badge>
-              </TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end gap-1">
-                  {a.status === "OPEN" && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={pending}
-                      onClick={() => startTransition(() => acknowledgeAlertAction(a.id))}
-                    >
-                      <Check className="size-3.5" />
-                      <span className="hidden sm:inline">{t("action.acknowledge")}</span>
-                    </Button>
+          {rows.map((a) => {
+            const audit = auditLine(a);
+            return (
+              <TableRow key={a.id}>
+                <TableCell>
+                  <Badge variant={SEVERITY_VARIANT[a.severity]} className={SEVERITY_CLASS[a.severity]}>
+                    {t(`severity.${a.severity}`)}
+                  </Badge>
+                </TableCell>
+                <TableCell className="font-medium">{t(`kind.${a.kind}.title`)}</TableCell>
+                <TableCell>
+                  {a.detail ? (
+                    <code className="rounded bg-muted px-1 py-0.5 text-xs">{a.detail}</code>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
                   )}
-                  {a.status !== "RESOLVED" && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={pending}
-                      onClick={() => startTransition(() => resolveAlertAction(a.id))}
-                    >
-                      <CheckCheck className="size-3.5" />
-                      <span className="hidden sm:inline">{t("action.resolve")}</span>
-                    </Button>
-                  )}
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {a.subjectName ?? t("system")}
+                </TableCell>
+                <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
+                  {format.dateTime(new Date(a.createdAt), { dateStyle: "medium", timeStyle: "short" })}
+                </TableCell>
+                <TableCell>
+                  <Badge variant={STATUS_VARIANT[a.status]}>{t(`status.${a.status}`)}</Badge>
+                  {audit && <p className="mt-1 text-xs text-muted-foreground">{audit}</p>}
+                </TableCell>
+                <TableCell className="text-right">
+                  <AlertRowActions id={a.id} status={a.status} />
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>
