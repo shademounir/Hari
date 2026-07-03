@@ -206,6 +206,24 @@ function buildAllHrTools(caller: ToolCaller, timezone = "UTC") {
       },
     }),
 
+    // ── Safety: end the conversation ────────────────────────────────────
+    // A guardrail primitive available to EVERY role. The model calls it to
+    // decline and CLOSE the chat when a request is abusive, disallowed/unsafe,
+    // or persistently off-scope after a redirect. The structured `{ closed }`
+    // result is detected server-side (route onStepFinish → AiEvent + Alert) and
+    // client-side (locks the composer). Store only the reason code — no PII.
+    endConversation: tool({
+      description:
+        "End the current conversation and lock the chat. Call this ONLY as a last resort when the user is abusive/harassing, insists on a disallowed or unsafe action, or keeps pushing a request that is out of scope after you've redirected them. Before calling it, briefly tell the user you're ending the chat and why. Prefer to keep helping — never use this for a normal out-of-scope question you can simply decline.",
+      inputSchema: z.object({
+        reason: ciEnum(["ABUSE", "DISALLOWED_REQUEST", "SAFETY", "OFF_TOPIC_PERSISTENT"]).describe(
+          "Why the conversation is being ended.",
+        ),
+      }),
+      // No auth: it removes nothing and reads nothing — it's a safety valve.
+      execute: async ({ reason }) => ({ closed: true as const, reason }),
+    }),
+
     // ── RAG over the handbook ───────────────────────────────────────────
     searchHandbook: tool({
       description:
@@ -445,6 +463,8 @@ export const TOOL_CATALOGUE = [
   { name: "getCurrentDateTime", permission: null },
   { name: "getDateInfo", permission: null },
   { name: "businessDaysBetween", permission: null },
+  { name: "endConversation", permission: null }, // safety valve — every role
+
   { name: "searchHandbook", permission: "handbook:read" },
   { name: "getEmployeeDirectory", permission: "directory:read:self" },
   { name: "getLeaveBalances", permission: "leave:read:self" },

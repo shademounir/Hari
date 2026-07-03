@@ -45,4 +45,13 @@ Vercel AI SDK v6 · OpenRouter (chat + embeddings) · Postgres + pgvector (`half
   `next/image` optimizes them; the browser never talks to MinIO. Uploads go through
   `POST /api/kb/upload` (gated on `kb:manage`); `KbCollection.image` stores the `/api/kb/images/…`
   path. `S3_*` / `MINIO_*` env vars configure it (see `.env.example`).
+- **AI observability + guardrails** (SCRUM-062/063): every chat turn writes an `AiEvent`
+  (`lib/ai/events.ts`, from the `streamText` `onStepFinish`/`onFinish`/`onError` callbacks in
+  `api/chat/route.ts`) — **metadata only**: role, model, token counts, latency, finish reason, tool
+  name, refusal/error/guard codes. **Never** store prompt/response text, names, or salary. Guardrails
+  are three layers: the per-role tool advertising above; a deterministic pre-model input guard
+  (`lib/ai/guardrails.ts`, unit-tested) that blocks oversize/injection before spending a model call;
+  and an `endConversation` tool the model calls to decline + **lock the chat** (client shows a notice,
+  New Chat re-enables). Guard blocks, conversation closes, errors, and repeated refusals raise an
+  `Alert` (`lib/alerts.ts`) surfaced to Admin/HR (`alerts:read`) in the bell + the `/alerts` page.
 - Secrets stay in `.env` (git-ignored) and are read only in server code / Route Handlers.

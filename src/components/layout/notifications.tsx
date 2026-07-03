@@ -23,6 +23,7 @@ export function Notifications() {
   const router = useRouter();
   const t = useTranslations("topbar");
   const tLeave = useTranslations("leaveType");
+  const tAlert = useTranslations("alerts");
   const format = useFormatter();
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [error, setError] = useState(false);
@@ -60,10 +61,19 @@ export function Notifications() {
   const viewAllHref = items[0]?.href ?? "/time-off";
 
   function titleFor(n: NotificationItem): string {
+    if (n.kind === "alert") return tAlert(`kind.${n.alertKind}.title`);
     const type = tLeave(n.leaveType);
     return n.kind === "approval"
       ? t("approvalItem", { name: n.employeeName ?? "", type })
       : t("myPendingItem", { type });
+  }
+
+  function descFor(n: NotificationItem): string {
+    if (n.kind === "alert") {
+      const sev = tAlert(`severity.${n.severity}`);
+      return n.detail ? `${sev} · ${n.detail}` : sev;
+    }
+    return `${fmt(n.startDate)} → ${fmt(n.endDate)}`;
   }
 
   function fmt(iso: string): string {
@@ -130,9 +140,7 @@ export function Notifications() {
                 className="flex-col items-start gap-0.5 py-2"
               >
                 <span className="text-sm font-medium text-foreground">{titleFor(n)}</span>
-                <span className="text-xs text-muted-foreground">
-                  {fmt(n.startDate)} → {fmt(n.endDate)}
-                </span>
+                <span className="text-xs text-muted-foreground">{descFor(n)}</span>
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />

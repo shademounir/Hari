@@ -39,6 +39,7 @@ end-to-end, yet every piece is independently swappable and production-grade.
 - **Generative UI** — tool results render as React components (employee cards, leave widgets, payslips), not walls of text.
 - **Knowledge base with anchor-cited RAG** — a governed KB (collections, draft/publish lifecycle, 3-tier access) authored in a Notion-style editor; **hybrid search** (vector + full-text, RRF-fused) and answers that cite the exact article section.
 - **Multi-step** — the assistant chains tools (e.g. *check balance → submit request*).
+- **Observability + guardrails** — every chat turn is traced to an `AiEvent` (metadata only — tokens, latency, tool/refusal/error codes; **never** message content or PII). A deterministic input guard blocks injection/oversize before the model runs, and the model can call `endConversation` to decline and lock the chat. Guard blocks, closes, errors, and repeated refusals raise an `Alert` for Admin/HR — shown in the bell and a dedicated `/alerts` page.
 - **Four demo roles** — one click to sign in and watch the whole experience change.
 
 ---

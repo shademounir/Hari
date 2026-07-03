@@ -29,6 +29,7 @@ export const PERMISSIONS = [
   "handbook:read", // RAG over the handbook / read the knowledge base
   "kb:manage", // create/edit/publish/archive KB documents & collections
   "employee:manage", // create/edit employees
+  "alerts:read", // view + triage AI observability alerts (Admin/HR)
   "admin:settings", // platform settings
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
@@ -46,6 +47,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   "handbook:read": "Ask the handbook (RAG)",
   "kb:manage": "Manage the knowledge base",
   "employee:manage": "Manage employee records",
+  "alerts:read": "View AI alerts",
   "admin:settings": "Manage platform settings",
 };
 
@@ -70,6 +72,7 @@ const HR_ADMIN: Permission[] = [
   "payslip:read:any",
   "employee:manage",
   "kb:manage",
+  "alerts:read",
 ];
 
 const SUPER_ADMIN: Permission[] = [

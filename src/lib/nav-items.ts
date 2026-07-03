@@ -5,6 +5,7 @@ import {
   Users,
   CalendarDays,
   BookOpen,
+  BellRing,
   Settings,
 } from "lucide-react";
 import type { Permission } from "@/lib/rbac";
@@ -21,6 +22,7 @@ export type NavKey =
   | "directory"
   | "timeOff"
   | "knowledgeBase"
+  | "alerts"
   | "settings";
 
 export type NavItem = {
@@ -37,6 +39,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/directory", key: "directory", icon: Users },
   { href: "/time-off", key: "timeOff", icon: CalendarDays },
   { href: "/kb", key: "knowledgeBase", icon: BookOpen },
+  { href: "/alerts", key: "alerts", icon: BellRing, permission: "alerts:read" },
   {
     href: "/settings",
     key: "settings",

@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { ArrowUp, Square, Bot, Plus, RotateCcw, X } from "lucide-react";
+import { ArrowUp, Square, Bot, Plus, RotateCcw, X, Lock } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { type ChatModel, DEFAULT_MODEL_ID, CHAT_ERROR_CODES } from "@/lib/ai/providers";
 import { can, type Role } from "@/lib/rbac";
@@ -20,6 +20,45 @@ import {
 } from "@/components/ui/select";
 
 const MODEL_STORAGE_KEY = "hari.chat.model";
+
+// Close reasons that have a localized label (chat.closed.reason.<x>). Covers both
+// the model's endConversation reasons and the deterministic guard's rules; an
+// unknown value falls back to the generic body text so the UI never shows a raw key.
+const CLOSE_REASONS = new Set([
+  "ABUSE",
+  "DISALLOWED_REQUEST",
+  "SAFETY",
+  "OFF_TOPIC_PERSISTENT",
+  "oversize",
+  "prompt_injection",
+  "system_exfiltration",
+]);
+
+// A loose view of a UIMessage part — enough to spot the "conversation closed"
+// signal from either the endConversation tool output or the guard's data part.
+type LoosePart = { type: string; state?: string; output?: unknown; data?: unknown };
+
+/**
+ * The conversation is locked once the assistant ends it — either the model called
+ * endConversation ({ closed:true }) or the server's input guard emitted a
+ * `data-conversationClosed` part. Returns the reason code, or null if still open.
+ */
+function deriveClosedReason(messages: { parts?: unknown[] }[]): string | null {
+  for (const m of messages) {
+    for (const raw of m.parts ?? []) {
+      const p = raw as LoosePart;
+      if (p.type === "data-conversationClosed") {
+        const d = p.data as { reason?: string } | undefined;
+        return d?.reason ?? "SAFETY";
+      }
+      if (p.type === "tool-endConversation" && p.state === "output-available") {
+        const o = p.output as { closed?: boolean; reason?: string } | undefined;
+        if (o?.closed) return o.reason ?? "SAFETY";
+      }
+    }
+  }
+  return null;
+}
 
 // The codes the server emits (chat.errors.<code>). Single source of truth shared
 // with the route via CHAT_ERROR_CODES; anything else → generic / network.
@@ -47,6 +86,8 @@ export function Chat({
   const tRoles = useTranslations("roles");
   const [modelId, setModelId] = useState(DEFAULT_MODEL_ID);
   const [input, setInput] = useState("");
+  // Opaque id grouping this chat's server-side AiEvents; reset on New Chat.
+  const [conversationId, setConversationId] = useState(() => crypto.randomUUID());
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   // Whether the viewport is pinned to the bottom — so streaming tokens don't yank
@@ -60,6 +101,8 @@ export function Chat({
 
   const busy = status === "submitted" || status === "streaming";
   const suggestionKeys = suggestionKeysFor(user.role);
+  // Once the assistant ends the chat, the composer is locked until New Chat.
+  const closedReason = deriveClosedReason(messages);
 
   // Restore the previously chosen model (if it's still available in this env).
   // Done in an effect (not lazy state) so SSR and first client render agree —
@@ -90,9 +133,9 @@ export function Chat({
 
   function submit(text: string) {
     const value = text.trim();
-    if (!value || busy) return;
+    if (!value || busy || closedReason) return;
     pinnedRef.current = true; // sending should always scroll to the new message
-    sendMessage({ text: value }, { body: { modelKey: modelId } });
+    sendMessage({ text: value }, { body: { modelKey: modelId, conversationId } });
     setInput("");
     inputRef.current?.focus(); // keep keyboard focus in the composer
   }
@@ -102,6 +145,7 @@ export function Chat({
     clearError();
     setMessages([]);
     setInput("");
+    setConversationId(crypto.randomUUID()); // a fresh conversation → new trace group
     inputRef.current?.focus();
   }
 
@@ -208,7 +252,7 @@ export function Chat({
               ) : (
                 // Retry on the SAME model the user has selected (regenerate() alone
                 // drops the body, silently falling back to the default model).
-                <Button size="sm" variant="ghost" onClick={() => regenerate({ body: { modelKey: modelId } })} className="h-7 text-destructive hover:text-destructive">
+                <Button size="sm" variant="ghost" onClick={() => regenerate({ body: { modelKey: modelId, conversationId } })} className="h-7 text-destructive hover:text-destructive">
                   <RotateCcw className="size-3.5" /> {t("retry")}
                 </Button>
               )}
@@ -220,8 +264,28 @@ export function Chat({
         </div>
       </div>
 
-      {/* Composer */}
+      {/* Composer — locked once the assistant ends the conversation */}
       <div className="border-t p-4">
+        {closedReason ? (
+          <div
+            role="status"
+            className="mx-auto flex max-w-3xl items-center gap-3 rounded-lg border bg-muted/50 p-3 text-sm"
+          >
+            <Lock className="size-4 shrink-0 text-muted-foreground" />
+            <div className="min-w-0 flex-1">
+              <p className="font-medium">{t("closed.title")}</p>
+              <p className="text-muted-foreground">
+                {CLOSE_REASONS.has(closedReason)
+                  ? t(`closed.reason.${closedReason}` as Parameters<typeof t>[0])
+                  : t("closed.body")}
+              </p>
+            </div>
+            <Button size="sm" onClick={newChat} className="shrink-0">
+              <Plus className="size-4" />
+              <span className="hidden sm:inline">{t("newChat")}</span>
+            </Button>
+          </div>
+        ) : (
         <div className="mx-auto flex max-w-3xl items-end gap-2">
           <Textarea
             ref={inputRef}
@@ -261,6 +325,7 @@ export function Chat({
             </Button>
           )}
         </div>
+        )}
       </div>
     </div>
   );

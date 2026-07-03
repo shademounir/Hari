@@ -30,7 +30,8 @@
     "mainContent": "Contenu principal",
     "knowledgeBase": "Base de connaissances",
     "breadcrumb": "Fil d'Ariane",
-    "userMenu": "Menu du compte"
+    "userMenu": "Menu du compte",
+    "alerts": "Alertes"
   },
   "roles": {
     "EMPLOYEE": "Collaborateur",
@@ -51,7 +52,8 @@
     "handbook:read": "Interroger le guide (RAG)",
     "employee:manage": "Gérer les dossiers des employés",
     "admin:settings": "Gérer les paramètres de la plateforme",
-    "kb:manage": "Gérer la base de connaissances"
+    "kb:manage": "Gérer la base de connaissances",
+    "alerts:read": "Voir les alertes IA"
   },
   "leaveType": {
     "VACATION": "Congés",
@@ -186,6 +188,19 @@
       "session_expired": "Votre session a expiré. Veuillez recharger la page et vous reconnecter.",
       "network": "Impossible de joindre le serveur. Vérifiez votre connexion et réessayez.",
       "generic": "Une erreur s'est produite. Veuillez réessayer."
+    },
+    "closed": {
+      "title": "Conversation terminée",
+      "body": "L'assistant a mis fin à cette conversation. Démarrez une nouvelle discussion pour continuer.",
+      "reason": {
+        "ABUSE": "Messages abusifs ou harcelants",
+        "DISALLOWED_REQUEST": "Action non autorisée demandée",
+        "SAFETY": "Problème de sécurité",
+        "OFF_TOPIC_PERSISTENT": "Hors sujet de façon répétée",
+        "oversize": "Message trop long",
+        "prompt_injection": "Tentative d'injection de prompt",
+        "system_exfiltration": "Tentative de révéler les instructions système"
+      }
     }
   },
   "reasoning": {
@@ -246,7 +261,8 @@
       "requestTimeOff": "Soumet une demande de congés pour vous.",
       "listPendingApprovals": "Liste les demandes en attente de votre validation.",
       "approveLeave": "Approuve ou refuse une demande en attente.",
-      "getPayslip": "Une fiche de paie — la vôtre, ou celle de toute personne visible avec des droits élevés."
+      "getPayslip": "Une fiche de paie — la vôtre, ou celle de toute personne visible avec des droits élevés.",
+      "endConversation": "Mettre fin à la conversation et verrouiller le chat — uniquement pour refuser des abus ou des demandes dangereuses."
     }
   },
   "login": {
@@ -442,6 +458,54 @@
     "myPendingDesc": "{count, plural, one {# en cours de traitement} other {# en cours de traitement}}",
     "approvalItem": "{name} · congé {type}",
     "myPendingItem": "Votre demande {type} est en attente",
-    "viewAll": "Tout voir"
+    "viewAll": "Tout voir",
+    "alertDesc": "Alerte de garde-fou IA"
+  },
+  "alerts": {
+    "title": "Alertes IA",
+    "description": "Alertes de garde-fous et d'observabilité déclenchées par l'assistant IA.",
+    "empty": "Aucune alerte à afficher.",
+    "system": "Système",
+    "colAlert": "Alerte",
+    "colSeverity": "Gravité",
+    "colWho": "Déclenchée par",
+    "colWhen": "Quand",
+    "colStatus": "Statut",
+    "colActions": "Actions",
+    "filter": {
+      "all": "Toutes",
+      "OPEN": "Ouvertes",
+      "ACKNOWLEDGED": "Prises en compte",
+      "RESOLVED": "Résolues"
+    },
+    "status": {
+      "OPEN": "Ouverte",
+      "ACKNOWLEDGED": "Prise en compte",
+      "RESOLVED": "Résolue"
+    },
+    "severity": {
+      "INFO": "Info",
+      "WARNING": "Avertissement",
+      "CRITICAL": "Critique"
+    },
+    "action": {
+      "acknowledge": "Prendre en compte",
+      "resolve": "Résoudre"
+    },
+    "kind": {
+      "AI_GUARD_BLOCK": {
+        "title": "Entrée bloquée par un garde-fou"
+      },
+      "AI_REFUSAL": {
+        "title": "Refus d'outil répétés"
+      },
+      "AI_ERROR": {
+        "title": "Erreur de l'assistant"
+      },
+      "CONVERSATION_CLOSED": {
+        "title": "L'assistant a mis fin à une conversation"
+      }
+    },
+    "colDetail": "Détail"
   }
 }

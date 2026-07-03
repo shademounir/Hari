@@ -2,11 +2,19 @@ import {
   streamText,
   convertToModelMessages,
   stepCountIs,
+  hasToolCall,
+  createUIMessageStream,
+  createUIMessageStreamResponse,
   type UIMessage,
 } from "ai";
+import { randomUUID } from "node:crypto";
 import { auth } from "@/lib/auth";
 import { getChatModel, getAvailableChatModels, type ChatErrorCode } from "@/lib/ai/providers";
 import { buildHrTools } from "@/lib/ai/tools";
+import { recordAiEvent, type RecordAiEventInput } from "@/lib/ai/events";
+import { createAlert } from "@/lib/alerts";
+import { inspectUserInput } from "@/lib/ai/guardrails";
+import { prisma } from "@/lib/prisma";
 import { ROLE_LABELS } from "@/lib/rbac";
 import { localeConfig } from "@/i18n/routing";
 import { getOrgSettings } from "@/lib/settings";
@@ -14,6 +22,23 @@ import { isoDateInTimeZone } from "@/lib/datetime";
 import { getLocale } from "next-intl/server";
 
 export const maxDuration = 60;
+
+// Raise an Admin/HR alert once a conversation accumulates this many tool
+// refusals — a signal of someone repeatedly probing out-of-scope actions.
+const REFUSAL_ALERT_THRESHOLD = 3;
+
+/** Concatenated text of the most recent user message (for the input guard). */
+function lastUserText(messages: UIMessage[]): string {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (m.role !== "user") continue;
+    return (m.parts ?? [])
+      .filter((p): p is { type: "text"; text: string } => p.type === "text")
+      .map((p) => p.text)
+      .join("\n");
+  }
+  return "";
+}
 
 // Map an upstream/model failure to a stable code the client localizes
 // (chat.errors.<code>). Kept deliberately coarse — the goal is to replace the
@@ -38,9 +63,10 @@ export async function POST(req: Request) {
     return new Response("session_expired", { status: 401 });
   }
 
-  const { messages, modelKey } = (await req.json()) as {
+  const { messages, modelKey, conversationId: rawConversationId } = (await req.json()) as {
     messages: UIMessage[];
     modelKey?: string;
+    conversationId?: string;
   };
 
   const caller = {
@@ -48,6 +74,40 @@ export async function POST(req: Request) {
     employeeId: session.user.employeeId,
     name: session.user.name ?? "the user",
   };
+
+  // Opaque id grouping this chat's events (client-generated, reset on New Chat).
+  // Validate defensively — it's client input that lands in a DB column.
+  const conversationId =
+    typeof rawConversationId === "string" && rawConversationId.length <= 100
+      ? rawConversationId
+      : randomUUID();
+  const userId = session.user.id;
+  // Base metadata stamped on every AiEvent for this turn — role + ids only, never content.
+  const eventBase = { conversationId, userId, role: caller.role } as const;
+
+  // ── Deterministic input guard (SCRUM-063) ──────────────────────────────
+  // Block obvious abuse/injection BEFORE spending a model call; trace it and
+  // raise an Admin/HR alert, then return a "conversation closed" stream so the
+  // client locks the composer (same UX as the model calling endConversation).
+  const guard = inspectUserInput(lastUserText(messages));
+  if (guard.blocked) {
+    const eventId = await recordAiEvent({ ...eventBase, kind: "GUARD_BLOCK", guardRule: guard.rule });
+    await createAlert({
+      kind: "AI_GUARD_BLOCK",
+      severity: "WARNING",
+      titleKey: "alerts.kind.AI_GUARD_BLOCK.title",
+      params: { role: caller.role, rule: guard.rule },
+      href: "/alerts",
+      subjectId: userId,
+      aiEventId: eventId,
+    });
+    const stream = createUIMessageStream({
+      execute: ({ writer }) => {
+        writer.write({ type: "data-conversationClosed", data: { source: "guard", reason: guard.rule } });
+      },
+    });
+    return createUIMessageStreamResponse({ stream });
+  }
 
   // The UI locale (NEXT_LOCALE cookie). The assistant answers in this language,
   // and "today" is formatted for it, so dates in the prompt read naturally.
@@ -103,6 +163,7 @@ Guidelines:
 - For efficiency, pass only ids (employeeId, requestId) that a previous tool returned; if you don't have one, call the tool that lists them first. (The server also authorizes every id, so out-of-scope ids return nothing.)
 - Don't print raw database ids (request ids, employee ids) in your replies — the result cards already show what the user needs.
 - If a tool returns an { error } field, relay it briefly and suggest a sensible next step.
+- Safety: if the user is abusive/harassing, insists on a disallowed or unsafe action, or keeps pushing the same out-of-scope request after you've redirected them, briefly say you're ending the conversation and why, then call endConversation. This is a last resort — for an ordinary out-of-scope question, just decline and keep helping; never end the chat over a single benign request.
 - Be concise. The UI renders rich cards for tool results, so don't repeat raw data in prose; just add a short summary.`;
 
   // Resolve the requested model through the SAME availability filter the picker
@@ -121,15 +182,117 @@ Guidelines:
     return new Response(chatErrorCode(e), { status: 503 });
   }
 
+  // Per-turn observability state, mutated by the stream callbacks below. Tool
+  // events are buffered (sync) during the steps and flushed once in onFinish, so
+  // recording never adds latency between steps but is still durable before the
+  // (serverless) response ends.
+  const t0 = Date.now();
+  const toolEvents: RecordAiEventInput[] = [];
+  let refusalsThisTurn = 0;
+  let closedReason: string | null = null;
+
   const result = streamText({
     model,
     system,
     messages: await convertToModelMessages(messages),
     tools,
     // Allow a few tool round-trips (list → act → confirm). Higher than the
-    // typical 2-3 so multi-step flows don't get cut off mid-task.
-    stopWhen: stepCountIs(8),
-    onError: ({ error }) => console.error("chat stream error:", error),
+    // typical 2-3 so multi-step flows don't get cut off mid-task. Also stop as
+    // soon as the assistant ends the conversation, so it can't keep going.
+    stopWhen: [stepCountIs(8), hasToolCall("endConversation")],
+    onStepFinish: (step) => {
+      // Classify each tool result into one AiEvent kind (metadata only). A
+      // refused/closed/errored tool is recorded as that, not a plain TOOL_CALL.
+      for (const r of step.toolResults) {
+        if (!r) continue;
+        const out = (r.output ?? {}) as Record<string, unknown>;
+        if (out.closed) {
+          closedReason = typeof out.reason === "string" ? out.reason : "SAFETY";
+          continue; // recorded once (with its alert) in onFinish
+        }
+        if (out.refused) {
+          refusalsThisTurn++;
+          toolEvents.push({ ...eventBase, kind: "REFUSAL", toolName: r.toolName });
+        } else if (out.error) {
+          toolEvents.push({
+            ...eventBase,
+            kind: "ERROR",
+            toolName: r.toolName,
+            errorCode: typeof out.errorCode === "string" ? out.errorCode : null,
+          });
+        } else {
+          toolEvents.push({ ...eventBase, kind: "TOOL_CALL", toolName: r.toolName });
+        }
+      }
+    },
+    onFinish: async (event) => {
+      const usage = event.totalUsage;
+      const writes = toolEvents.map((e) => recordAiEvent(e));
+      writes.push(
+        recordAiEvent({
+          ...eventBase,
+          kind: "TURN",
+          model: event.steps.at(-1)?.model.modelId ?? resolvedModelKey ?? null,
+          inputTokens: usage.inputTokens ?? null,
+          outputTokens: usage.outputTokens ?? null,
+          totalTokens: usage.totalTokens ?? null,
+          latencyMs: Date.now() - t0,
+          stepCount: event.steps.length,
+          finishReason: event.finishReason,
+        }),
+      );
+      await Promise.all(writes);
+
+      // The assistant ended the chat → trace it + alert Admin/HR.
+      if (closedReason) {
+        const eventId = await recordAiEvent({
+          ...eventBase,
+          kind: "CONVERSATION_CLOSED",
+          reasonCode: closedReason,
+        });
+        await createAlert({
+          kind: "CONVERSATION_CLOSED",
+          severity: "WARNING",
+          titleKey: "alerts.kind.CONVERSATION_CLOSED.title",
+          params: { role: caller.role, reason: closedReason },
+          href: "/alerts",
+          subjectId: userId,
+          aiEventId: eventId,
+        });
+      }
+
+      // Repeated-refusal escalation: alert only on the turn that crosses the
+      // threshold (this turn's refusals are already persisted above).
+      if (refusalsThisTurn > 0) {
+        const total = await prisma.aiEvent.count({
+          where: { conversationId, kind: "REFUSAL" },
+        });
+        if (total - refusalsThisTurn < REFUSAL_ALERT_THRESHOLD && total >= REFUSAL_ALERT_THRESHOLD) {
+          await createAlert({
+            kind: "AI_REFUSAL",
+            severity: "WARNING",
+            titleKey: "alerts.kind.AI_REFUSAL.title",
+            params: { role: caller.role, count: total },
+            href: "/alerts",
+            subjectId: userId,
+          });
+        }
+      }
+    },
+    onError: async ({ error }) => {
+      console.error("chat stream error:", error);
+      const code = chatErrorCode(error);
+      const eventId = await recordAiEvent({ ...eventBase, kind: "ERROR", errorCode: code });
+      await createAlert({
+        kind: "AI_ERROR",
+        severity: "CRITICAL",
+        titleKey: "alerts.kind.AI_ERROR.title",
+        params: { role: caller.role, code },
+        href: "/alerts",
+        subjectId: userId,
+        aiEventId: eventId,
+      });
+    },
   });
 
   // Surface the real cause to the client as a stable code (chat.errors.<code>),
