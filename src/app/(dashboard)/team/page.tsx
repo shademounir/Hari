@@ -1,26 +1,44 @@
+import type { ComponentType } from "react";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Users, CalendarClock, Bot, ShieldAlert } from "lucide-react";
 import { requireUser } from "@/lib/session";
-import { getTeamKpis, getPendingApprovals } from "@/lib/hr";
+import { getEmployeeDirectoryFacets, getPendingApprovals, getTeamLeaveRequests } from "@/lib/hr";
+import { getTeamDashboard } from "@/lib/kpi/dashboard";
 import { can } from "@/lib/rbac";
-import { asLeaveType } from "@/lib/leave";
+import type { KpiKey } from "@/types/dashboard";
 import { PageHeader } from "@/components/layout/page-header";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { ApprovalActions } from "@/components/team/approval-actions";
+import { Sparkline } from "@/components/charts/mini";
+import { PendingApprovals } from "@/components/team/pending-approvals";
+import { TeamFilters } from "@/components/team/team-filters";
+import { LeaveHistory } from "@/components/team/leave-history";
+import { AnomalyBadge } from "@/components/team/anomaly-badge";
+import { CapacityHeatmap } from "@/components/team/capacity-heatmap";
+
+// Normalize a repeatable query param into a string[] (RSC-native searchParams).
+const asArray = (v: string | string[] | undefined): string[] =>
+  v === undefined ? [] : Array.isArray(v) ? v : [v];
+
+const KPI_ICON: Record<KpiKey, ComponentType<{ className?: string }>> = {
+  headcount: Users,
+  pendingRequests: CalendarClock,
+  aiTurns7d: Bot,
+  aiRefusals7d: ShieldAlert,
+};
 
 // Server Component: all data is fetched + scoped server-side. The only value that
 // crosses to the client is each row's opaque request id (for the action buttons);
 // no salary, no role, no cross-team data ever reaches the browser.
-export default async function TeamPage() {
+type Props = {
+  searchParams: Promise<{
+    search?: string;
+    status?: string | string[];
+    type?: string | string[];
+    dept?: string | string[];
+  }>;
+};
+
+export default async function TeamPage({ searchParams }: Props) {
   const user = await requireUser();
 
   // Server-side gate — defense in depth beyond the nav filter (which only hides
@@ -28,92 +46,78 @@ export default async function TeamPage() {
   if (!can(user.role, "dashboard:read:team")) redirect("/");
 
   const caller = { role: user.role, employeeId: user.employeeId };
+  const params = await searchParams;
   const t = await getTranslations("team");
-  const tType = await getTranslations("leaveType");
-  const tc = await getTranslations("common");
 
-  const [kpis, approvals] = await Promise.all([
-    getTeamKpis(caller),
+  // `now` is resolved once, server-side, so the whole model shares one clock.
+  // Leave filters come from the URL but are validated in getTeamLeaveRequests and
+  // always applied WITHIN getTeamScope — a crafted query can't widen the team.
+  const now = new Date();
+  const [dashboard, approvals, leaveHistory, facets] = await Promise.all([
+    getTeamDashboard(caller, now),
     getPendingApprovals(caller),
+    getTeamLeaveRequests(caller, {
+      search: typeof params.search === "string" ? params.search : undefined,
+      status: asArray(params.status),
+      type: asArray(params.type),
+      departments: asArray(params.dept),
+    }),
+    // Department options for the facet — already team-scoped (directoryWhere).
+    getEmployeeDirectoryFacets(caller),
   ]);
-
-  const cards = [
-    { key: "headcount", value: kpis.headcount, icon: Users },
-    { key: "pendingRequests", value: kpis.pendingRequests, icon: CalendarClock },
-    { key: "aiTurns7d", value: kpis.aiTurns7d, icon: Bot },
-    { key: "aiRefusals7d", value: kpis.aiRefusals7d, icon: ShieldAlert },
-  ] as const;
 
   return (
     <>
       <PageHeader title={t("title")} description={t("description")} />
 
       <div className="space-y-6 p-4 md:p-8">
-        {/* KPI grid */}
+        {/* KPI grid — value + trend sparkline + anomaly verdict */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {cards.map(({ key, value, icon: Icon }) => (
-            <div key={key} className="card-elevated rounded-2xl border bg-card p-5">
-              <div className="flex items-start justify-between gap-3">
-                <p className="text-sm font-medium text-muted-foreground">{t(`kpi.${key}`)}</p>
-                <div className="rounded-lg bg-primary/10 p-2 text-primary">
-                  <Icon className="size-5" />
+          {dashboard.kpis.map((card) => {
+            const Icon = KPI_ICON[card.key];
+            return (
+              <div key={card.key} className="card-elevated rounded-2xl border bg-card p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-sm font-medium text-muted-foreground">{t(`kpi.${card.key}`)}</p>
+                  <div className="rounded-lg bg-primary/10 p-2 text-primary">
+                    <Icon className="size-5" />
+                  </div>
+                </div>
+                <p className="mt-3 text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
+                  {card.value}
+                </p>
+                <div className="mt-3 flex items-center justify-between gap-2">
+                  <AnomalyBadge anomaly={card.anomaly} />
+                  {card.series.length > 0 && (
+                    <Sparkline values={card.series.map((p) => p.value)} width={88} height={28} />
+                  )}
                 </div>
               </div>
-              <p className="mt-3 text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
-                {value}
-              </p>
-              {(key === "aiTurns7d" || key === "aiRefusals7d") && (
-                <p className="mt-1 text-xs text-muted-foreground">{t("last7Days")}</p>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
 
-        {/* Pending approvals */}
-        <section className="space-y-3">
-          <h2 className="flex items-center gap-2 text-sm font-semibold">
-            {t("pendingApprovals")}
-            <Badge variant="secondary">{approvals.length}</Badge>
-          </h2>
+        {/* Capacity heatmap — team leave-overlap risk over the coming weeks */}
+        <CapacityHeatmap model={dashboard.capacity} />
 
-          {approvals.length === 0 ? (
-            <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-              {t("noPending")}
-            </p>
-          ) : (
-            <div className="rounded-lg border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("employee")}</TableHead>
-                    <TableHead>{t("type")}</TableHead>
-                    <TableHead>{t("dates")}</TableHead>
-                    <TableHead>{t("days")}</TableHead>
-                    <TableHead>{t("reason")}</TableHead>
-                    <TableHead className="text-right">{t("actions")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {approvals.map((r) => (
-                    <TableRow key={r.id}>
-                      <TableCell className="font-medium">{r.employeeName}</TableCell>
-                      <TableCell className="capitalize">{tType(asLeaveType(r.type))}</TableCell>
-                      <TableCell className="tabular-nums">
-                        {r.startDate} → {r.endDate}
-                      </TableCell>
-                      <TableCell className="tabular-nums">{r.days}</TableCell>
-                      <TableCell className="max-w-[16rem] truncate text-muted-foreground">
-                        {r.reason ?? tc("none")}
-                      </TableCell>
-                      <TableCell>
-                        <ApprovalActions requestId={r.id} />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+        {/* Pending approvals — client island owns selection, dialog, optimistic list */}
+        <PendingApprovals
+          rows={approvals.map((r) => ({
+            id: r.id,
+            employeeName: r.employeeName,
+            type: r.type,
+            startDate: r.startDate,
+            endDate: r.endDate,
+            days: r.days,
+            reason: r.reason,
+          }))}
+        />
+
+        {/* Leave history — URL-filterable (search / status / type / dept), team-scoped */}
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold">{t("leaveHistory")}</h2>
+          <TeamFilters departments={facets.departments} />
+          <LeaveHistory rows={leaveHistory} />
         </section>
       </div>
     </>

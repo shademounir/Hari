@@ -5,7 +5,8 @@
   },
   "common": {
     "you": "Vous",
-    "none": "—"
+    "none": "—",
+    "cancel": "Annuler"
   },
   "languageSwitcher": {
     "label": "Langue",
@@ -125,6 +126,26 @@
       "aiTurns7d": "Échanges avec l'assistant IA",
       "aiRefusals7d": "Refus de l'IA"
     },
+    "anomaly": {
+      "normal": "Normal",
+      "elevated": "Élevé",
+      "high": "Critique",
+      "insufficient_data": "Pas d'historique"
+    },
+    "capacity": {
+      "title": "Capacité de l'équipe",
+      "description": "Nombre de collègues en congé chaque jour dans les semaines à venir. Plus c'est foncé, plus il y a d'absents — et un risque accru de sous-effectif.",
+      "busiest": "Journée la plus chargée : {date} — {count} sur {total} en congé ({pct} %).",
+      "allClear": "Aucun chevauchement de congés à venir — couverture complète chaque jour.",
+      "onLeave": "en congé",
+      "risk": "Risque de sous-effectif",
+      "none": "Aucun",
+      "low": "Faible",
+      "medium": "Moyen",
+      "high": "Élevé",
+      "fewer": "Moins d'absents",
+      "more": "Plus d'absents"
+    },
     "pendingApprovals": "Approbations en attente",
     "noPending": "Aucune demande en attente de votre équipe.",
     "employee": "Employé",
@@ -134,7 +155,33 @@
     "reason": "Motif",
     "actions": "Actions",
     "approve": "Approuver",
-    "reject": "Refuser"
+    "reject": "Refuser",
+    "status": "Statut",
+    "leaveHistory": "Historique des congés",
+    "filters": "Filtres",
+    "searchPlaceholder": "Rechercher par nom d'employé…",
+    "optionPlaceholder": "Filtrer les options…",
+    "filterStatus": "Statut",
+    "filterType": "Type",
+    "filterDepartment": "Département",
+    "clearFilters": "Effacer les filtres",
+    "noMatching": "Aucune demande ne correspond à ces filtres.",
+    "selectAll": "Tout sélectionner",
+    "selectRow": "Sélectionner {name}",
+    "selectedCount": "{count, plural, one {# sélectionnée} other {# sélectionnées}}",
+    "approveSelected": "Approuver la sélection",
+    "rejectSelected": "Refuser la sélection",
+    "rejectDialog": {
+      "title": "Refuser la demande",
+      "titleBulk": "Refuser {count} demandes",
+      "description": "Un motif est obligatoire. Il est communiqué à l'employé.",
+      "placeholder": "Expliquez le motif du refus…"
+    },
+    "toast": {
+      "approved": "{count, plural, one {# demande approuvée} other {# demandes approuvées}}",
+      "rejected": "{count, plural, one {# demande refusée} other {# demandes refusées}}",
+      "failed": "Aucun changement — la demande a peut-être déjà été traitée."
+    }
   },
   "timeOff": {
     "title": "Congés",

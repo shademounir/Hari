@@ -6,7 +6,13 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { can, type Permission, type Role } from "@/lib/rbac";
-import type { AiEventKind, EmploymentStatus, EmploymentType } from "@prisma/client";
+import type {
+  AiEventKind,
+  EmploymentStatus,
+  EmploymentType,
+  LeaveStatus,
+  LeaveType,
+} from "@prisma/client";
 
 export type Caller = { role: Role; employeeId: string | null };
 
@@ -273,6 +279,30 @@ export async function getPayslip(
 /** How many days of AI-usage history the dashboard aggregates. */
 const AI_USAGE_WINDOW_DAYS = 7;
 
+/**
+ * The caller's team as ready-to-query id sets. `AiEvent` joins via `userId`,
+ * everything else via `employeeId`, so we return both. This is THE single
+ * scoping authority for the KPI services in `lib/kpi/*` — those services must
+ * never resolve scope themselves; they accept a `TeamScope` and filter by it.
+ * Empty sets when the caller lacks `dashboard:read:team`.
+ */
+export type TeamScope = {
+  employeeIds: string[];
+  userIds: string[];
+};
+
+export async function getTeamScope(caller: Caller): Promise<TeamScope> {
+  if (!can(caller.role, "dashboard:read:team")) return { employeeIds: [], userIds: [] };
+  const rows = await prisma.employee.findMany({
+    where: directoryWhere(caller), // ← the ONE source of scope
+    select: { id: true, userId: true },
+  });
+  return {
+    employeeIds: rows.map((r) => r.id),
+    userIds: rows.map((r) => r.userId),
+  };
+}
+
 export type TeamKpis = {
   headcount: number; // employees in the caller's directory scope (self + reports)
   pendingRequests: number; // PENDING leave from direct reports — mirrors the approval queue
@@ -294,11 +324,7 @@ export async function getTeamKpis(caller: Caller): Promise<TeamKpis> {
   const empty: TeamKpis = { headcount: 0, pendingRequests: 0, aiTurns7d: 0, aiRefusals7d: 0 };
   if (!can(caller.role, "dashboard:read:team")) return empty;
 
-  const team = await prisma.employee.findMany({
-    where: directoryWhere(caller), // ← the ONE source of scope, reused
-    select: { id: true, userId: true },
-  });
-  const userIds = team.map((t) => t.userId);
+  const { employeeIds, userIds } = await getTeamScope(caller);
 
   const since = new Date(Date.now() - AI_USAGE_WINDOW_DAYS * 24 * 60 * 60 * 1000);
 
@@ -320,11 +346,73 @@ export async function getTeamKpis(caller: Caller): Promise<TeamKpis> {
     aiByKind.find((r) => r.kind === k)?._count._all ?? 0;
 
   return {
-    headcount: team.length,
+    headcount: employeeIds.length,
     pendingRequests,
     aiTurns7d: kindCount("TURN"),
     aiRefusals7d: kindCount("REFUSAL"),
   };
+}
+
+// Valid filter values, mirrored from the schema enums. Note: LeaveStatus has NO
+// CANCELLED value, so the Status filter offers only these three. Anything else
+// from the query string is dropped before it reaches Prisma.
+const LEAVE_STATUSES = ["PENDING", "APPROVED", "REJECTED"] as const;
+const LEAVE_TYPES = ["VACATION", "SICK", "PERSONAL"] as const;
+
+export type TeamLeaveFilters = {
+  search?: string;
+  status?: string[];
+  type?: string[];
+  departments?: string[];
+};
+
+/**
+ * The team's leave requests (all statuses), for the filterable history table.
+ * Scope is enforced FIRST by `employeeId IN getTeamScope(...)` — the same
+ * directoryWhere-derived set the rest of the dashboard uses. Every other filter
+ * (search, department) is a nested relation filter on THIS row's `employee`, so
+ * it can only narrow which of the already-scoped rows match — never reach an
+ * employee outside the team. Status/type are validated against the schema enums
+ * (invalid values — a bogus status, an injection string — are discarded before
+ * Prisma, which would otherwise throw on a non-enum value). Prisma parameterizes
+ * all values, so the free-text search + department strings can't inject SQL.
+ */
+export async function getTeamLeaveRequests(
+  caller: Caller,
+  filters: TeamLeaveFilters = {},
+): Promise<LeaveRequestView[]> {
+  const scope = await getTeamScope(caller);
+  if (scope.employeeIds.length === 0) return [];
+
+  const statuses = (filters.status ?? []).filter((s): s is LeaveStatus =>
+    (LEAVE_STATUSES as readonly string[]).includes(s),
+  );
+  const types = (filters.type ?? []).filter((t): t is LeaveType =>
+    (LEAVE_TYPES as readonly string[]).includes(t),
+  );
+
+  const and: Prisma.LeaveRequestWhereInput[] = [
+    { employeeId: { in: scope.employeeIds } }, // ← scope authority, always first
+  ];
+  if (statuses.length) and.push({ status: { in: statuses } });
+  if (types.length) and.push({ type: { in: types } });
+  if (filters.departments?.length) {
+    and.push({ employee: { department: { in: filters.departments } } });
+  }
+  if (filters.search?.trim()) {
+    // Name search joins through the SAME row's employee → user; AND-ed inside the
+    // scope predicate, so it narrows the team set and can't cross team boundaries.
+    and.push({
+      employee: { user: { name: { contains: filters.search.trim(), mode: "insensitive" } } },
+    });
+  }
+
+  const rows = await prisma.leaveRequest.findMany({
+    where: { AND: and },
+    include: { employee: { include: { user: { select: { name: true } } } } },
+    orderBy: { createdAt: "desc" },
+  });
+  return rows.map(toRequestView);
 }
 
 export type LeaveDecision = "APPROVED" | "REJECTED";
@@ -342,16 +430,44 @@ export async function decideLeaveRequest(
   caller: Caller,
   requestId: string,
   decision: LeaveDecision,
+  note?: string | null,
 ): Promise<boolean> {
-  if (!can(caller.role, "leave:approve") || !caller.employeeId) return false;
+  const count = await bulkDecideLeaveRequests(caller, [requestId], decision, note);
+  return count > 0;
+}
 
-  const where: Prisma.LeaveRequestWhereInput = can(caller.role, "directory:read:all")
-    ? { id: requestId, status: "PENDING" }
-    : { id: requestId, status: "PENDING", employee: { managerId: caller.employeeId } };
+/**
+ * Approve/reject MANY pending requests in one scoped statement. Same invariant as
+ * the single-row path: the WHERE carries the manager→report predicate (or the
+ * whole company for HR), so any id in `requestIds` that isn't in the caller's
+ * scope, already decided, or nonexistent simply matches nothing — no error, no
+ * leak. `note` is the approver's decision note (persisted for both outcomes;
+ * callers enforce that it is non-empty for a rejection). Returns rows changed.
+ */
+export async function bulkDecideLeaveRequests(
+  caller: Caller,
+  requestIds: string[],
+  decision: LeaveDecision,
+  note?: string | null,
+): Promise<number> {
+  if (!can(caller.role, "leave:approve") || !caller.employeeId) return 0;
+  if (requestIds.length === 0) return 0;
+
+  const where: Prisma.LeaveRequestWhereInput = {
+    id: { in: requestIds },
+    status: "PENDING",
+    ...(can(caller.role, "directory:read:all")
+      ? {}
+      : { employee: { managerId: caller.employeeId } }),
+  };
 
   const res = await prisma.leaveRequest.updateMany({
     where,
-    data: { status: decision, approverId: caller.employeeId },
+    data: {
+      status: decision,
+      approverId: caller.employeeId,
+      decisionNote: note?.trim() ? note.trim() : null,
+    },
   });
-  return res.count > 0;
+  return res.count;
 }

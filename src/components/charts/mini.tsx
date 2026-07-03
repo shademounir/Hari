@@ -57,6 +57,54 @@ export function Donut({
   );
 }
 
+/**
+ * Tiny trend sparkline from a numeric series. Dependency-free SVG (recharts is
+ * reserved for the full-size trend charts) — pure markup, renders server-side.
+ * A flat/empty series degrades to a baseline line rather than throwing.
+ */
+export function Sparkline({
+  values,
+  width = 120,
+  height = 32,
+  className,
+}: {
+  values: number[];
+  width?: number;
+  height?: number;
+  className?: string;
+}) {
+  const pad = 2;
+  const n = values.length;
+  const max = Math.max(...values, 0);
+  const min = Math.min(...values, 0);
+  const span = max - min || 1;
+  const stepX = n > 1 ? (width - pad * 2) / (n - 1) : 0;
+
+  const points = values.map((v, i) => {
+    const x = pad + i * stepX;
+    const y = height - pad - ((v - min) / span) * (height - pad * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  const d = n === 0 ? "" : `M ${points.join(" L ")}`;
+  const last = points.at(-1)?.split(",").map(Number);
+
+  return (
+    <svg
+      width={width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      className={cn("overflow-visible", className)}
+      role="img"
+      aria-hidden="true"
+    >
+      {n > 0 && (
+        <path d={d} fill="none" stroke="var(--brand-from)" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" />
+      )}
+      {last && <circle cx={last[0]} cy={last[1]} r={2.5} fill="var(--brand-to)" />}
+    </svg>
+  );
+}
+
 /** Horizontal progress meter (used / total), brand-gradient fill. */
 export function ProgressBar({
   value,

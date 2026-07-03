@@ -18,6 +18,7 @@ import { chunkHtml } from "../src/lib/kb/html";
 import { DEMO_USERS } from "../src/lib/demo-users";
 import { putCover, coverUrl } from "../src/lib/storage";
 import { KB_COLLECTIONS } from "./handbook";
+import { seedTeamActivity } from "./team-activity";
 
 // Seed corpus is authored in markdown for readability; store it as HTML (the
 // editor + reader work in HTML). Seed-only, so it lives here rather than in the
@@ -208,18 +209,8 @@ async function seedPeople() {
     }
   }
 
-  // A couple of leave requests so approvals have something to show.
-  const imane = byEmail["collaborateur@hari.ma"];
-  const amina = byEmail["a.mansouri@hari.ma"];
-
-  await prisma.leaveRequest.createMany({
-    data: [
-      { employeeId: imane, type: "VACATION", startDate: new Date("2026-07-06"), endDate: new Date("2026-07-08"), days: 3, reason: "Voyage prolongé", status: "PENDING" },
-      { employeeId: amina, type: "SICK", startDate: new Date("2026-06-22"), endDate: new Date("2026-06-22"), days: 1, reason: "Rendez-vous médical", status: "PENDING" },
-      { employeeId: imane, type: "VACATION", startDate: new Date("2026-04-10"), endDate: new Date("2026-04-11"), days: 2, reason: "Événement familial", status: "APPROVED" },
-    ],
-  });
-
+  // Leave requests + AI activity are seeded separately (prisma/team-activity.ts)
+  // so the manager dashboard has ~6 months of realistic, deterministic history.
   console.log(`• Seeded ${PEOPLE.length} people (4 demo logins).`);
 }
 
@@ -348,6 +339,7 @@ async function seedKnowledgeBase() {
 
 async function main() {
   await seedPeople();
+  await seedTeamActivity(prisma);
   await seedKnowledgeBase();
 }
 
