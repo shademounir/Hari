@@ -17,6 +17,15 @@ describe("RBAC matrix", () => {
     expect(can("MANAGER", "salary:read:all")).toBe(false);
   });
 
+  it("managers hold the team KPI dashboard permission; employees do not (SCRUM-071)", () => {
+    expect(can("MANAGER", "dashboard:read:team")).toBe(true);
+    expect(can("EMPLOYEE", "dashboard:read:team")).toBe(false);
+    // Inherited up the chain, but the dashboard never grants alerts access.
+    expect(can("HR_ADMIN", "dashboard:read:team")).toBe(true);
+    expect(can("SUPER_ADMIN", "dashboard:read:team")).toBe(true);
+    expect(can("MANAGER", "alerts:read")).toBe(false);
+  });
+
   it("HR can read the whole company, salaries and payslips", () => {
     expect(can("HR_ADMIN", "directory:read:all")).toBe(true);
     expect(can("HR_ADMIN", "salary:read:all")).toBe(true);

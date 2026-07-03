@@ -16,6 +16,7 @@
     "dashboard": "Tableau de bord",
     "assistant": "Assistant IA",
     "directory": "Annuaire",
+    "team": "Mon équipe",
     "timeOff": "Congés",
     "settings": "Paramètres",
     "signOut": "Se déconnecter",
@@ -47,6 +48,7 @@
     "leave:request": "Demander des congés",
     "leave:read:self": "Voir ses propres congés",
     "leave:approve": "Approuver / refuser les congés",
+    "dashboard:read:team": "Voir le tableau de bord de l'équipe",
     "payslip:read:self": "Voir ses propres fiches de paie",
     "payslip:read:any": "Voir les fiches de paie de chacun",
     "handbook:read": "Interroger le guide (RAG)",
@@ -112,6 +114,27 @@
     "FULL_TIME": "Temps plein",
     "PART_TIME": "Temps partiel",
     "CONTRACTOR": "Prestataire"
+  },
+  "team": {
+    "title": "Tableau de bord de l'équipe",
+    "description": "Indicateurs clés pour les personnes qui vous sont rattachées.",
+    "last7Days": "7 derniers jours",
+    "kpi": {
+      "headcount": "Effectif de l'équipe",
+      "pendingRequests": "Demandes RH en attente",
+      "aiTurns7d": "Échanges avec l'assistant IA",
+      "aiRefusals7d": "Refus de l'IA"
+    },
+    "pendingApprovals": "Approbations en attente",
+    "noPending": "Aucune demande en attente de votre équipe.",
+    "employee": "Employé",
+    "type": "Type",
+    "dates": "Dates",
+    "days": "Jours",
+    "reason": "Motif",
+    "actions": "Actions",
+    "approve": "Approuver",
+    "reject": "Refuser"
   },
   "timeOff": {
     "title": "Congés",

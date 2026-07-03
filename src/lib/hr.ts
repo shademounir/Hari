@@ -6,7 +6,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { can, type Permission, type Role } from "@/lib/rbac";
-import type { EmploymentStatus, EmploymentType } from "@prisma/client";
+import type { AiEventKind, EmploymentStatus, EmploymentType } from "@prisma/client";
 
 export type Caller = { role: Role; employeeId: string | null };
 
@@ -262,4 +262,96 @@ export async function getPayslip(
       netMonthly: grossMonthly - tax,
     },
   };
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// SCRUM-071: Manager Team KPI dashboard. Aggregates only — never row-level PII.
+// Every metric is bounded by the SAME scope the directory uses (`directoryWhere`),
+// so a manager can never count outside self + their direct reports.
+// ─────────────────────────────────────────────────────────────────────────
+
+/** How many days of AI-usage history the dashboard aggregates. */
+const AI_USAGE_WINDOW_DAYS = 7;
+
+export type TeamKpis = {
+  headcount: number; // employees in the caller's directory scope (self + reports)
+  pendingRequests: number; // PENDING leave from direct reports — mirrors the approval queue
+  aiTurns7d: number; // completed assistant turns by the team, last 7d
+  aiRefusals7d: number; // tool refusals by the team, last 7d
+};
+
+/**
+ * Team KPIs for the manager dashboard, gated by `dashboard:read:team`. Resolves
+ * the caller's employee scope ONCE via `directoryWhere`, then runs metadata-only
+ * aggregates in parallel:
+ *  - headcount / AI usage over that scope;
+ *  - pendingRequests over the reports-only subset, using the exact predicate of
+ *    `getPendingApprovals`, so the KPI card and the approvals table can't disagree.
+ * `AiEvent` has no employeeId, so AI usage joins via the team's `userId`s. An empty
+ * team yields `{ in: [] }` → matches nothing → zeros, never a global count.
+ */
+export async function getTeamKpis(caller: Caller): Promise<TeamKpis> {
+  const empty: TeamKpis = { headcount: 0, pendingRequests: 0, aiTurns7d: 0, aiRefusals7d: 0 };
+  if (!can(caller.role, "dashboard:read:team")) return empty;
+
+  const team = await prisma.employee.findMany({
+    where: directoryWhere(caller), // ← the ONE source of scope, reused
+    select: { id: true, userId: true },
+  });
+  const userIds = team.map((t) => t.userId);
+
+  const since = new Date(Date.now() - AI_USAGE_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+
+  const [pendingRequests, aiByKind] = await Promise.all([
+    prisma.leaveRequest.count({
+      where: {
+        status: "PENDING",
+        employee: { managerId: caller.employeeId ?? "__none__" },
+      },
+    }),
+    prisma.aiEvent.groupBy({
+      by: ["kind"],
+      where: { userId: { in: userIds }, createdAt: { gte: since } },
+      _count: { _all: true },
+    }),
+  ]);
+
+  const kindCount = (k: AiEventKind): number =>
+    aiByKind.find((r) => r.kind === k)?._count._all ?? 0;
+
+  return {
+    headcount: team.length,
+    pendingRequests,
+    aiTurns7d: kindCount("TURN"),
+    aiRefusals7d: kindCount("REFUSAL"),
+  };
+}
+
+export type LeaveDecision = "APPROVED" | "REJECTED";
+
+/**
+ * Approve or reject a PENDING leave request, scoped exactly like
+ * `getPendingApprovals`: the caller needs `leave:approve` AND (unless they can
+ * read the whole company) the request must belong to one of their direct reports.
+ * Implemented as a scoped `updateMany` so an out-of-scope, missing, or
+ * already-decided id matches zero rows and mutates nothing — the caller learns
+ * only "it changed / it didn't", never whether the id exists elsewhere. Stamps
+ * the approver. Returns true iff exactly the intended row transitioned.
+ */
+export async function decideLeaveRequest(
+  caller: Caller,
+  requestId: string,
+  decision: LeaveDecision,
+): Promise<boolean> {
+  if (!can(caller.role, "leave:approve") || !caller.employeeId) return false;
+
+  const where: Prisma.LeaveRequestWhereInput = can(caller.role, "directory:read:all")
+    ? { id: requestId, status: "PENDING" }
+    : { id: requestId, status: "PENDING", employee: { managerId: caller.employeeId } };
+
+  const res = await prisma.leaveRequest.updateMany({
+    where,
+    data: { status: decision, approverId: caller.employeeId },
+  });
+  return res.count > 0;
 }

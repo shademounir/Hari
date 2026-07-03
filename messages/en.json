@@ -16,6 +16,7 @@
     "dashboard": "Dashboard",
     "assistant": "AI Assistant",
     "directory": "Directory",
+    "team": "My Team",
     "timeOff": "Time Off",
     "settings": "Settings",
     "signOut": "Sign out",
@@ -47,6 +48,7 @@
     "leave:request": "Request time off",
     "leave:read:self": "View own leave",
     "leave:approve": "Approve / reject leave",
+    "dashboard:read:team": "View team KPI dashboard",
     "payslip:read:self": "View own payslips",
     "payslip:read:any": "View anyone's payslips",
     "handbook:read": "Ask the handbook (RAG)",
@@ -112,6 +114,27 @@
     "FULL_TIME": "Full-time",
     "PART_TIME": "Part-time",
     "CONTRACTOR": "Contractor"
+  },
+  "team": {
+    "title": "Team Dashboard",
+    "description": "Key metrics for the people who report to you.",
+    "last7Days": "Last 7 days",
+    "kpi": {
+      "headcount": "Team headcount",
+      "pendingRequests": "Pending HR requests",
+      "aiTurns7d": "AI assistant turns",
+      "aiRefusals7d": "AI refusals"
+    },
+    "pendingApprovals": "Pending approvals",
+    "noPending": "No pending requests from your team.",
+    "employee": "Employee",
+    "type": "Type",
+    "dates": "Dates",
+    "days": "Days",
+    "reason": "Reason",
+    "actions": "Actions",
+    "approve": "Approve",
+    "reject": "Reject"
   },
   "timeOff": {
     "title": "Time Off",
