@@ -8,7 +8,7 @@ export default async function ChatPage() {
   // set, so the picker never offers a model that would fail at request time.
   const models = getAvailableChatModels();
   return (
-    <div className="h-dvh">
+    <div className="h-full">
       <Chat user={{ name: user.name, role: user.role }} models={models} />
     </div>
   );
