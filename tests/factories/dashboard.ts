@@ -8,20 +8,11 @@
 // Seeded PRNG (mulberry32) → same seed yields the same dataset, every run.
 // ─────────────────────────────────────────────────────────────────────────
 import type { LeaveInterval } from "@/lib/kpi/capacity";
+import { MS_PER_DAY } from "@/lib/kpi/time";
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
-
-/** Small, fast, seedable PRNG — deterministic across machines and runs. */
-export function mulberry32(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a |= 0;
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
+// Re-exported so existing importers can keep sourcing it from the factory.
+export { mulberry32 } from "@/lib/kpi/prng";
+import { mulberry32 } from "@/lib/kpi/prng";
 
 const dayUtc = (d: Date) =>
   new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));

@@ -58,8 +58,8 @@ export function Donut({
 }
 
 /**
- * Tiny trend sparkline from a numeric series. Dependency-free SVG (recharts is
- * reserved for the full-size trend charts) — pure markup, renders server-side.
+ * Tiny trend sparkline from a numeric series. Dependency-free SVG — pure markup,
+ * renders server-side (no client JS, no charting lib for a sparkline this small).
  * A flat/empty series degrades to a baseline line rather than throwing.
  */
 export function Sparkline({

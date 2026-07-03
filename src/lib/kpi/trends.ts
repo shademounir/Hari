@@ -6,9 +6,7 @@
 import { prisma } from "@/lib/prisma";
 import type { TeamScope } from "@/lib/hr";
 import type { TrendGranularity, TrendPoint, TrendSeries } from "@/types/dashboard";
-import { bucketStart, dayKey, eachDay } from "@/lib/kpi/time";
-
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
+import { bucketStart, dayKey, eachDay, MS_PER_DAY } from "@/lib/kpi/time";
 
 export type TrendWindow = {
   start: Date;

@@ -16,6 +16,19 @@ import type {
 
 export type Caller = { role: Role; employeeId: string | null };
 
+/**
+ * Build a Caller, re-resolving `employeeId` from the DB instead of the JWT-cached
+ * value (stale after a DB reset → would scope to a dead id). Shared by the team
+ * page and the leave-decision actions so read and write paths use the same id.
+ */
+export async function resolveCaller(user: { id: string; role: Role }): Promise<Caller> {
+  const employee = await prisma.employee.findUnique({
+    where: { userId: user.id },
+    select: { id: true },
+  });
+  return { role: user.role, employeeId: employee?.id ?? null };
+}
+
 export type DirectoryEntry = {
   id: string;
   name: string;
@@ -162,6 +175,9 @@ export type LeaveRequestView = {
   days: number;
   status: string;
   reason: string | null;
+  // The approver's note recorded at decision time (mandatory on rejection).
+  // Surfaced so the requester can read WHY, and the approver can audit the queue.
+  decisionNote: string | null;
 };
 
 function toRequestView(r: {
@@ -173,6 +189,7 @@ function toRequestView(r: {
   days: number;
   status: string;
   reason: string | null;
+  decisionNote: string | null;
 }): LeaveRequestView {
   return {
     id: r.id,
@@ -183,6 +200,7 @@ function toRequestView(r: {
     days: r.days,
     status: r.status,
     reason: r.reason,
+    decisionNote: r.decisionNote,
   };
 }
 
@@ -315,25 +333,34 @@ export type TeamKpis = {
  * the caller's employee scope ONCE via `directoryWhere`, then runs metadata-only
  * aggregates in parallel:
  *  - headcount / AI usage over that scope;
- *  - pendingRequests over the reports-only subset, using the exact predicate of
- *    `getPendingApprovals`, so the KPI card and the approvals table can't disagree.
+ *  - pendingRequests using the EXACT predicate of `getPendingApprovals` (reports
+ *    for a manager, company-wide for a directory:read:all role), so the KPI card
+ *    and the approvals table can't disagree.
  * `AiEvent` has no employeeId, so AI usage joins via the team's `userId`s. An empty
  * team yields `{ in: [] }` → matches nothing → zeros, never a global count.
  */
-export async function getTeamKpis(caller: Caller): Promise<TeamKpis> {
+export async function getTeamKpis(
+  caller: Caller,
+  opts: { scope?: TeamScope; now?: Date } = {},
+): Promise<TeamKpis> {
   const empty: TeamKpis = { headcount: 0, pendingRequests: 0, aiTurns7d: 0, aiRefusals7d: 0 };
   if (!can(caller.role, "dashboard:read:team")) return empty;
 
-  const { employeeIds, userIds } = await getTeamScope(caller);
-
-  const since = new Date(Date.now() - AI_USAGE_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+  // Scope + clock are threaded in from getTeamDashboard: scope avoids re-running
+  // the directoryWhere query, and a shared `now` keeps the value and its sparkline
+  // on one clock (they'd diverge under a fixed test clock).
+  const { employeeIds, userIds } = opts.scope ?? (await getTeamScope(caller));
+  const now = opts.now ?? new Date();
+  const since = new Date(now.getTime() - AI_USAGE_WINDOW_DAYS * 24 * 60 * 60 * 1000);
 
   const [pendingRequests, aiByKind] = await Promise.all([
+    // Mirror getPendingApprovals exactly: a directory:read:all role approves
+    // company-wide, so its KPI must count company-wide or the card and the
+    // approvals table disagree.
     prisma.leaveRequest.count({
-      where: {
-        status: "PENDING",
-        employee: { managerId: caller.employeeId ?? "__none__" },
-      },
+      where: can(caller.role, "directory:read:all")
+        ? { status: "PENDING" }
+        : { status: "PENDING", employee: { managerId: caller.employeeId ?? "__none__" } },
     }),
     prisma.aiEvent.groupBy({
       by: ["kind"],
@@ -380,8 +407,9 @@ export type TeamLeaveFilters = {
 export async function getTeamLeaveRequests(
   caller: Caller,
   filters: TeamLeaveFilters = {},
+  preResolvedScope?: TeamScope,
 ): Promise<LeaveRequestView[]> {
-  const scope = await getTeamScope(caller);
+  const scope = preResolvedScope ?? (await getTeamScope(caller));
   if (scope.employeeIds.length === 0) return [];
 
   const statuses = (filters.status ?? []).filter((s): s is LeaveStatus =>

@@ -12,24 +12,15 @@
 // NEVER names, message content, or salary.
 // ─────────────────────────────────────────────────────────────────────────
 import type { AiEventKind, LeaveStatus, LeaveType, PrismaClient, Role } from "@prisma/client";
+// Shared with the KPI layer + test factory (relative path — the seed already
+// imports src modules this way and runs under tsx, which has no `@/` alias).
+import { startOfDayUtc, addDays } from "../src/lib/kpi/time";
+import { mulberry32 } from "../src/lib/kpi/prng";
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
+// Deterministic marker on every AiEvent this seed writes, so the idempotency
+// guard can tell "already team-seeded" from "a real chat turn happened".
+const SEED_CONVO_PREFIX = "seed-conv-";
 
-/** Seeded PRNG (mulberry32) — same seed → same dataset, matching the test factory. */
-function mulberry32(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a |= 0;
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-const startOfDayUtc = (d: Date) =>
-  new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-const addDays = (d: Date, n: number) => new Date(startOfDayUtc(d).getTime() + n * MS_PER_DAY);
 const isWeekend = (d: Date) => d.getUTCDay() === 0 || d.getUTCDay() === 6;
 
 type Member = {
@@ -92,8 +83,14 @@ export async function seedTeamActivity(
   prisma: PrismaClient,
   now: Date = new Date(),
 ): Promise<void> {
-  // Idempotent guard: AiEvent is the signal this function has already run.
-  if ((await prisma.aiEvent.count()) > 0) {
+  // Idempotent guard on a marker only THIS seed writes — not any AiEvent, since a
+  // real chat turn writes those too (keying off them would skip seeding on a
+  // chatted-but-unseeded DB). The atomic write below sets the marker iff it fully
+  // committed.
+  const alreadySeeded = await prisma.aiEvent.count({
+    where: { conversationId: { startsWith: SEED_CONVO_PREFIX } },
+  });
+  if (alreadySeeded > 0) {
     console.log("• Team activity already seeded — skipping.");
     return;
   }
@@ -214,8 +211,6 @@ export async function seedTeamActivity(
     }
   }
 
-  await prisma.leaveRequest.createMany({ data: leave });
-
   // ── AiEvents (metadata only) ──────────────────────────────────────────
   type EventRow = {
     conversationId: string;
@@ -241,7 +236,7 @@ export async function seedTeamActivity(
     const input = randInt(200, 1400);
     const output = randInt(80, 900);
     events.push({
-      conversationId: `seed-conv-${convo++}`,
+      conversationId: `${SEED_CONVO_PREFIX}${convo++}`,
       userId: m.userId,
       role: m.role,
       kind,
@@ -295,10 +290,15 @@ export async function seedTeamActivity(
     emit(spiker, new Date(today.getTime() + 11 * 3600_000), "REFUSAL");
   }
 
-  // Batched insert to keep the transaction light.
-  for (let i = 0; i < events.length; i += 1000) {
-    await prisma.aiEvent.createMany({ data: events.slice(i, i + 1000) });
-  }
+  // Atomic write: leaves + all AiEvent batches commit together, so an interrupted
+  // run leaves nothing (no half-seed to duplicate leaves on re-run). The AiEvents
+  // carry the SEED_CONVO_PREFIX marker the guard above checks.
+  await prisma.$transaction([
+    prisma.leaveRequest.createMany({ data: leave }),
+    ...Array.from({ length: Math.ceil(events.length / 1000) }, (_, i) =>
+      prisma.aiEvent.createMany({ data: events.slice(i * 1000, i * 1000 + 1000) }),
+    ),
+  ]);
 
   console.log(
     `• Seeded team activity: ${leave.length} leave requests, ${events.length} AI events ` +

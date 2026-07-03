@@ -2,7 +2,7 @@
 // dependency-free (no date-fns yet — that arrives with the chart UI) and pure,
 // so every calculator built on top stays unit-testable without a clock or a DB.
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
+export const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 /** Midnight UTC on the same calendar day as `d`. */
 export function startOfDayUtc(d: Date): Date {

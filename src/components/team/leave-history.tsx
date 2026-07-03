@@ -47,6 +47,7 @@ export async function LeaveHistory({ rows }: { rows: LeaveRequestView[] }) {
             <TableHead>{t("days")}</TableHead>
             <TableHead>{t("status")}</TableHead>
             <TableHead>{t("reason")}</TableHead>
+            <TableHead>{tc("decisionNote")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -65,6 +66,9 @@ export async function LeaveHistory({ rows }: { rows: LeaveRequestView[] }) {
               </TableCell>
               <TableCell className="max-w-[16rem] truncate text-muted-foreground">
                 {r.reason ?? tc("none")}
+              </TableCell>
+              <TableCell className="max-w-[16rem] truncate text-muted-foreground">
+                {r.decisionNote ?? tc("none")}
               </TableCell>
             </TableRow>
           ))}

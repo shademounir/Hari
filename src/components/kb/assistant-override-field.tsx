@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useState, useSyncExternalStore } from "react";
 import { useTranslations } from "next-intl";
 import { PILL_CLASS } from "@/components/kb/pill-radio-group";
 
@@ -22,20 +22,25 @@ export function AssistantOverrideField({
   defaultOverride: boolean | null;
 }) {
   const t = useTranslations("kb");
-  const [collectionId, setCollectionId] = useState(defaultCollectionId);
   const [value, setValue] = useState<Value>(
     defaultOverride === null ? "inherit" : defaultOverride ? "on" : "off",
   );
 
-  // Mirror the form's collection <select> so the hint reflects the chosen collection.
-  useEffect(() => {
+  // Mirror the form's collection <select> (external DOM control) so the hint
+  // reflects the chosen collection — subscribed directly, without a
+  // setState-in-effect to keep the two in sync.
+  const subscribe = useCallback((onChange: () => void) => {
     const sel = document.querySelector<HTMLSelectElement>('select[name="collectionId"]');
-    if (!sel) return;
-    setCollectionId(sel.value || defaultCollectionId);
-    const onChange = () => setCollectionId(sel.value);
-    sel.addEventListener("change", onChange);
-    return () => sel.removeEventListener("change", onChange);
-  }, [defaultCollectionId]);
+    sel?.addEventListener("change", onChange);
+    return () => sel?.removeEventListener("change", onChange);
+  }, []);
+  const collectionId = useSyncExternalStore(
+    subscribe,
+    () =>
+      document.querySelector<HTMLSelectElement>('select[name="collectionId"]')?.value ||
+      defaultCollectionId,
+    () => defaultCollectionId,
+  );
 
   const collectionEnabled =
     collections.find((c) => c.id === collectionId)?.assistantEnabled ?? true;

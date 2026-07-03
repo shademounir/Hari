@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { addDays, bucketStart, daysBetween, eachDay } from "@/lib/kpi/time";
+import { bucketStart, daysBetween, eachDay } from "@/lib/kpi/time";
 import { bucketCounts, type TrendWindow } from "@/lib/kpi/trends";
 import { detectAnomaly } from "@/lib/kpi/anomaly";
 import { buildCapacityHeatmap, simulateImpact, type LeaveInterval } from "@/lib/kpi/capacity";

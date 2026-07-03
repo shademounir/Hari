@@ -6,7 +6,8 @@
   "common": {
     "you": "Vous",
     "none": "—",
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "decisionNote": "Note de décision"
   },
   "languageSwitcher": {
     "label": "Langue",

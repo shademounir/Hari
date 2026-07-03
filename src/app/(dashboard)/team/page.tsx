@@ -3,7 +3,13 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Users, CalendarClock, Bot, ShieldAlert } from "lucide-react";
 import { requireUser } from "@/lib/session";
-import { getEmployeeDirectoryFacets, getPendingApprovals, getTeamLeaveRequests } from "@/lib/hr";
+import {
+  getEmployeeDirectoryFacets,
+  getPendingApprovals,
+  getTeamLeaveRequests,
+  getTeamScope,
+  resolveCaller,
+} from "@/lib/hr";
 import { getTeamDashboard } from "@/lib/kpi/dashboard";
 import { can } from "@/lib/rbac";
 import type { KpiKey } from "@/types/dashboard";
@@ -45,23 +51,33 @@ export default async function TeamPage({ searchParams }: Props) {
   // the link) and the data-layer check inside getTeamKpis.
   if (!can(user.role, "dashboard:read:team")) redirect("/");
 
-  const caller = { role: user.role, employeeId: user.employeeId };
+  // Re-resolve employeeId from the DB (not the JWT-cached value) so the read path
+  // scopes by the same fresh id the write path (server actions) uses.
+  const caller = await resolveCaller(user);
   const params = await searchParams;
   const t = await getTranslations("team");
 
+  // Resolve the team scope ONCE and thread it into every service, so a single
+  // page render runs the directoryWhere query once instead of three times.
+  const scope = await getTeamScope(caller);
+
   // `now` is resolved once, server-side, so the whole model shares one clock.
   // Leave filters come from the URL but are validated in getTeamLeaveRequests and
-  // always applied WITHIN getTeamScope — a crafted query can't widen the team.
+  // always applied WITHIN the team scope — a crafted query can't widen the team.
   const now = new Date();
   const [dashboard, approvals, leaveHistory, facets] = await Promise.all([
-    getTeamDashboard(caller, now),
+    getTeamDashboard(caller, now, scope),
     getPendingApprovals(caller),
-    getTeamLeaveRequests(caller, {
-      search: typeof params.search === "string" ? params.search : undefined,
-      status: asArray(params.status),
-      type: asArray(params.type),
-      departments: asArray(params.dept),
-    }),
+    getTeamLeaveRequests(
+      caller,
+      {
+        search: typeof params.search === "string" ? params.search : undefined,
+        status: asArray(params.status),
+        type: asArray(params.type),
+        departments: asArray(params.dept),
+      },
+      scope,
+    ),
     // Department options for the facet — already team-scoped (directoryWhere).
     getEmployeeDirectoryFacets(caller),
   ]);

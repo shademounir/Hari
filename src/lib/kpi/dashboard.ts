@@ -10,8 +10,8 @@ import { getTeamKpis, getTeamScope, type TeamScope } from "@/lib/hr";
 import { can } from "@/lib/rbac";
 import { detectAnomaly } from "@/lib/kpi/anomaly";
 import { buildCapacityHeatmap, getCapacityData } from "@/lib/kpi/capacity";
-import { defaultTrendWindow, getAiUsageTrend, getLeaveVolumeTrend } from "@/lib/kpi/trends";
-import { addDays } from "@/lib/kpi/time";
+import { defaultTrendWindow, getAiUsageTrend } from "@/lib/kpi/trends";
+import { addDays, startOfDayUtc } from "@/lib/kpi/time";
 import type {
   AnomalyResult,
   KpiCardModel,
@@ -47,10 +47,16 @@ function cardFrom(key: KpiKey, value: number, points: TrendPoint[]): KpiCardMode
  * model when the caller lacks `dashboard:read:team`, so the page can render a
  * consistent shell without special-casing authorization.
  */
-export async function getTeamDashboard(caller: Caller, now: Date): Promise<TeamDashboardModel> {
-  const scope: TeamScope = await getTeamScope(caller);
-  const rangeStart = now;
-  const rangeEnd = addDays(now, CAPACITY_HORIZON_DAYS);
+export async function getTeamDashboard(
+  caller: Caller,
+  now: Date,
+  preResolvedScope?: TeamScope,
+): Promise<TeamDashboardModel> {
+  const scope: TeamScope = preResolvedScope ?? (await getTeamScope(caller));
+  // Floor to the UTC day: the capacity query filters day-precision dates, so raw
+  // wall-clock `now` would drop a leave whose last day is today (endDate < now).
+  const rangeStart = startOfDayUtc(now);
+  const rangeEnd = addDays(rangeStart, CAPACITY_HORIZON_DAYS);
 
   if (!can(caller.role, "dashboard:read:team") || scope.employeeIds.length === 0) {
     const capacity = buildCapacityHeatmap([], rangeStart, rangeEnd, scope.employeeIds.length);
@@ -63,9 +69,8 @@ export async function getTeamDashboard(caller: Caller, now: Date): Promise<TeamD
 
   const window = defaultTrendWindow(now);
 
-  const [kpis, leaveTrend, turnsTrend, refusalsTrend, capacityIntervals] = await Promise.all([
-    getTeamKpis(caller),
-    getLeaveVolumeTrend(scope, window),
+  const [kpis, turnsTrend, refusalsTrend, capacityIntervals] = await Promise.all([
+    getTeamKpis(caller, { scope, now }),
     getAiUsageTrend(scope, window, "TURN"),
     getAiUsageTrend(scope, window, "REFUSAL"),
     getCapacityData(scope, rangeStart, rangeEnd),
@@ -81,7 +86,9 @@ export async function getTeamDashboard(caller: Caller, now: Date): Promise<TeamD
   const cards: KpiCardModel[] = [
     // Headcount has no reliable history (no termination dates) → insufficient_data.
     { key: "headcount", value: kpis.headcount, series: [], anomaly: { ...EMPTY_ANOMALY, current: kpis.headcount } },
-    cardFrom("pendingRequests", kpis.pendingRequests, leaveTrend.points),
+    // Point-in-time backlog with no historical snapshots → value only, no
+    // series/anomaly (leave-creation volume would be a different quantity).
+    { key: "pendingRequests", value: kpis.pendingRequests, series: [], anomaly: { ...EMPTY_ANOMALY, current: kpis.pendingRequests } },
     cardFrom("aiTurns7d", kpis.aiTurns7d, turnsTrend.points),
     cardFrom("aiRefusals7d", kpis.aiRefusals7d, refusalsTrend.points),
   ];

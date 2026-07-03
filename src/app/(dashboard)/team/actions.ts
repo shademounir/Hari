@@ -2,12 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { can } from "@/lib/rbac";
 import {
   bulkDecideLeaveRequests,
   decideLeaveRequest,
+  resolveCaller,
   type Caller,
   type LeaveDecision,
 } from "@/lib/hr";
@@ -21,17 +21,10 @@ export type BulkResult = { ok: boolean; count: number };
 async function requireApprover(): Promise<Caller> {
   const user = await requireUser();
   if (!can(user.role, "leave:approve")) redirect("/");
-  // Re-resolve the Employee id from the authenticated user rather than trusting
-  // the JWT-cached `employeeId`: the session token caches it at login, so after a
-  // DB reset (or any employee-row change) the cached id can be stale and would
-  // write a dangling `approverId` → LeaveRequest_approverId_fkey violation. The
-  // `userId` unique lookup always yields the current, valid Employee id (or null,
-  // which the mutation guards).
-  const employee = await prisma.employee.findUnique({
-    where: { userId: user.id },
-    select: { id: true },
-  });
-  return { role: user.role, employeeId: employee?.id ?? null };
+  // resolveCaller re-resolves the Employee id from the DB rather than trusting
+  // the JWT-cached `employeeId` (stale after a DB reset would write a dangling
+  // approverId → FK violation). Shared with the team page so read + write agree.
+  return resolveCaller(user);
 }
 
 export async function approveLeaveAction(requestId: string): Promise<DecideResult> {
