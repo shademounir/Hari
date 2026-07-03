@@ -469,7 +469,7 @@
     "colAlert": "Alerte",
     "colSeverity": "Gravité",
     "colWho": "Déclenchée par",
-    "colWhen": "Quand",
+    "colWhen": "Créée le",
     "colStatus": "Statut",
     "colActions": "Actions",
     "filter": {
@@ -490,7 +490,8 @@
     },
     "action": {
       "acknowledge": "Prendre en compte",
-      "resolve": "Résoudre"
+      "resolve": "Résoudre",
+      "reopen": "Rouvrir"
     },
     "kind": {
       "AI_GUARD_BLOCK": {
@@ -506,6 +507,11 @@
         "title": "L'assistant a mis fin à une conversation"
       }
     },
-    "colDetail": "Détail"
+    "colDetail": "Détail",
+    "rowActions": "Actions de l'alerte",
+    "by": "par {name}",
+    "toastAcknowledged": "Alerte prise en compte",
+    "toastResolved": "Alerte résolue",
+    "toastReopened": "Alerte rouverte"
   }
 }

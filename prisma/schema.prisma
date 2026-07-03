@@ -33,19 +33,20 @@ enum LeaveStatus {
 
 /// Auth identity. One User maps to one Employee profile.
 model User {
-  id           String       @id @default(cuid())
-  email        String       @unique
-  name         String
-  passwordHash String
-  role         Role         @default(EMPLOYEE)
-  employee     Employee?
-  createdAt    DateTime     @default(now())
-  kbCreated    HrDocument[] @relation("KbCreatedBy")
-  kbUpdated    HrDocument[] @relation("KbUpdatedBy")
-  kbFeedback   KbFeedback[]
-  aiEvents     AiEvent[]
-  alertsRaised Alert[]      @relation("AlertSubject")
-  alertsAcked  Alert[]      @relation("AlertAck")
+  id             String       @id @default(cuid())
+  email          String       @unique
+  name           String
+  passwordHash   String
+  role           Role         @default(EMPLOYEE)
+  employee       Employee?
+  createdAt      DateTime     @default(now())
+  kbCreated      HrDocument[] @relation("KbCreatedBy")
+  kbUpdated      HrDocument[] @relation("KbUpdatedBy")
+  kbFeedback     KbFeedback[]
+  aiEvents       AiEvent[]
+  alertsRaised   Alert[]      @relation("AlertSubject")
+  alertsAcked    Alert[]      @relation("AlertAck")
+  alertsResolved Alert[]      @relation("AlertResolved")
 }
 
 /// HR profile / org data.
@@ -297,6 +298,8 @@ model Alert {
   aiEventId      String?
   acknowledgedBy User?         @relation("AlertAck", fields: [ackById], references: [id], onDelete: SetNull)
   ackById        String?
+  resolvedBy     User?         @relation("AlertResolved", fields: [resolvedById], references: [id], onDelete: SetNull)
+  resolvedById   String?
   resolvedAt     DateTime?
 
   @@index([status])

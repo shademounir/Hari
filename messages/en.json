@@ -469,7 +469,7 @@
     "colAlert": "Alert",
     "colSeverity": "Severity",
     "colWho": "Triggered by",
-    "colWhen": "When",
+    "colWhen": "Raised",
     "colStatus": "Status",
     "colActions": "Actions",
     "filter": {
@@ -490,7 +490,8 @@
     },
     "action": {
       "acknowledge": "Acknowledge",
-      "resolve": "Resolve"
+      "resolve": "Resolve",
+      "reopen": "Reopen"
     },
     "kind": {
       "AI_GUARD_BLOCK": {
@@ -506,6 +507,11 @@
         "title": "Assistant ended a conversation"
       }
     },
-    "colDetail": "Detail"
+    "colDetail": "Detail",
+    "rowActions": "Alert actions",
+    "by": "by {name}",
+    "toastAcknowledged": "Alert acknowledged",
+    "toastResolved": "Alert resolved",
+    "toastReopened": "Alert reopened"
   }
 }
