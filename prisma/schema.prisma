@@ -307,3 +307,34 @@ model Alert {
   @@index([createdAt])
   @@index([kind])
 }
+
+/// SCRUM-064: the sensitive actions worth recording for after-the-fact review.
+enum AuditAction {
+  ALERT_ACKNOWLEDGED
+  ALERT_RESOLVED
+  ALERT_REOPENED
+  ALERTS_CONSOLE_VIEWED
+}
+
+/// SCRUM-064: a minimal audit trail of sensitive admin/security actions (alert
+/// triage + alerts-console access). Metadata only — never full confidential
+/// content — mirroring the AiEvent/Alert no-PII contract. The actor and target
+/// are stored as raw ids with a denormalized role, so the trail deliberately
+/// SURVIVES user/target deletion (an audit record must persist); it soft-links
+/// to an Alert / AiEvent by id when relevant.
+model AuditLog {
+  id         String      @id @default(cuid())
+  createdAt  DateTime    @default(now())
+  actorId    String? // who performed it (raw id; kept even if the user is later deleted)
+  actorRole  Role // denormalized so the trail survives user deletion
+  action     AuditAction
+  targetType String? // e.g. "Alert"
+  targetId   String? // opaque id of the target — never content
+  alertId    String? // linked alert (soft reference)
+  aiEventId  String? // linked AiEvent (soft reference)
+  meta       Json? // small structured extras — no PII
+
+  @@index([createdAt])
+  @@index([action])
+  @@index([actorId])
+}
