@@ -26,6 +26,13 @@ describe("RBAC matrix", () => {
     expect(can("MANAGER", "alerts:read")).toBe(false);
   });
 
+  it("only HR/Admin hold the company-wide AI activity + documents dashboard permission (SCRUM-072)", () => {
+    expect(can("HR_ADMIN", "dashboard:read:company")).toBe(true);
+    expect(can("SUPER_ADMIN", "dashboard:read:company")).toBe(true);
+    expect(can("MANAGER", "dashboard:read:company")).toBe(false);
+    expect(can("EMPLOYEE", "dashboard:read:company")).toBe(false);
+  });
+
   it("HR can read the whole company, salaries and payslips", () => {
     expect(can("HR_ADMIN", "directory:read:all")).toBe(true);
     expect(can("HR_ADMIN", "salary:read:all")).toBe(true);
