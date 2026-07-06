@@ -1,20 +1,28 @@
 // ─────────────────────────────────────────────────────────────────────────
-// AI tools. Each tool's execute is wrapped by `withPermission()` which checks the
-// caller's permission BEFORE running. On denial it returns a structured
-// { denied: true, ... } payload (instead of throwing) so the chat UI can show
-// a "permission denied" card. The model sees the denial too and can explain it.
-// All data access goes through the same role-scoped helpers as the UI (lib/hr).
+// AI tools. Authorization is enforced in code, never in the prompt — full
+// contract in docs/architecture/authorization-invariants.md. In short:
+//   • Identity is the closed-over `caller` (from the session), never a tool
+//     argument — "self" tools take no id.
+//   • `buildHrTools` advertises ONLY the tools a role may use (TOOL_CATALOGUE),
+//     so an out-of-scope tool is never offered. Per-tool can()/scope checks
+//     below are defense in depth; every model-supplied id is authorized
+//     server-side against the caller's scope.
+//   • Scope refusals return `{ refused }` — silent: the agent works with the
+//     authorized data and the UI shows nothing. Operational errors return
+//     `{ error }` (shown). All reads go through the role-scoped lib/hr layer.
 // ─────────────────────────────────────────────────────────────────────────
 import { tool } from "ai";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { can, PERMISSION_LABELS, type Permission, type Role } from "@/lib/rbac";
 import {
-  getDirectory,
+  getEmployeeDirectory,
   getLeaveBalances,
+  getPayslip,
   getPendingApprovals,
 } from "@/lib/hr";
 import { searchHandbook } from "@/lib/rag";
+import { isoDateInTimeZone } from "@/lib/datetime";
 
 export type ToolCaller = {
   role: Role;
@@ -22,25 +30,45 @@ export type ToolCaller = {
   name: string;
 };
 
-type Denied = { denied: true; permission: Permission; reason: string };
-
-function deny(permission: Permission): Denied {
-  return {
-    denied: true,
-    permission,
-    reason: `Access denied — your role lacks "${PERMISSION_LABELS[permission]}".`,
-  };
+// A scope refusal: the agent relays `message`, the UI renders nothing (vs.
+// `{ error }`, an operational problem the UI does show).
+type Refusal = { refused: true; message: string };
+function refused(message: string): Refusal {
+  return { refused: true, message };
 }
 
-/** Run `fn` only if the caller holds `permission`, else return a denial. */
+// An operational error the UI DOES render. `error` is a readable English string
+// the model can relay (it answers in the user's language); `errorCode` lets the
+// UI render a localized card instead of the raw English (key: tools.errors.<code>).
+type Failure = { error: string; errorCode: string };
+function fail(errorCode: string, message: string): Failure {
+  return { error: message, errorCode };
+}
+
+/**
+ * Run `fn` only if the caller holds `permission`, else return a silent refusal.
+ * Defense in depth: `buildHrTools` already declines to advertise a tool the role
+ * can't use, so for a correctly-configured role this branch is never reached.
+ */
 function withPermission<I, O>(
   caller: ToolCaller,
   permission: Permission,
   fn: (input: I) => Promise<O>,
-): (input: I) => Promise<O | Denied> {
+): (input: I) => Promise<O | Refusal | Failure> {
   return async (input: I) => {
-    if (!can(caller.role, permission)) return deny(permission);
-    return fn(input);
+    if (!can(caller.role, permission)) {
+      return refused(`That action isn't available to your role (needs "${PERMISSION_LABELS[permission]}").`);
+    }
+    // Throw-guard (defense in depth): an unexpected throw (e.g. a DB error) must
+    // never propagate a raw message/stack to the client. Log it server-side and
+    // return a generic, localizable failure instead. Every data tool goes through
+    // here, so no app-executed tool can leak internals.
+    try {
+      return await fn(input);
+    } catch (e) {
+      console.error(`[tool] execute failed (permission: ${permission}):`, e);
+      return fail("internal_error", "Something went wrong handling that request. Please try again.");
+    }
   };
 }
 
@@ -55,45 +83,183 @@ function ciEnum<const T extends [string, ...string[]]>(values: T) {
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-// Inclusive day count, or an error string if the range is malformed/reversed —
-// so a model passing a non-date or swapped dates fails loudly instead of
-// silently recording a 1-day request.
-function leaveDays(start: string, end: string): number | { error: string } {
-  if (!ISO_DATE.test(start) || !ISO_DATE.test(end)) {
-    return { error: "Dates must be YYYY-MM-DD." };
-  }
-  const startMs = Date.parse(`${start}T00:00:00Z`);
-  const endMs = Date.parse(`${end}T00:00:00Z`);
-  if (Number.isNaN(startMs) || Number.isNaN(endMs)) {
-    return { error: "Invalid calendar date." };
-  }
-  if (endMs < startMs) {
-    return { error: "End date must be on or after the start date." };
-  }
-  return Math.round((endMs - startMs) / 86_400_000) + 1;
+// Parse a strict YYYY-MM-DD at UTC midnight, or null for a non-date OR an
+// impossible calendar date. V8 silently ROLLS bad days forward ("2026-06-31"
+// → Jul 1, "2026-02-30" → Mar 2) and only rejects bad months, so we round-trip
+// the result and reject anything that didn't survive unchanged.
+function parseUtcDate(s: string): Date | null {
+  if (!ISO_DATE.test(s)) return null;
+  const ms = Date.parse(`${s}T00:00:00Z`);
+  if (Number.isNaN(ms)) return null;
+  const d = new Date(ms);
+  return d.toISOString().slice(0, 10) === s ? d : null;
 }
 
-export function buildHrTools(caller: ToolCaller) {
+// Parse a start/end pair into UTC dates, or a Failure for a bad/reversed range.
+// Shared by leaveDays + businessDaysBetween so the validation can't drift between
+// the tools (a range rejected by one is rejected the same way by the other).
+function parseRange(start: string, end: string): { start: Date; end: Date } | Failure {
+  const startD = parseUtcDate(start);
+  const endD = parseUtcDate(end);
+  if (!startD || !endD) {
+    return fail("date_invalid", "Dates must be a valid calendar date in YYYY-MM-DD.");
+  }
+  if (endD < startD) {
+    return fail("date_range_reversed", "End date must be on or after the start date.");
+  }
+  return { start: startD, end: endD };
+}
+
+/** Inclusive count of calendar days between two UTC midnights. */
+function inclusiveCalendarDays(start: Date, end: Date): number {
+  return Math.round((end.getTime() - start.getTime()) / 86_400_000) + 1;
+}
+
+// Inclusive day count, or a Failure if the range is malformed/reversed — so a
+// model passing a non-date or swapped dates fails loudly instead of silently
+// recording a 1-day request.
+function leaveDays(start: string, end: string): number | Failure {
+  const range = parseRange(start, end);
+  if ("error" in range) return range;
+  return inclusiveCalendarDays(range.start, range.end);
+}
+
+/**
+ * The full tool surface for a caller. NOT exported — callers go through
+ * `buildHrTools`, which advertises only the subset the role may use.
+ */
+function buildAllHrTools(caller: ToolCaller, timezone = "UTC") {
+  // Only callers who can read anyone's pay get a target parameter; everyone else
+  // gets a self-only payslip tool with no `employeeId` field — so the agent
+  // can't even attempt to query another person's payslip.
+  const canReadAnyPayslip = can(caller.role, "payslip:read:any");
+
+  // Running citation counter, shared across every searchHandbook call in THIS
+  // request (the tools object lives for the whole multi-step stream). It makes
+  // `ref` globally unique within a turn — so two handbook searches yield 1..4
+  // then 5..8, the model cites distinct numbers, and the inline [n] links and the
+  // source cards can never collide on a reused number.
+  let citationBase = 0;
+
   return {
+    // ── Calendar utilities (no auth, no UI — deterministic date helpers) ─
+    getCurrentDateTime: tool({
+      description:
+        "Get the current date, time, and weekday in the organization's timezone. The date is also in your system prompt; use this if you need the live time or want to double-check.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        const now = new Date();
+        // Everything is reported in the ORG timezone — the same zone the system
+        // prompt declares as the source of truth for "today" — so the model never
+        // sees a date/weekday/zone that contradicts the prompt. en-CA → YYYY-MM-DD.
+        return {
+          date: isoDateInTimeZone(now, timezone),
+          weekday: now.toLocaleDateString("en-US", { weekday: "long", timeZone: timezone }),
+          time: now.toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            timeZone: timezone,
+          }),
+          timeZone: timezone,
+        };
+      },
+    }),
+
+    getDateInfo: tool({
+      description:
+        "Get the weekday and weekend status of a specific calendar date. Use it to VERIFY the day of week before stating it (e.g. confirm '2026-06-29' really is a Monday).",
+      inputSchema: z.object({
+        date: z.string().describe("A date in YYYY-MM-DD."),
+      }),
+      execute: async ({ date }) => {
+        const d = parseUtcDate(date);
+        if (!d) return fail("date_invalid", "Date must be a valid calendar date in YYYY-MM-DD.");
+        const dow = d.getUTCDay();
+        return {
+          date,
+          weekday: d.toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" }),
+          isWeekend: dow === 0 || dow === 6,
+        };
+      },
+    }),
+
+    businessDaysBetween: tool({
+      description:
+        "Count working days (Mon–Fri, inclusive of both ends) in a date range, alongside the total calendar days. Use it to tell the user how many working days a leave range actually spans.",
+      inputSchema: z.object({
+        startDate: z.string().describe("Start date, YYYY-MM-DD"),
+        endDate: z.string().describe("End date, YYYY-MM-DD"),
+      }),
+      execute: async ({ startDate, endDate }) => {
+        const range = parseRange(startDate, endDate);
+        if ("error" in range) return range;
+        const { start, end } = range;
+
+        let businessDays = 0;
+        const cur = new Date(start);
+        while (cur <= end) {
+          const dow = cur.getUTCDay();
+          if (dow !== 0 && dow !== 6) businessDays++;
+          cur.setUTCDate(cur.getUTCDate() + 1);
+        }
+        return { startDate, endDate, calendarDays: inclusiveCalendarDays(start, end), businessDays };
+      },
+    }),
+
+    // ── Safety: end the conversation ────────────────────────────────────
+    // A guardrail primitive available to EVERY role. The model calls it to
+    // decline and CLOSE the chat when a request is abusive, disallowed/unsafe,
+    // or persistently off-scope after a redirect. The structured `{ closed }`
+    // result is detected server-side (route onStepFinish → AiEvent + Alert) and
+    // client-side (locks the composer). Store only the reason code — no PII.
+    endConversation: tool({
+      description:
+        "End the current conversation and lock the chat. Call this ONLY as a last resort when the user is abusive/harassing, insists on a disallowed or unsafe action, or keeps pushing a request that is out of scope after you've redirected them. Before calling it, briefly tell the user you're ending the chat and why. Prefer to keep helping — never use this for a normal out-of-scope question you can simply decline.",
+      inputSchema: z.object({
+        reason: ciEnum(["ABUSE", "DISALLOWED_REQUEST", "SAFETY", "OFF_TOPIC_PERSISTENT"]).describe(
+          "Why the conversation is being ended.",
+        ),
+      }),
+      // No auth: it removes nothing and reads nothing — it's a safety valve.
+      execute: async ({ reason }) => ({ closed: true as const, reason }),
+    }),
+
     // ── RAG over the handbook ───────────────────────────────────────────
     searchHandbook: tool({
       description:
-        "Search the company employee handbook for policies (leave, benefits, conduct, remote work, etc.). Use this for any HR policy question and cite the returned sections.",
+        "Search the company employee handbook for POLICIES and rules (leave, benefits, conduct, remote work, etc.). Use this for any 'what is our policy / are we allowed to / how does X work' question, and cite the returned sections. This returns company-wide rules — NOT the current user's personal data (for their own balance use getLeaveBalances, for their pay use getPayslip).",
       inputSchema: z.object({
         query: z.string().describe("The policy question or topic to look up."),
       }),
       execute: withPermission(caller, "handbook:read", async ({ query }) => {
         try {
-          const results = await searchHandbook(query, 4);
+          const hits = await searchHandbook(query, 4, caller);
+          // Attach a stable, turn-global citation number and the canonical reader
+          // URL (built server-side from the DB) so the UI can render
+          // hallucination-proof deep links — the model only ever emits the number.
+          const results = hits.map((h, i) => ({
+            ...h,
+            ref: citationBase + i + 1,
+            url: `/kb/${h.collectionSlug}/${h.articleSlug}${h.anchor ? `#${h.anchor}` : ""}`,
+          }));
+          citationBase += results.length; // next search continues the sequence
           return { query, results };
-        } catch {
-          // Most likely no embedding API key configured (or handbook not seeded).
-          return {
-            query,
-            results: [],
-            error:
-              "Handbook search is unavailable — check the embedding provider key and re-seed.",
-          };
+        } catch (e) {
+          console.error("searchHandbook failed:", e);
+          // Omit `results` entirely on failure: a JSON-reading model must not mistake
+          // an outage for an empty handbook (and answer from memory). Distinguish a
+          // model/dimension misconfig from a missing key / unseeded handbook.
+          const msg = e instanceof Error ? e.message : String(e);
+          const dimMismatch = /dimension/i.test(msg);
+          return dimMismatch
+            ? fail(
+                "handbook_dim_mismatch",
+                "Handbook search is misconfigured: the embedding model's output size doesn't match the database. Check EMBEDDING_MODEL.",
+              )
+            : fail(
+                "handbook_unavailable",
+                "Handbook search is unavailable — check the embedding provider key and re-seed.",
+              );
         }
       }),
     }),
@@ -101,7 +267,7 @@ export function buildHrTools(caller: ToolCaller) {
     // ── Directory (role-scoped rows) ────────────────────────────────────
     getEmployeeDirectory: tool({
       description:
-        "List employees the current user is allowed to see (self, team, or whole company depending on role). Optionally filter by name, department, or title.",
+        "List PEOPLE the current user is allowed to see (self, team, or whole company depending on role) — with their title, department, location, manager, and contact details. Optionally filter by name, department, or title. Use this for 'who is / who reports to / how do I contact / show me the team' questions. Returns people/org info only — NOT leave balances (getLeaveBalances) or pay (getPayslip).",
       inputSchema: z.object({
         filter: z
           .string()
@@ -109,7 +275,7 @@ export function buildHrTools(caller: ToolCaller) {
           .describe("Optional case-insensitive substring to filter by."),
       }),
       execute: withPermission(caller, "directory:read:self", async ({ filter }) => {
-        let people = await getDirectory(caller);
+        let people = await getEmployeeDirectory(caller);
         if (filter) {
           const f = filter.toLowerCase();
           people = people.filter((p) =>
@@ -122,9 +288,10 @@ export function buildHrTools(caller: ToolCaller) {
       }),
     }),
 
-    // ── Leave balance ───────────────────────────────────────────────────
-    getLeaveBalance: tool({
-      description: "Get the current user's remaining time-off balances.",
+    // ── Leave balances ──────────────────────────────────────────────────
+    getLeaveBalances: tool({
+      description:
+        "Get the current user's remaining time-off balances — how many vacation, sick, and personal days they have left. Use this for ANY question about vacation/PTO/leave days remaining or used (e.g. \"how many vacation days do I have left?\").",
       inputSchema: z.object({}),
       execute: withPermission(caller, "leave:read:self", async () => {
         if (!caller.employeeId) return { balances: [] };
@@ -136,7 +303,7 @@ export function buildHrTools(caller: ToolCaller) {
     // ── Request time off ────────────────────────────────────────────────
     requestTimeOff: tool({
       description:
-        "Submit a time-off request for the current user. Dates are YYYY-MM-DD. Confirm the dates with the user before submitting.",
+        "Submit (create) a NEW time-off request for the current user. Dates are YYYY-MM-DD. This is a write action — it does NOT show existing balances (use getLeaveBalances to check days left first). Confirm the exact dates and type with the user before submitting.",
       inputSchema: z.object({
         type: ciEnum(["VACATION", "SICK", "PERSONAL"]),
         startDate: z.string().describe("Start date, YYYY-MM-DD"),
@@ -148,9 +315,9 @@ export function buildHrTools(caller: ToolCaller) {
         "leave:request",
         async ({ type, startDate, endDate, reason }) => {
           if (!caller.employeeId)
-            return { error: "No employee profile linked to this account." };
+            return fail("no_employee_profile", "No employee profile linked to this account.");
           const days = leaveDays(startDate, endDate);
-          if (typeof days !== "number") return days; // { error }
+          if (typeof days !== "number") return days; // { error, errorCode }
           const created = await prisma.leaveRequest.create({
             data: {
               employeeId: caller.employeeId,
@@ -180,7 +347,7 @@ export function buildHrTools(caller: ToolCaller) {
     // ── List pending approvals (manager / HR) ───────────────────────────
     listPendingApprovals: tool({
       description:
-        "List time-off requests awaiting the current user's approval (their reports, or everyone for HR/admins).",
+        "List OTHER people's time-off requests that are awaiting the current user's approval (their direct reports, or everyone for HR/admins). This is for reviewing/approving OTHERS' requests — not the current user's own balance (getLeaveBalances) or for submitting their own request (requestTimeOff).",
       inputSchema: z.object({}),
       execute: withPermission(caller, "leave:approve", async () => {
         const pending = await getPendingApprovals(caller);
@@ -201,20 +368,22 @@ export function buildHrTools(caller: ToolCaller) {
           where: { id: requestId },
           include: { employee: { include: { user: { select: { name: true } } } } },
         });
-        if (!req) return { error: "Request not found." };
+        if (!req) return fail("request_not_found", "Request not found.");
 
-        // Managers may only act on their own reports.
+        // Managers may only act on their own reports. (A manager is offered this
+        // tool, but a requestId outside their team is still refused here.)
         const companyWide = can(caller.role, "directory:read:all");
         if (!companyWide && req.employee.managerId !== caller.employeeId) {
-          return deny("leave:approve");
+          return refused("That request is for someone outside your team, so you can't action it.");
         }
 
         // Only act on PENDING requests — re-approving would double-deduct the
         // balance, and reverting an APPROVED request would need a refund path.
         if (req.status !== "PENDING") {
-          return {
-            error: `Request is already ${req.status.toLowerCase()} and can't be changed.`,
-          };
+          return fail(
+            "request_not_pending",
+            `Request is already ${req.status.toLowerCase()} and can't be changed.`,
+          );
         }
 
         const status = decision === "APPROVE" ? "APPROVED" : "REJECTED";
@@ -243,45 +412,96 @@ export function buildHrTools(caller: ToolCaller) {
       }),
     }),
 
-    // ── Payslip (self vs anyone) ────────────────────────────────────────
-    getPayslip: tool({
-      description:
-        "Get a payslip summary. Omit employeeId for your own. To view someone else's (requires elevated permissions), first call getEmployeeDirectory to get their employeeId.",
-      inputSchema: z.object({
-        employeeId: z
-          .string()
-          .nullish()
-          .describe("Employee id from getEmployeeDirectory — omit for your own."),
-      }),
-      execute: async ({ employeeId }) => {
-        // Resolve by stable id, never by name — predictable and unambiguous.
-        const wantsOther = !!employeeId && employeeId !== caller.employeeId;
-        const perm: Permission = wantsOther ? "payslip:read:any" : "payslip:read:self";
-        if (!can(caller.role, perm)) return deny(perm);
-
-        const targetId = wantsOther ? employeeId! : caller.employeeId;
-        if (!targetId) return { error: "No employee profile linked to this account." };
-
-        const target = await prisma.employee.findUnique({
-          where: { id: targetId },
-          include: { user: { select: { name: true } } },
-        });
-        if (!target) return { error: "Employee not found." };
-
-        const monthlyGross = Math.round(target.salary / 12);
-        const tax = Math.round(monthlyGross * 0.22);
-        return {
-          payslip: {
-            employeeName: target.user.name,
-            period: "Most recent month",
-            grossMonthly: monthlyGross,
-            tax,
-            netMonthly: monthlyGross - tax,
-          },
-        };
-      },
-    }),
+    // ── Payslip ─────────────────────────────────────────────────────────
+    // Role-aware: elevated callers get an `employeeId` target; everyone else
+    // gets a self-only tool with no target field, so the agent only ever has
+    // access to its own pay — no out-of-scope query is even expressible.
+    getPayslip: canReadAnyPayslip
+      ? tool({
+          description:
+            "Get a PAY summary (gross pay, tax, net pay — money only, NOT leave/vacation balances) for an employee you can see. Omit employeeId for your own; to view someone else's, pass an employeeId returned by getEmployeeDirectory (never a guessed one).",
+          inputSchema: z.object({
+            employeeId: z
+              .string()
+              .nullish()
+              .describe("An employeeId returned by getEmployeeDirectory — omit for your own."),
+          }),
+          // Wrapped in withPermission like every other data tool (defense in depth);
+          // the data layer additionally enforces the self-vs-any distinction.
+          execute: withPermission(caller, "payslip:read:self", async ({ employeeId }) => {
+            const result = await getPayslip(caller, employeeId);
+            if (result.ok) return { payslip: result.payslip };
+            return refused("No payslip found for an employee you can view.");
+          }),
+        })
+      : tool({
+          description:
+            "Get the current user's own PAY summary: gross pay, tax, and net pay (money only — NOT vacation or leave balances; use getLeaveBalances for those).",
+          inputSchema: z.object({}),
+          execute: withPermission(caller, "payslip:read:self", async () => {
+            const result = await getPayslip(caller); // self only — no target accepted
+            if (result.ok) return { payslip: result.payslip };
+            return refused("No payslip is linked to your account.");
+          }),
+        }),
   };
 }
 
-export type HrTools = ReturnType<typeof buildHrTools>;
+type AllHrTools = ReturnType<typeof buildAllHrTools>;
+type ToolName = keyof AllHrTools;
+
+/**
+ * The tool catalogue: every tool and the permission that gates ADVERTISING it.
+ * The single source of "which tools does each role get" — used to expose tools
+ * per role (below) and to document the surface (settings page / docs). To add a
+ * tool: define it in buildAllHrTools and add one row here. `permission: null`
+ * marks a utility tool with no data access (e.g. the calendar) that every role
+ * always gets. The human-readable summary lives in i18n (`tools.summary.<name>`),
+ * not here, so it stays translatable and has a single source.
+ */
+export const TOOL_CATALOGUE = [
+  { name: "getCurrentDateTime", permission: null },
+  { name: "getDateInfo", permission: null },
+  { name: "businessDaysBetween", permission: null },
+  { name: "endConversation", permission: null }, // safety valve — every role
+
+  { name: "searchHandbook", permission: "handbook:read" },
+  { name: "getEmployeeDirectory", permission: "directory:read:self" },
+  { name: "getLeaveBalances", permission: "leave:read:self" },
+  { name: "requestTimeOff", permission: "leave:request" },
+  { name: "listPendingApprovals", permission: "leave:approve" },
+  { name: "approveLeave", permission: "leave:approve" },
+  // `payslip:read:self` gates ADVERTISING the tool; the elevated variant's
+  // `employeeId` target is unlocked separately by `payslip:read:any` (above).
+  { name: "getPayslip", permission: "payslip:read:self" },
+] as const satisfies readonly { name: ToolName; permission: Permission | null }[];
+
+/** Does this role get the catalogue entry? `null` permission = always (utility). */
+function roleHasTool(role: Role, permission: Permission | null): boolean {
+  return permission === null || can(role, permission);
+}
+
+/** Tool names a role is offered — handy for the settings UI and tests. */
+export function toolsForRole(role: Role): ToolName[] {
+  return TOOL_CATALOGUE.filter((t) => roleHasTool(role, t.permission)).map((t) => t.name);
+}
+
+/**
+ * Tools advertised to the model for this caller: ONLY the ones the role can use.
+ * Irrelevant tools are never injected, so the model can't see, attempt, or be
+ * tricked into calling something out of scope — and no "permission denied" ever
+ * needs to surface. This is the primary guardrail; the per-tool checks inside
+ * each tool are defense in depth.
+ */
+export function buildHrTools(
+  caller: ToolCaller,
+  opts: { timezone?: string } = {},
+): Partial<AllHrTools> {
+  const all = buildAllHrTools(caller, opts.timezone);
+  const allowed = TOOL_CATALOGUE.filter((t) => roleHasTool(caller.role, t.permission)).map(
+    (t) => [t.name, all[t.name]] as const,
+  );
+  return Object.fromEntries(allowed) as Partial<AllHrTools>;
+}
+
+export type HrTools = Partial<AllHrTools>;

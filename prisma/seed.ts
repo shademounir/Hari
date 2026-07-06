@@ -1,9 +1,38 @@
 /* eslint-disable no-console */
 import "dotenv/config"; // self-contained when run directly via tsx
-import { PrismaClient, type Role } from "@prisma/client";
+import {
+  PrismaClient,
+  type Role,
+  type DocVisibility,
+  EmploymentStatus,
+  EmploymentType,
+} from "@prisma/client";
 import bcrypt from "bcryptjs";
+import sharp from "sharp";
+import { unified } from "unified";
+import remarkParse from "remark-parse";
+import remarkRehype from "remark-rehype";
+import rehypeStringify from "rehype-stringify";
 import { embedTexts, toVectorLiteral } from "../src/lib/ai/embeddings";
-import { HANDBOOK } from "./handbook";
+import { chunkHtml } from "../src/lib/kb/html";
+import { DEMO_USERS } from "../src/lib/demo-users";
+import { putCover, coverUrl } from "../src/lib/storage";
+import { KB_COLLECTIONS } from "./handbook";
+import { seedTeamActivity } from "./team-activity";
+
+// Seed corpus is authored in markdown for readability; store it as HTML (the
+// editor + reader work in HTML). Seed-only, so it lives here rather than in the
+// runtime lib/kb/html module.
+const mdToHtml = unified().use(remarkParse).use(remarkRehype).use(rehypeStringify);
+const markdownToHtml = (markdown: string): string => String(mdToHtml.processSync(markdown));
+
+// Rasterize a seed SVG gradient to WebP and store it in object storage, so seed
+// covers are served + optimized through next/image exactly like admin uploads.
+async function uploadCover(svg: string): Promise<string> {
+  const webp = await sharp(Buffer.from(svg)).resize(1200, 300).webp({ quality: 82 }).toBuffer();
+  const key = await putCover(webp, "image/webp");
+  return coverUrl(key);
+}
 
 const prisma = new PrismaClient();
 const PASSWORD = "password123";
@@ -18,15 +47,111 @@ type Seed = {
   salary: number;
   manager?: string; // email of manager
   login: boolean; // demo login account?
+  status?: "ACTIVE" | "ON_LEAVE" | "TERMINATED";
+  employmentType?: "FULL_TIME" | "PART_TIME" | "CONTRACTOR";
+};
+
+// Seed-only attributes for the demo login accounts. Their identity fields
+// (name, role, title, department, location) come from the shared DEMO_USERS so
+// the seed and the login page can never disagree about who these accounts are.
+const DEMO_EXTRAS: Record<string, { salary: number; manager?: string }> = {
+  "admin@hari.ma": { salary: 350000 },
+  "rh@hari.ma": { salary: 250000 },
+  "manager@hari.ma": { salary: 300000 },
+  "collaborateur@hari.ma": { salary: 180000, manager: "manager@hari.ma" },
 };
 
 const PEOPLE: Seed[] = [
-  { email: "admin@acme.test", name: "Sam Super", role: "SUPER_ADMIN", title: "Platform Administrator", department: "IT", location: "Remote", salary: 185000, login: true },
-  { email: "hr@acme.test", name: "Hana HR", role: "HR_ADMIN", title: "HR Business Partner", department: "People", location: "Remote", salary: 145000, login: true },
-  { email: "manager@acme.test", name: "Marcus Manager", role: "MANAGER", title: "Engineering Manager", department: "Engineering", location: "Austin, TX", salary: 165000, login: true },
-  { email: "employee@acme.test", name: "Erin Employee", role: "EMPLOYEE", title: "Software Engineer", department: "Engineering", location: "Austin, TX", salary: 120000, manager: "manager@acme.test", login: true },
-  { email: "nina@acme.test", name: "Nina Patel", role: "EMPLOYEE", title: "Frontend Engineer", department: "Engineering", location: "Remote", salary: 118000, manager: "manager@acme.test", login: false },
-  { email: "omar@acme.test", name: "Omar Said", role: "EMPLOYEE", title: "Backend Engineer", department: "Engineering", location: "Austin, TX", salary: 122000, manager: "manager@acme.test", login: false },
+  // Comptes de démonstration principaux (identité partagée avec la page de connexion)
+  ...DEMO_USERS.map((u) => ({
+    email: u.email,
+    name: u.name,
+    role: u.role,
+    title: u.title,
+    department: u.department,
+    location: u.location,
+    ...DEMO_EXTRAS[u.email],
+    login: true,
+  })),
+
+  // Comptes secondaires pour peupler l'annuaire et les équipes
+  {
+    email: "a.mansouri@hari.ma",
+    name: "Amina Mansouri",
+    role: "EMPLOYEE",
+    title: "Développeuse Frontend",
+    department: "IT",
+    location: "Rabat",
+    salary: 150000,
+    manager: "manager@hari.ma",
+    login: false,
+    status: "ON_LEAVE",
+    employmentType: "PART_TIME",
+  },
+  {
+    email: "a.elmarrouni@hari.ma",
+    name: "Ahmed El marrouni",
+    role: "EMPLOYEE",
+    title: "Développeuse Full stack",
+    department: "IT",
+    location: "Tetouan",
+    salary: 150000,
+    manager: "manager@hari.ma",
+    login: false,
+    status: "ACTIVE",
+    employmentType: "CONTRACTOR",
+  },
+  {
+    email: "m.bennani@hari.ma",
+    name: "Mehdi Bennani",
+    role: "EMPLOYEE",
+    title: "Développeur Backend",
+    department: "IT",
+    location: "Tétouan",
+    salary: 160000,
+    manager: "manager@hari.ma",
+    login: false,
+    status: "TERMINATED",
+    employmentType: "FULL_TIME",
+  },
+  {
+    email: "s.amrani@hari.ma",
+    name: "Sara Amrani",
+    role: "EMPLOYEE",
+    title: "UX/UI Designer",
+    department: "Design",
+    location: "Casablanca",
+    salary: 145000,
+    manager: "manager@hari.ma",
+    login: false,
+    status: "ACTIVE",
+    employmentType: "PART_TIME",
+  },
+  {
+    email: "o.alaoui@hari.ma",
+    name: "Omar Alaoui",
+    role: "EMPLOYEE",
+    title: "DevOps Engineer",
+    department: "Infrastructure",
+    location: "Rabat",
+    salary: 210000,
+    manager: "manager@hari.ma",
+    login: false,
+    status: "ON_LEAVE",
+    employmentType: "FULL_TIME",
+  }, {
+    email: "f.idrissi@hari.ma",
+    name: "Fatima Zahra Idrissi",
+    role: "EMPLOYEE",
+    title: "QA Engineer",
+    department: "Quality Assurance",
+    location: "Marrakech",
+    salary: 155000,
+    manager: "manager@hari.ma",
+    login: false,
+    status: "TERMINATED",
+    employmentType: "CONTRACTOR",
+  },
 ];
 
 async function seedPeople() {
@@ -52,6 +177,9 @@ async function seedPeople() {
             location: p.location,
             salary: p.salary,
             startDate: new Date("2023-01-15"),
+            status: (p.status as EmploymentStatus) ?? EmploymentStatus.ACTIVE,
+            employmentType: (p.employmentType as EmploymentType) ?? EmploymentType.FULL_TIME,
+
             leaveBalances: {
               create: [
                 { type: "VACATION", totalDays: 20, usedDays: 4 },
@@ -64,8 +192,12 @@ async function seedPeople() {
       },
       include: { employee: true },
     });
-    byEmail[p.email] = user.employee!.id;
+    // byEmail[p.email] = user.employee!.id;
+    if (!user.employee) throw new Error(`Employee not created for ${p.email}`);
+    byEmail[p.email] = user.employee.id;
+
   }
+
 
   // Pass 2: wire up manager relationships.
   for (const p of PEOPLE) {
@@ -77,64 +209,138 @@ async function seedPeople() {
     }
   }
 
-  // A couple of leave requests so approvals have something to show.
-  const erin = byEmail["employee@acme.test"];
-  const nina = byEmail["nina@acme.test"];
-  await prisma.leaveRequest.createMany({
-    data: [
-      { employeeId: erin, type: "VACATION", startDate: new Date("2026-07-06"), endDate: new Date("2026-07-08"), days: 3, reason: "Long weekend trip", status: "PENDING" },
-      { employeeId: nina, type: "SICK", startDate: new Date("2026-06-22"), endDate: new Date("2026-06-22"), days: 1, reason: "Doctor appointment", status: "PENDING" },
-      { employeeId: erin, type: "VACATION", startDate: new Date("2026-04-10"), endDate: new Date("2026-04-11"), days: 2, reason: "Family event", status: "APPROVED" },
-    ],
-  });
-
+  // Leave requests + AI activity are seeded separately (prisma/team-activity.ts)
+  // so the manager dashboard has ~6 months of realistic, deterministic history.
   console.log(`• Seeded ${PEOPLE.length} people (4 demo logins).`);
 }
 
 // Data only — the schema (halfvec column, HNSW index, pgvector extension) is
 // owned by the Prisma migration in prisma/migrations, not by the seed.
-async function seedHandbook() {
-  if ((await prisma.handbookChunk.count()) > 0) {
-    console.log("• Handbook already seeded — skipping.");
+//
+// Seeds collections + documents, then chunks & embeds the PUBLISHED ones (DRAFT
+// docs are intentionally left unindexed — invisible to the chatbot). Only
+// PUBLISHED chunks carry the denormalized visibility tier, so RAG access control
+// works the same as the live publish pipeline (src/lib/kb/ingest.ts).
+async function seedKnowledgeBase() {
+  if ((await prisma.hrDocument.count()) > 0) {
+    console.log("• Knowledge base already seeded — skipping.");
     return;
   }
 
-  if (!process.env.OPENROUTER_API_KEY) {
-    console.warn(
-      "⚠ No OPENROUTER_API_KEY — skipping handbook embedding. " +
-        "RAG will return no results until you add the key and re-seed.",
-    );
-    return;
-  }
+  // Attribute seeded docs to the HR admin (falls back to any user) so the reader
+  // and admin show an author.
+  const author =
+    (await prisma.user.findUnique({ where: { email: "rh@hari.ma" }, select: { id: true } })) ??
+    (await prisma.user.findFirst({ select: { id: true } }));
+  const authorId = author?.id ?? null;
 
-  console.log(`• Embedding ${HANDBOOK.length} handbook sections…`);
-  const vectors = await embedTexts(
-    HANDBOOK.map((h) => `${h.section}\n${h.content}`),
+  // Create collections + documents (relational rows; no embeddings yet).
+  const publishedDocs: {
+    id: string;
+    content: string;
+    visibility: DocVisibility;
+    version: number;
+  }[] = [];
+  for (const col of KB_COLLECTIONS) {
+    const collection = await prisma.kbCollection.create({
+      data: {
+        slug: col.slug,
+        name: col.name,
+        description: col.description,
+        image: col.image ? await uploadCover(col.image) : null,
+        assistantEnabled: col.assistantEnabled ?? true,
+        order: col.order,
+      },
+    });
+    for (const doc of col.documents) {
+      const status = doc.status ?? "PUBLISHED";
+      // Authored in markdown for readability; stored as HTML (the editor + reader
+      // work in HTML).
+      const html = markdownToHtml(doc.content);
+      const created = await prisma.hrDocument.create({
+        data: {
+          slug: doc.slug,
+          title: doc.title,
+          content: html,
+          visibility: doc.visibility,
+          tags: doc.tags ?? [],
+          status,
+          collectionId: collection.id,
+          createdById: authorId,
+          updatedById: authorId,
+          publishedAt: status === "PUBLISHED" ? new Date() : null,
+        },
+      });
+      if (status === "PUBLISHED") {
+        publishedDocs.push({
+          id: created.id,
+          content: html,
+          visibility: doc.visibility,
+          version: created.version,
+        });
+      }
+    }
+  }
+  console.log(
+    `• Seeded ${KB_COLLECTIONS.length} collections, ${publishedDocs.length} published documents.`,
   );
+
+  // Chunk every published document. Chunks are always inserted so the lexical
+  // (full-text) half of the hybrid query works even without an API key; the
+  // embeddings (semantic half) are added only when a key is present. So a keyless
+  // seed (e.g. CI) still produces a searchable KB — semantic ranking turns on once
+  // a key is set and you re-seed (db:reset).
+  const flat = publishedDocs.flatMap((d) =>
+    chunkHtml(d.content).map((c) => ({ doc: d, chunk: c })),
+  );
+  const hasKey = !!process.env.OPENROUTER_API_KEY;
+  if (hasKey) {
+    console.log(`• Embedding ${flat.length} chunks…`);
+  } else {
+    console.warn(
+      "⚠ No OPENROUTER_API_KEY — chunks indexed for full-text search only. " +
+      "Semantic ranking is disabled until you add the key and re-seed (db:reset).",
+    );
+  }
+  const vectors = hasKey
+    ? await embedTexts(flat.map((f) => `${f.chunk.section}\n${f.chunk.content}`))
+    : null;
 
   // Atomic: a mid-loop failure rolls back so a retry re-embeds cleanly instead
   // of leaving a partial corpus that the count() guard above would skip forever.
   await prisma.$transaction(
     async (tx) => {
-      for (let i = 0; i < HANDBOOK.length; i++) {
-        const chunk = await tx.handbookChunk.create({
-          data: { section: HANDBOOK[i].section, content: HANDBOOK[i].content },
+      for (let i = 0; i < flat.length; i++) {
+        const { doc, chunk } = flat[i];
+        const row = await tx.handbookChunk.create({
+          data: {
+            documentId: doc.id,
+            section: chunk.section,
+            anchor: chunk.anchor,
+            content: chunk.content,
+            chunkIndex: chunk.chunkIndex,
+            version: doc.version,
+            visibility: doc.visibility,
+          },
         });
-        await tx.$executeRawUnsafe(
-          `UPDATE "HandbookChunk" SET embedding = $1::halfvec WHERE id = $2`,
-          toVectorLiteral(vectors[i]),
-          chunk.id,
-        );
+        if (vectors) {
+          await tx.$executeRawUnsafe(
+            `UPDATE "HandbookChunk" SET embedding = $1::halfvec WHERE id = $2`,
+            toVectorLiteral(vectors[i]),
+            row.id,
+          );
+        }
       }
     },
-    { timeout: 20_000 },
+    { timeout: 30_000 },
   );
-  console.log("• Handbook embedded.");
+  console.log(hasKey ? "• Knowledge base embedded." : "• Knowledge base indexed (full-text only).");
 }
 
 async function main() {
   await seedPeople();
-  await seedHandbook();
+  await seedTeamActivity(prisma);
+  await seedKnowledgeBase();
 }
 
 main()

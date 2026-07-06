@@ -7,9 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono-custom), ui-monospace, monospace;
+  --font-heading: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -27,6 +27,7 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -39,6 +40,15 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  /* Always-branded surfaces (navy chrome, brand-gradient banner, login panel).
+     Defined identically in :root and .dark — they must not theme-flip. */
+  --color-brand-ink: var(--brand-ink);
+  --color-on-navy: var(--on-navy);
+  --color-on-navy-muted: var(--on-navy-muted);
+  --color-brand-panel: var(--brand-panel);
+  --color-brand-panel-foreground: var(--brand-panel-foreground);
+  --color-brand-panel-muted: var(--brand-panel-muted);
+  --color-nav-active: var(--nav-active);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -48,73 +58,109 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* ───────────────────────────────────────────────────────────────
+   HARI brand palette. Primary = HARI blue (#2563EB); accents lean to
+   the brand teal (#14B8A6). The blue→teal gradient is the signature
+   of the logo; charts run blue→teal. oklch keeps light/dark coherent.
+   ─────────────────────────────────────────────────────────────── */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --background: oklch(0.99 0.005 247);
+  --foreground: oklch(0.23 0.04 264);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.23 0.04 264);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.23 0.04 264);
+  --primary: oklch(0.55 0.21 263);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.96 0.015 240);
+  --secondary-foreground: oklch(0.3 0.05 264);
+  --muted: oklch(0.965 0.01 240);
+  --muted-foreground: oklch(0.52 0.03 256);
+  --accent: oklch(0.95 0.035 200);
+  --accent-foreground: oklch(0.32 0.06 220);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0.91 0.012 247);
+  --input: oklch(0.91 0.012 247);
+  --ring: oklch(0.55 0.21 263);
+  --chart-1: oklch(0.55 0.21 263);
+  --chart-2: oklch(0.62 0.15 230);
+  --chart-3: oklch(0.68 0.13 200);
+  --chart-4: oklch(0.72 0.13 184);
+  --chart-5: oklch(0.77 0.13 165);
+  --radius: 0.7rem;
+  --sidebar: oklch(0.985 0.006 247);
+  --sidebar-foreground: oklch(0.23 0.04 264);
+  --sidebar-primary: oklch(0.55 0.21 263);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-accent: oklch(0.95 0.02 240);
+  --sidebar-accent-foreground: oklch(0.3 0.05 264);
+  --sidebar-border: oklch(0.91 0.012 247);
+  --sidebar-ring: oklch(0.55 0.21 263);
+  /* Brand gradient stops + glass surface (used by utilities below). */
+  --brand-from: #2563eb;
+  --brand-to: #14b8a6;
+  --glass-bg: oklch(1 0 0 / 65%);
+  --glass-border: oklch(0.55 0.21 263 / 12%);
+  /* Active nav pill on the always-navy rail — fixed blue that clears AA with
+     white text in both themes (brand-from is too light in dark for that). */
+  --nav-active: oklch(0.48 0.21 264);
+  /* Always-branded surface roles — identical in light/dark (see .dark below). */
+  --brand-ink: oklch(0.42 0.17 263);
+  --on-navy: oklch(0.985 0.005 247);
+  --on-navy-muted: oklch(0.985 0.005 247 / 85%);
+  --brand-panel: #0b1733;
+  --brand-panel-foreground: oklch(0.985 0.005 247);
+  --brand-panel-muted: oklch(0.83 0.02 256);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  /* Navy family matching the sidebar gradient (#0c1a3f → #0a1430) so the rail,
+     top bar and main area read as one coherent surface in dark mode. */
+  --background: oklch(0.16 0.045 264);
+  --foreground: oklch(0.97 0.005 247);
+  --card: oklch(0.21 0.05 264);
+  --card-foreground: oklch(0.97 0.005 247);
+  --popover: oklch(0.21 0.05 264);
+  --popover-foreground: oklch(0.97 0.005 247);
+  --primary: oklch(0.65 0.18 258);
+  --primary-foreground: oklch(0.16 0.03 264);
+  --secondary: oklch(0.26 0.05 264);
+  --secondary-foreground: oklch(0.97 0.005 247);
+  --muted: oklch(0.26 0.05 264);
+  --muted-foreground: oklch(0.72 0.02 256);
+  --accent: oklch(0.3 0.05 255);
+  --accent-foreground: oklch(0.97 0.005 247);
   --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --ring: oklch(0.65 0.18 258);
+  --chart-1: oklch(0.65 0.18 258);
+  --chart-2: oklch(0.68 0.14 225);
+  --chart-3: oklch(0.72 0.12 200);
+  --chart-4: oklch(0.76 0.12 184);
+  --chart-5: oklch(0.8 0.12 165);
+  --sidebar: oklch(0.17 0.05 264);
+  --sidebar-foreground: oklch(0.97 0.005 247);
+  --sidebar-primary: oklch(0.65 0.18 258);
+  --sidebar-primary-foreground: oklch(0.16 0.03 264);
+  --sidebar-accent: oklch(0.26 0.05 264);
+  --sidebar-accent-foreground: oklch(0.97 0.005 247);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: oklch(0.65 0.18 258);
+  --brand-from: #3b82f6;
+  --brand-to: #2dd4bf;
+  --glass-bg: oklch(0.21 0.05 264 / 60%);
+  --glass-border: oklch(1 0 0 / 10%);
+  --nav-active: oklch(0.48 0.21 264);
+  /* Always-branded surface roles — identical to :root (must not theme-flip). */
+  --brand-ink: oklch(0.42 0.17 263);
+  --on-navy: oklch(0.985 0.005 247);
+  --on-navy-muted: oklch(0.985 0.005 247 / 85%);
+  --brand-panel: #0b1733;
+  --brand-panel-foreground: oklch(0.985 0.005 247);
+  --brand-panel-muted: oklch(0.83 0.02 256);
 }
 
 @layer base {
@@ -127,4 +173,83 @@
   html {
     @apply font-sans;
   }
+  /* Visible keyboard focus for elements without their own ring (links, the
+     scrollable <main>, raw buttons). shadcn primitives set their own ring and
+     override this via the utilities layer. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+/* Accessibility: honor the OS "reduce motion" setting everywhere. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@layer utilities {
+  /* The HARI signature blue→teal gradient, as a fill or as text. */
+  .bg-brand-gradient {
+    background-image: linear-gradient(135deg, var(--brand-from), var(--brand-to));
+  }
+  .text-brand-gradient {
+    background-image: linear-gradient(135deg, var(--brand-from), var(--brand-to));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  /* Minimal, clean glassmorphism for the chrome (sidebar / top bar / overlays):
+     a translucent surface with a backdrop blur and a hairline border. */
+  .glass {
+    background-color: var(--glass-bg);
+    -webkit-backdrop-filter: blur(14px) saturate(150%);
+    backdrop-filter: blur(14px) saturate(150%);
+    border-color: var(--glass-border);
+  }
+  /* Always-dark navy sidebar — solid (opaque) so it renders identically in
+     light and dark mode, matching the dark-theme look in both. */
+  .glass-navy {
+    background-image: linear-gradient(
+      180deg,
+      oklch(0.2 0.06 264),
+      oklch(0.14 0.05 264)
+    );
+  }
+  /* Subtle elevated card feel used by dashboards. */
+  .card-elevated {
+    box-shadow:
+      0 1px 2px oklch(0.2 0.04 264 / 6%),
+      0 8px 24px -12px oklch(0.2 0.04 264 / 18%);
+  }
+}
+
+/* KB reader: flash the section a citation deep-link points at. Token-based so it
+   works in both themes; the transition above is neutralized under reduce-motion. */
+.kb-highlight {
+  background-color: var(--accent);
+  border-radius: 0.25rem;
+  box-shadow: 0 0 0 0.5rem var(--accent);
+  transition: background-color 1.2s ease-out, box-shadow 1.2s ease-out;
+}
+/* KB article editor (BlockNote): tune the in-content heading scale so the page's
+   document Title stays the largest element. Without this, BlockNote's default H2
+   (32px) is bigger than the title and the hierarchy reads inverted. */
+.bn-editor h1 {
+  font-size: 1.75rem !important;
+  line-height: 1.3 !important;
+}
+.bn-editor h2 {
+  font-size: 1.375rem !important;
+  line-height: 1.35 !important;
+}
+.bn-editor h3 {
+  font-size: 1.125rem !important;
+  line-height: 1.4 !important;
 }

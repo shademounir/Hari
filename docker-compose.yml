@@ -25,6 +25,19 @@ services:
     depends_on:
       - db
 
+  # S3-compatible object storage for Knowledge Base cover images.
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    ports:
+      - "9000:9000" # S3 API
+      - "9001:9001" # web console (http://localhost:9001)
+    volumes:
+      - minio-data:/data
+
   app:
     build:
       context: .
@@ -32,13 +45,16 @@ services:
     env_file:
       - .env
     environment:
-      # Override the host inside the compose network (point at the db service).
+      # Override hosts inside the compose network (point at the db + minio services).
       DATABASE_URL: postgresql://hr:hr@db:5432/hr?schema=public
+      S3_ENDPOINT: http://minio:9000
     ports:
       - "3000:3000"
     depends_on:
       db:
         condition: service_healthy
+      minio:
+        condition: service_started
     volumes:
       # Bind-mount source for hot reload; keep container's node_modules + .next.
       - .:/app
@@ -51,3 +67,4 @@ services:
 
 volumes:
   db-data:
+  minio-data:

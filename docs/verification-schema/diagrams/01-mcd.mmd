@@ -1,0 +1,28 @@
+erDiagram
+    TENANT ||--o{ USER : possede
+    TENANT ||--o{ DEPARTMENT : possede
+    TENANT ||--o{ EMPLOYEE : possede
+    TENANT ||--o{ HR_DOCUMENT : possede
+    TENANT ||--o{ ALERT : possede
+    TENANT ||--o{ SECURITY_AUDIT_LOG : possede
+
+    ROLE ||--o{ USER : qualifie
+    ROLE ||--o{ HR_DOCUMENT : restreint
+
+    USER ||--o| EMPLOYEE : correspond_a
+    DEPARTMENT ||--o{ EMPLOYEE : regroupe
+    DEPARTMENT ||--o| EMPLOYEE : est_dirige_par
+    EMPLOYEE ||--o{ EMPLOYEE : encadre
+    EMPLOYEE ||--o{ ABSENCE : declare
+    EMPLOYEE ||--o{ WORKFLOW : suit
+    WORKFLOW ||--o{ WORKFLOW_TASK : contient
+
+    HR_DOCUMENT ||--o{ DOCUMENT_CHUNK : decoupe_en
+    USER ||--o{ CHAT_SESSION : ouvre
+    CHAT_SESSION ||--o{ AI_EVENT : genere
+
+    EMPLOYEE ||--o{ BURNOUT_RISK_ASSESSMENT : evalue
+    USER ||--o{ BURNOUT_RISK_ASSESSMENT : realise
+
+    AI_EVENT ||--o| ALERT : declenche
+    USER ||--o{ SECURITY_AUDIT_LOG : produit

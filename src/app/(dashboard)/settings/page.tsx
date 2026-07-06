@@ -1,108 +1,38 @@
-import { redirect } from "next/navigation";
-import { requireUser } from "@/lib/session";
-import {
-  can,
-  PERMISSIONS,
-  PERMISSION_LABELS,
-  ROLES,
-  ROLE_LABELS,
-} from "@/lib/rbac";
-import { CHAT_MODELS, DEFAULT_MODEL_ID } from "@/lib/ai/providers";
-import { PageHeader } from "@/components/layout/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Check, X } from "lucide-react";
+import Link from "next/link";
+import { getTranslations } from "next-intl/server";
+import { ArrowRight } from "lucide-react";
+import { SETTINGS_SECTIONS } from "@/components/settings/sections";
 
-export default async function SettingsPage() {
-  const user = await requireUser();
-  if (!can(user.role, "admin:settings")) redirect("/"); // belt-and-suspenders
+// Overview hub: a card per settings category. The category list is shared with the
+// side-nav (SETTINGS_SECTIONS) so the two never drift.
+export default async function SettingsOverviewPage() {
+  const t = await getTranslations("settings");
+  const sections = SETTINGS_SECTIONS.filter((s) => s.href !== "/settings");
 
   return (
-    <>
-      <PageHeader
-        title="Settings"
-        description="The single RBAC matrix that gates the UI, server actions, and AI tools."
-      />
-      <div className="space-y-6 p-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Permission matrix</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto rounded-lg border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="min-w-[14rem]">Permission</TableHead>
-                    {ROLES.map((r) => (
-                      <TableHead key={r} className="text-center">
-                        {ROLE_LABELS[r]}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {PERMISSIONS.map((p) => (
-                    <TableRow key={p}>
-                      <TableCell>
-                        <span className="font-medium">{PERMISSION_LABELS[p]}</span>
-                        <code className="ml-2 text-xs text-muted-foreground">{p}</code>
-                      </TableCell>
-                      {ROLES.map((r) => (
-                        <TableCell key={r} className="text-center">
-                          {can(r, p) ? (
-                            <Check className="mx-auto size-4 text-green-600" />
-                          ) : (
-                            <X className="mx-auto size-4 text-muted-foreground/40" />
-                          )}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>AI model registry</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Chat defaults to OpenRouter free models; the Vercel AI Gateway is
-              selectable per request. Configure keys via environment variables.
-            </p>
-            <div className="grid gap-2">
-              {CHAT_MODELS.map((m) => (
-                <div
-                  key={m.id}
-                  className="flex items-center justify-between rounded-md border px-4 py-2 text-sm"
-                >
-                  <div>
-                    <span className="font-medium">{m.label}</span>
-                    <code className="ml-2 text-xs text-muted-foreground">{m.modelId}</code>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">{m.provider}</Badge>
-                    {m.reasoning && <Badge variant="secondary">reasoning</Badge>}
-                    {m.id === DEFAULT_MODEL_ID && <Badge>default</Badge>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </>
+    <ul className="grid gap-4 sm:grid-cols-2">
+      {sections.map((s) => {
+        const Icon = s.icon;
+        return (
+          <li key={s.href}>
+            <Link
+              href={s.href}
+              className="group flex h-full items-start gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10 transition-colors hover:ring-foreground/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground group-hover:bg-background">
+                <Icon className="size-4" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center gap-1 font-medium">
+                  {t(s.key)}
+                  <ArrowRight className="size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                </span>
+                <span className="mt-0.5 block text-sm text-muted-foreground">{t(s.descKey)}</span>
+              </span>
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
   );
 }

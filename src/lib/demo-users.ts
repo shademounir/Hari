@@ -1,7 +1,7 @@
 import type { Role } from "@/lib/rbac";
 
-// The four demo accounts. Shared by the seed script and the login page so the
-// "login as" buttons always match what's in the database.
+// Les quatre comptes de démonstration. Partagés par le script de seed et la page de connexion
+// pour que les boutons "Se connecter en tant que" correspondent toujours à la base de données.
 export const DEMO_PASSWORD = "password123";
 
 export type DemoUser = {
@@ -11,44 +11,39 @@ export type DemoUser = {
   title: string;
   department: string;
   location: string;
-  blurb: string; // shown on the login card
 };
 
 export const DEMO_USERS: DemoUser[] = [
   {
-    email: "employee@acme.test",
-    name: "Erin Employee",
+    email: "collaborateur@hari.ma",
+    name: "Imane Chraibi",
     role: "EMPLOYEE",
-    title: "Software Engineer",
-    department: "Engineering",
-    location: "Austin, TX",
-    blurb: "Sees only their own data. Tools that touch other people get denied.",
-  },
-  {
-    email: "manager@acme.test",
-    name: "Marcus Manager",
-    role: "MANAGER",
-    title: "Engineering Manager",
-    department: "Engineering",
-    location: "Austin, TX",
-    blurb: "Adds visibility into direct reports and can approve their leave.",
-  },
-  {
-    email: "hr@acme.test",
-    name: "Hana HR",
-    role: "HR_ADMIN",
-    title: "HR Business Partner",
-    department: "People",
-    location: "Remote",
-    blurb: "Company-wide directory, compensation, and payslip access.",
-  },
-  {
-    email: "admin@acme.test",
-    name: "Sam Super",
-    role: "SUPER_ADMIN",
-    title: "Platform Administrator",
+    title: "Ingénieure Logiciel Full Stack",
     department: "IT",
-    location: "Remote",
-    blurb: "Everything HR can do, plus platform settings.",
+    location: "Tétouan",
+  },
+  {
+    email: "manager@hari.ma",
+    name: "Karim El Idrissi",
+    role: "MANAGER",
+    title: "Manager Technique",
+    department: "IT",
+    location: "Tétouan",
+  },
+  {
+    email: "rh@hari.ma",
+    name: "Nadia Benali",
+    role: "HR_ADMIN",
+    title: "Responsable Ressources Humaines",
+    department: "Ressources Humaines",
+    location: "Casablanca",
+  },
+  {
+    email: "admin@hari.ma",
+    name: "Youssef Tazi",
+    role: "SUPER_ADMIN",
+    title: "Directeur des Systèmes d'Information",
+    department: "DSI",
+    location: "Distanciel",
   },
 ];

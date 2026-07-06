@@ -1,7 +1,10 @@
 import { Mail, MapPin, Briefcase } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ROLE_LABELS, type Role } from "@/lib/rbac";
+import { useTranslations, useLocale } from "next-intl";
+import { type Role } from "@/lib/rbac";
+import { formatCurrency } from "@/lib/utils";
+import { useOrgSettings } from "@/components/org-settings-provider";
 
 type Person = {
   id: string;
@@ -17,10 +20,15 @@ type Person = {
 };
 
 export function DirectoryCards({ people }: { people: Person[] }) {
+  const t = useTranslations("directoryCard");
+  const tCommon = useTranslations("common");
+  const tRoles = useTranslations("roles");
+  const locale = useLocale();
+  const { currency } = useOrgSettings();
   if (people.length === 0) {
     return (
       <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
-        No matching people.
+        {t("empty")}
       </p>
     );
   }
@@ -42,7 +50,7 @@ export function DirectoryCards({ people }: { people: Person[] }) {
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
                   <span className="truncate font-medium">{p.name}</span>
-                  {p.isSelf && <Badge variant="outline" className="text-[10px]">You</Badge>}
+                  {p.isSelf && <Badge variant="outline" className="text-[10px]">{tCommon("you")}</Badge>}
                 </div>
                 <p className="truncate text-xs text-muted-foreground">{p.title}</p>
               </div>
@@ -51,7 +59,7 @@ export function DirectoryCards({ people }: { people: Person[] }) {
               <p className="flex items-center gap-1.5">
                 <Briefcase className="size-3" /> {p.department}
                 <Badge variant="secondary" className="ml-1 text-[10px]">
-                  {ROLE_LABELS[p.role]}
+                  {tRoles(p.role)}
                 </Badge>
               </p>
               <p className="flex items-center gap-1.5">
@@ -62,7 +70,7 @@ export function DirectoryCards({ people }: { people: Person[] }) {
               </p>
               {p.salary != null && (
                 <p className="font-medium text-foreground">
-                  ${p.salary.toLocaleString()} / yr
+                  {formatCurrency(p.salary, currency, locale)} {t("perYear")}
                 </p>
               )}
             </div>

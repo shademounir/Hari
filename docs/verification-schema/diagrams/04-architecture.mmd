@@ -1,0 +1,39 @@
+flowchart TB
+    subgraph Client
+        Browser["Navigateur - Next.js App Router (React 19)"]
+    end
+
+    subgraph App["Application Next.js 16"]
+        UI["UI - Tailwind v4 + shadcn/ui"]
+        API["Route Handlers"]
+        RBAC["RBAC - auth.role / auth.user"]
+        HR["Couche donnees RH - hr_core.*"]
+        AITools["Outils IA - withPermission"]
+        Embeddings["Pipeline embeddings"]
+    end
+
+    subgraph AI["IA / RAG"]
+        LLM["OpenRouter - chat + embeddings"]
+        RAGStore["ai.hr_document + ai.document_chunk"]
+    end
+
+    subgraph Audit["Securite & audit"]
+        Alerts["audit.alert"]
+        Logs["audit.security_audit_log"]
+    end
+
+    subgraph DB["PostgreSQL"]
+        Schemas["Schemas : auth . hr_core . ai . audit"]
+    end
+
+    Browser --> UI --> API
+    API --> RBAC --> HR
+    API --> AITools --> RBAC
+    AITools --> Embeddings --> LLM
+    AITools --> RAGStore
+    AITools -.refus / comportement suspect.-> Alerts
+    API -.actions sensibles.-> Logs
+    HR --> Schemas
+    RAGStore --> Schemas
+    Alerts --> Schemas
+    Logs --> Schemas

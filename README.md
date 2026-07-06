@@ -33,11 +33,13 @@ end-to-end, yet every piece is independently swappable and production-grade.
 ## What it demonstrates
 
 - **RBAC everywhere** — one permission matrix gates the **UI**, **server data access**, and **AI tools**.
+- **Per-role tool catalogue** — the assistant is only given the tools its role can use; out-of-scope tools are never injected, so it knows exactly what it can and can't do.
 - **Thinking UI** — the model's reasoning streams into a collapsible panel.
-- **Tool-call UI** — every tool call is shown live (running → result), including **permission denials**.
+- **Tool-call UI** — every tool call is shown live (running → result), with rich result cards.
 - **Generative UI** — tool results render as React components (employee cards, leave widgets, payslips), not walls of text.
-- **RAG with citations** — vector search over an employee handbook; answers cite their sources.
+- **Knowledge base with anchor-cited RAG** — a governed KB (collections, draft/publish lifecycle, 3-tier access) authored in a Notion-style editor; **hybrid search** (vector + full-text, RRF-fused) and answers that cite the exact article section.
 - **Multi-step** — the assistant chains tools (e.g. *check balance → submit request*).
+- **Observability + guardrails** — every chat turn is traced to an `AiEvent` (metadata only — tokens, latency, tool/refusal/error codes; **never** message content or PII). A deterministic input guard blocks injection/oversize before the model runs, and the model can call `endConversation` to decline and lock the chat. Guard blocks, closes, errors, and repeated refusals raise an `Alert` for Admin/HR — shown in the bell and a dedicated `/alerts` page.
 - **Four demo roles** — one click to sign in and watch the whole experience change.
 
 ---
@@ -48,11 +50,12 @@ end-to-end, yet every piece is independently swappable and production-grade.
 
 ```bash
 cp .env.example .env                       # paste your OPENROUTER_API_KEY into .env
-docker compose up --build                  # starts db + adminer + app
+docker compose up --build                  # starts db + adminer + minio + app
 # open http://localhost:3000  → pick a demo role (password: password123)
 ```
 
-That single command starts **Postgres (pgvector)**, **Adminer** (DB UI on `:8080`), and the **app**.
+That single command starts **Postgres (pgvector)**, **Adminer** (DB UI on `:8080`), **MinIO**
+(S3-compatible object storage for KB cover images; console on `:9001`), and the **app**.
 On first boot the app runs the Prisma migrations and seeds demo data automatically
 (`prisma migrate deploy && prisma db seed`). The default `.env` already has a working
 `AUTH_SECRET`, so the **only** value you must set is `OPENROUTER_API_KEY`.
@@ -70,12 +73,30 @@ On first boot the app runs the Prisma migrations and seeds demo data automatical
 
 ### Run locally without Docker
 
+**Node version:** this project is standardized on **Node 22 LTS** (the same major as the
+`node:22-alpine` Docker image). The target is pinned in [`.nvmrc`](.nvmrc) and enforced via
+`package.json#engines` + [`.npmrc`](.npmrc) (`engine-strict=true`), so `npm install` fails fast
+on an unsupported version.
+
 ```bash
+# 1. Use the project's Node version (with nvm / nvm-windows / fnm)
+nvm install        # reads .nvmrc → installs Node 22
+nvm use            # switches the current shell to Node 22
+
+# 2. Verify you're on the right version
+node --version     # → v22.x.x   (must be 22, not 20/24)
+npm --version      # → 10.x or 11.x
+
+# 3. Install & run
 npm install
-docker compose up -d db        # just Postgres
+docker compose up -d db minio  # Postgres + object storage
 npm run db:deploy && npm run db:seed   # apply migrations, then seed
 npm run dev
 ```
+
+> Don't have nvm? Install Node 22 LTS directly from [nodejs.org](https://nodejs.org/) (pick the
+> "LTS" download). On Windows, [nvm-windows](https://github.com/coreybutler/nvm-windows) or
+> [fnm](https://github.com/Schniz/fnm) both read `.nvmrc`.
 
 Schema changes go through Prisma migrations: edit `schema.prisma`, run
 `npm run db:migrate` (creates a new migration), commit the generated SQL.
@@ -85,10 +106,10 @@ Schema changes go through Prisma migrations: edit `schema.prisma`, run
 
 | Role | Email | Can do |
 |---|---|---|
-| Employee | `employee@acme.test` | Own profile, own leave/payslip, ask the handbook |
-| Manager | `manager@acme.test` | + see direct reports, approve their leave |
-| HR Admin | `hr@acme.test` | + whole company, salaries, any payslip |
-| Super Admin | `admin@acme.test` | + platform settings |
+| Employee | `collaborateur@hari.ma` | Own profile, own leave/payslip, ask the handbook |
+| Manager | `manager@hari.ma` | + see direct reports, approve their leave |
+| HR Admin | `rh@hari.ma` | + whole company, salaries, any payslip |
+| Super Admin | `admin@hari.ma` | + platform settings |
 
 ---
 
@@ -159,10 +180,18 @@ sequenceDiagram
     R-->>C: stream text → message bubble
 ```
 
-If a tool the role isn't allowed to use is invoked, `withPermission` returns
-`{ denied: true }` instead of touching the database — the UI renders a **“permission denied”**
-card and the model explains it. Defense in depth: the model is *told* the role's permissions in
-the system prompt, **and** the server enforces them regardless.
+The assistant is only given the tools its role can use. `buildHrTools` advertises
+the subset of the catalogue the role is permitted, so an out-of-scope tool is never even injected and
+the model can't attempt it. Defense in depth: the model is *told* its exact capabilities in the system
+prompt, **and** the server still re-checks every call and scopes every read regardless. Where a
+parameter would only ever be out of scope for a role, it's dropped from that role's tool schema, so a
+non-elevated user can't even ask for another's payslip. Any refusal that remains returns `{ refused }`,
+which the assistant works around silently: the UI shows nothing, and there's no "permission denied" card.
+
+> **Deep dive:** [Authorized AI chat — full sequence diagram](docs/architecture/authorized-ai-chat-sequence.md)
+> (auth gate, permission branches, RAG sub-flow, multi-step loop) ·
+> [Authorization invariants](docs/architecture/authorization-invariants.md) (the contributor contract) ·
+> [Authorized chat scenario](docs/architecture/chat-authorization-scenario.md) (the authorized / refusal / alert demo script).
 
 ### Role-based access control
 
@@ -253,13 +282,18 @@ and index are all created in the Prisma migration (`prisma/migrations/0_init`). 
 is env-selectable (`EMBEDDING_MODEL`); any other 384-dim model is a drop-in, while a different
 dimension needs a migration to ALTER the column. See `lib/rag.ts` and `lib/ai/embeddings.ts`.
 
+> **Deep dives:** [Knowledge Base — architecture](docs/architecture/knowledge-base.md)
+> (collections/documents/lifecycle, 3-tier access, hybrid vector+FTS retrieval, anchor
+> citations, authoring) · [HR handbook RAG — architecture](docs/architecture/hr-rag-architecture.md)
+> (indexing/retrieval pipelines, `halfvec`/HNSW choices, changing the embedding model).
+
 ---
 
 ## Project structure
 
 ```
 hr-boilerplate/
-├─ docker-compose.yml          # db (pgvector) + adminer + app
+├─ docker-compose.yml          # db (pgvector) + adminer + minio + app
 ├─ Dockerfile                  # dev image for the Next.js app
 ├─ docker/db-init/             # CREATE EXTENSION vector on first boot
 ├─ prisma/
@@ -309,8 +343,9 @@ This starter models the patterns a real HR app needs:
    directory query returns only themselves — the filter is in the query, not in the UI.
 4. **Field-level redaction.** Sensitive fields (salary) are stripped server-side unless the role
    holds `salary:read:all`; they never reach the browser.
-5. **Tools fail closed.** `withPermission()` returns a structured denial *before* any DB call; a
-   missing permission can't accidentally execute.
+5. **Tools advertised per role, fail closed.** `buildHrTools` only injects the tools a role may
+   use, so an out-of-scope tool is never offered. Per-tool `withPermission()` still re-checks *before*
+   any DB call (defense in depth) and returns a silent `{ refused }`, so a missing permission can't execute.
 6. **Defense in depth for the model.** The system prompt lists the user's permissions, *and* the
    server enforces them anyway — a jailbroken prompt still can't exceed the role.
 7. **Password hashing.** Credentials are verified with `bcrypt`; only hashes are stored.
@@ -327,18 +362,36 @@ This starter models the patterns a real HR app needs:
 
 ## Testing
 
+Tests are split in two so `npm test` is **deterministic** — it never touches the network, so it
+can't flake on model output or rate limits. The live OpenRouter suites are opt-in.
+
 ```bash
-npm test          # vitest run (17 tests)
+npm test          # deterministic suite — no network / no API key (the CI default)
+npm run test:live # live suite — real OpenRouter calls (needs OPENROUTER_API_KEY)
+npm run test:all  # both
 ```
+
+**Deterministic suite (`npm test`)**
 
 - **`tests/rbac.test.ts`** — the permission matrix (nesting, role capabilities). Pure, no DB.
 - **`tests/tools.integration.test.ts`** — runs the real AI tools against a seeded Postgres and
-  asserts role scoping (employee sees 1 person, manager 4, HR 6), salary redaction, and **denials**
-  (employee blocked from others' payslips / approvals).
-- **`tests/openrouter.live.test.ts`** — a live OpenRouter call proving generation **and**
-  tool-calling work. Auto-skips when `OPENROUTER_API_KEY` is unset.
+  asserts role scoping (employee sees 1 person, manager 4, HR 6), salary redaction, **per-role tool
+  exposure** (an employee isn't even offered the approval tools), and clean refusals (a request for
+  another's payslip or another team's leave returns a silent `{ refused }` instead of data).
 
-The build (`npm run build`) typechecks the whole project.
+**Live suite (`npm run test:live` — files end in `*.live.test.ts`)**
+
+- **`tests/openrouter.live.test.ts`** — a live OpenRouter call proving generation **and**
+  tool-calling work.
+- **`tests/rag.live.test.ts`** — embeds a query via OpenRouter and runs the pgvector cosine
+  search over the seeded handbook.
+
+Each live suite self-skips when `OPENROUTER_API_KEY` is unset, so `npm run test:all` stays green
+in a keyless CI. The deterministic suite still needs a running Postgres (`DATABASE_URL`) for the
+integration tests. The build (`npm run build`) typechecks the whole project.
+
+CI (`.github/workflows/test.yml`) runs the deterministic suite on every push/PR against a
+`pgvector` service container — no secrets, no network calls, so it can't flake.
 
 ---
 

@@ -1,6 +1,7 @@
 "use server";
 
 import { AuthError } from "next-auth";
+import { getTranslations } from "next-intl/server";
 import { signIn } from "@/lib/auth";
 import { DEMO_PASSWORD } from "@/lib/demo-users";
 
@@ -17,7 +18,10 @@ export async function loginWithCredentials(
     });
     return {};
   } catch (err) {
-    if (err instanceof AuthError) return { error: "Invalid email or password." };
+    if (err instanceof AuthError) {
+      const t = await getTranslations("login");
+      return { error: t("invalidCredentials") };
+    }
     throw err; // redirect() throws — let it propagate
   }
 }

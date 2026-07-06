@@ -1,0 +1,43 @@
+flowchart LR
+    subgraph Interfaces
+        Collab["Portail Collaborateur"]
+        Manager["Dashboard Manager"]
+        RHUI["Espace RH / Direction"]
+        AdminUI["Supervision Administrateur"]
+    end
+
+    subgraph Domaines["Domaines applicatifs"]
+        Assistant["Assistant conversationnel RH"]
+        DocGen["Moteur de generation documentaire"]
+        Dashboard["Tableau de bord automatise + predictif"]
+        AlertEngine["Systeme d'alerte (risques sociaux + securite)"]
+        Supervision["Module de supervision des usages IA"]
+        Onboarding["Agents IA - onboarding"]
+        Offboarding["Agents IA - offboarding"]
+    end
+
+    subgraph Plateforme
+        RBACCore["RBAC (auth.role / auth.user)"]
+        DataLayer["Couche donnees (hr_core.*)"]
+        AuditLog["Journalisation / audit"]
+    end
+
+    Collab --> Assistant
+    Collab --> DocGen
+    Collab --> Onboarding
+    Manager --> Dashboard
+    Manager --> AlertEngine
+    RHUI --> Dashboard
+    RHUI --> DocGen
+    RHUI --> Offboarding
+    AdminUI --> Supervision
+    AdminUI --> AlertEngine
+
+    Assistant --> RBACCore
+    DocGen --> RBACCore
+    Dashboard --> DataLayer
+    Onboarding --> DataLayer
+    Offboarding --> DataLayer
+    Supervision --> AuditLog
+    AlertEngine --> AuditLog
+    RBACCore --> DataLayer

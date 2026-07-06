@@ -1,0 +1,104 @@
+classDiagram
+    class Tenant {
+        +uuid id
+        +string name
+        +string domain
+    }
+    class Role {
+        +uuid id
+        +string name
+        +jsonb permissions
+    }
+    class User {
+        +uuid id
+        +string email
+        +Role role
+        +boolean isActive
+    }
+    class Employee {
+        +uuid id
+        +string firstName
+        +string lastName
+        +Department department
+        +Employee manager
+        +string employmentStatus
+        +Date hireDate
+        +decimal salary
+    }
+    class Department {
+        +uuid id
+        +string name
+        +Employee manager
+    }
+    class Absence {
+        +uuid id
+        +Date startDate
+        +Date endDate
+        +string type
+        +string status
+    }
+    class Workflow {
+        +uuid id
+        +string type
+        +string status
+    }
+    class WorkflowTask {
+        +uuid id
+        +string title
+        +boolean isCompleted
+    }
+    class HrDocument {
+        +uuid id
+        +string title
+        +string content
+        +string status
+    }
+    class DocumentChunk {
+        +uuid id
+        +string content
+        +vector embedding
+    }
+    class ChatSession {
+        +uuid id
+        +Date startedAt
+    }
+    class AiEvent {
+        +uuid id
+        +string prompt
+        +boolean isSensitive
+        +boolean refusalTriggered
+    }
+    class BurnoutRiskAssessment {
+        +uuid id
+        +int aiRiskScore
+        +string aiExplanation
+        +string actionPlan
+    }
+    class Alert {
+        +uuid id
+        +string type
+        +string severity
+        +string status
+    }
+    class SecurityAuditLog {
+        +uuid id
+        +string action
+        +string ipAddress
+    }
+
+    Tenant "1" --> "*" User
+    Tenant "1" --> "*" Employee
+    Tenant "1" --> "*" Department
+    Role "1" --> "*" User
+    User "1" --> "0..1" Employee
+    Department "1" --> "*" Employee
+    Employee "1" --> "*" Employee : manage
+    Employee "1" --> "*" Absence
+    Employee "1" --> "*" Workflow
+    Workflow "1" --> "*" WorkflowTask
+    HrDocument "1" --> "*" DocumentChunk
+    User "1" --> "*" ChatSession
+    ChatSession "1" --> "*" AiEvent
+    Employee "1" --> "*" BurnoutRiskAssessment
+    AiEvent "0..1" --> "0..1" Alert
+    User "1" --> "*" SecurityAuditLog

@@ -1,0 +1,100 @@
+<mxfile host="app.diagrams.net" modified="2026-06-21" agent="Claude" version="24.0.0" type="device">
+  <diagram name="Use Case HARI v2" id="usecase-hari-002">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="1080" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Système boundary -->
+        <mxCell id="boundary" value="Système HARI" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontColor=#2b3a55;fontSize=16;strokeColor=#2b3a55;fillColor=none;align=center;spacingTop=10;" vertex="1" parent="1">
+          <mxGeometry x="300" y="40" width="700" height="960" as="geometry" />
+        </mxCell>
+
+        <!-- Acteurs -->
+        <mxCell id="actor1" value="Collaborateur" style="shape=actor;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1f1f1f;fontStyle=1;fontSize=12;verticalLabelPosition=bottom;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="480" width="60" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="actor2" value="Manager" style="shape=actor;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1f1f1f;fontStyle=1;fontSize=12;verticalLabelPosition=bottom;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="150" width="60" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="actor3" value="RH" style="shape=actor;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1f1f1f;fontStyle=1;fontSize=12;verticalLabelPosition=bottom;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="820" width="60" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="actor4" value="Admin" style="shape=actor;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1f1f1f;fontStyle=1;fontSize=12;verticalLabelPosition=bottom;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="480" width="60" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- Cas d'usage -->
+        <mxCell id="uc1" value="Se connecter" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dce8f7;strokeColor=#2b3a55;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="560" y="100" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2" value="Consulter le dashboard" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dce8f7;strokeColor=#2b3a55;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="340" y="210" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="uc3" value="Interroger l'assistant IA" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dce8f7;strokeColor=#2b3a55;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="630" y="210" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="uc9" value="Demander une attestation" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dce8f7;strokeColor=#2b3a55;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="340" y="300" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="uc6" value="Générer une attestation" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dce8f7;strokeColor=#2b3a55;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="340" y="420" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="uc5" value="Valider une demande" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dce8f7;strokeColor=#2b3a55;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="340" y="540" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="uc4" value="Gérer les documents RH" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dce8f7;strokeColor=#2b3a55;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="340" y="660" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="uc10" value="Gestion des collaborateurs" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dce8f7;strokeColor=#2b3a55;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="330" y="780" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="uc8" value="Administrer les accès" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dce8f7;strokeColor=#2b3a55;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="340" y="900" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="uc7" value="Consulter les alertes" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dce8f7;strokeColor=#2b3a55;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="640" y="900" width="220" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Héritage (généralisation) des acteurs : Manager et RH héritent de Collaborateur -->
+        <mxCell id="g1" value="" style="endArrow=block;endFill=0;endSize=16;html=1;strokeColor=#2b3a55;strokeWidth=2;" edge="1" parent="1" source="actor2" target="actor1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="g2" value="" style="endArrow=block;endFill=0;endSize=16;html=1;strokeColor=#2b3a55;strokeWidth=2;" edge="1" parent="1" source="actor3" target="actor1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Associations Collaborateur (héritées automatiquement par Manager et RH) -->
+        <mxCell id="e1" style="endArrow=none;html=1;strokeColor=#5a6b85;" edge="1" parent="1" source="actor1" target="uc1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e2" style="endArrow=none;html=1;strokeColor=#5a6b85;" edge="1" parent="1" source="actor1" target="uc2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e3" style="endArrow=none;html=1;strokeColor=#5a6b85;" edge="1" parent="1" source="actor1" target="uc3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e4" style="endArrow=none;html=1;strokeColor=#5a6b85;" edge="1" parent="1" source="actor1" target="uc9"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Association spécifique Manager -->
+        <mxCell id="e7" style="endArrow=none;html=1;strokeColor=#5a6b85;" edge="1" parent="1" source="actor2" target="uc5"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Associations spécifiques RH -->
+        <mxCell id="e10" style="endArrow=none;html=1;strokeColor=#5a6b85;" edge="1" parent="1" source="actor3" target="uc4"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e11" style="endArrow=none;html=1;strokeColor=#5a6b85;" edge="1" parent="1" source="actor3" target="uc6"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e18" style="endArrow=none;html=1;strokeColor=#5a6b85;" edge="1" parent="1" source="actor3" target="uc10"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Associations Admin (n'hérite pas de Collaborateur) -->
+        <mxCell id="e13" style="endArrow=none;html=1;strokeColor=#5a6b85;" edge="1" parent="1" source="actor4" target="uc1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e16" style="endArrow=none;html=1;strokeColor=#5a6b85;" edge="1" parent="1" source="actor4" target="uc2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e14" style="endArrow=none;html=1;strokeColor=#5a6b85;" edge="1" parent="1" source="actor4" target="uc8"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e15" style="endArrow=none;html=1;strokeColor=#5a6b85;" edge="1" parent="1" source="actor4" target="uc7"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Relation extend : Consulter les alertes étend Interroger l'assistant IA (uniquement si refus) -->
+        <mxCell id="e17" value="&lt;&lt;extend&gt;&gt;&#10;(si refus)" style="endArrow=open;dashed=1;html=1;strokeColor=#b5482f;fontColor=#b5482f;fontStyle=2;fontSize=10;" edge="1" parent="1" source="uc7" target="uc3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Relation include : Demander une attestation inclut Générer une attestation -->
+        <mxCell id="e19" value="&lt;&lt;include&gt;&gt;" style="endArrow=open;dashed=1;html=1;strokeColor=#b5482f;fontColor=#b5482f;fontStyle=2;fontSize=10;" edge="1" parent="1" source="uc9" target="uc6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
