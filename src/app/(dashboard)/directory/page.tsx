@@ -48,6 +48,10 @@ export default async function DirectoryPage({ searchParams }: Props) {
   const { currency } = await getOrgSettings();
 
   const showSalary = can(user.role, "salary:read:all");
+  // A caller with team-scope (but not company-wide) sees self + direct reports —
+  // label the non-self rows so their perimeter is explicit (SCRUM-043).
+  const isManagerScope =
+    can(user.role, "directory:read:team") && !can(user.role, "directory:read:all");
   const scope = can(user.role, "directory:read:all")
     ? t("scopeAll")
     : can(user.role, "directory:read:team")
@@ -96,6 +100,11 @@ export default async function DirectoryPage({ searchParams }: Props) {
                     <div className="flex items-center gap-2">
                       {e.name}
                       {e.isSelf && <Badge variant="outline">{tc("you")}</Badge>}
+                      {isManagerScope && !e.isSelf && (
+                        <Badge variant="outline" className="text-[10px]">
+                          {t("directReport")}
+                        </Badge>
+                      )}
                       <Badge variant="secondary" className="text-[10px]">
                         {tRoles(e.role)}
                       </Badge>

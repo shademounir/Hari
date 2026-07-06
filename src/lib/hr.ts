@@ -149,6 +149,24 @@ export async function getEmployeeDirectoryFacets(
   };
 }
 
+/**
+ * Narrows an already-scoped directory by a free-text query (name / department /
+ * title). Always applied AFTER `getDirectory`, never instead of it — a search
+ * can only narrow the caller's existing scope, never escape it. Shared by the
+ * dashboard page and the `getEmployeeDirectory` AI tool so both filter the
+ * same way.
+ */
+export function filterDirectory(
+  entries: DirectoryEntry[],
+  query?: string | null,
+): DirectoryEntry[] {
+  if (!query) return entries;
+  const q = query.toLowerCase();
+  return entries.filter((e) =>
+    [e.name, e.department, e.title].some((v) => v.toLowerCase().includes(q)),
+  );
+}
+
 export type LeaveBalanceView = {
   type: string;
   totalDays: number;
