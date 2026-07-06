@@ -20,6 +20,7 @@
     "directory": "Directory",
     "team": "My Team",
     "timeOff": "Time Off",
+    "onboarding": "Onboarding",
     "settings": "Settings",
     "signOut": "Sign out",
     "openNavigation": "Open navigation",
@@ -197,6 +198,41 @@
     "reason": "Reason",
     "status": "Status",
     "empty": "Nothing here yet."
+  },
+  "onboarding": {
+    "title": "Onboarding",
+    "description": "Your first-days checklist — tick each step as you complete it.",
+    "myOnboarding": "My onboarding",
+    "progressCount": "{done} / {total} done",
+    "empty": "No onboarding steps assigned yet.",
+    "stepDone": "Done",
+    "teamProgress": "Team onboarding",
+    "overviewEmpty": "No employees to show.",
+    "employee": "Employee",
+    "role": "Role",
+    "department": "Department",
+    "progress": "Progress",
+    "status": "Status",
+    "statusComplete": "Complete",
+    "categories": {
+      "PAPERWORK": "Paperwork",
+      "EQUIPMENT": "Equipment",
+      "ACCESS": "Access",
+      "TRAINING": "Training",
+      "ORIENTATION": "Orientation"
+    },
+    "steps": {
+      "signContract": "Sign your employment contract",
+      "submitId": "Submit ID and legal documents",
+      "bankDetails": "Provide bank details for payroll",
+      "laptop": "Collect your laptop and equipment",
+      "accessBadge": "Get your building access badge",
+      "accounts": "Activate your email and accounts",
+      "securityTraining": "Complete security & data-privacy training",
+      "handbookReview": "Read the employee handbook",
+      "teamIntro": "Meet your team",
+      "managerMeeting": "First 1:1 with your manager"
+    }
   },
   "settings": {
     "title": "Settings",

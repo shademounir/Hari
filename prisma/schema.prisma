@@ -68,9 +68,10 @@ model Employee {
   managerId String?
   reports   Employee[] @relation("Reports")
 
-  leaveBalances LeaveBalance[]
-  leaveRequests LeaveRequest[] @relation("Requester")
-  approvals     LeaveRequest[] @relation("Approver")
+  leaveBalances   LeaveBalance[]
+  leaveRequests   LeaveRequest[]   @relation("Requester")
+  approvals       LeaveRequest[]   @relation("Approver")
+  onboardingTasks OnboardingTask[]
 }
 
 model LeaveBalance {
@@ -337,4 +338,35 @@ model AuditLog {
   @@index([createdAt])
   @@index([action])
   @@index([actorId])
+}
+
+/// SCRUM-095: category of an onboarding step, for grouping + iconography.
+enum OnboardingCategory {
+  PAPERWORK
+  EQUIPMENT
+  ACCESS
+  TRAINING
+  ORIENTATION
+}
+
+enum OnboardingStatus {
+  PENDING
+  DONE
+}
+
+/// SCRUM-095: one step of a new hire's personalized onboarding checklist. The
+/// step label is a stable i18n `key` (onboarding.steps.<key>) — not free text —
+/// so the checklist is fully localized, consistent with the mandatory-i18n rule.
+model OnboardingTask {
+  id          String             @id @default(cuid())
+  employee    Employee           @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId  String
+  key         String // i18n step key → onboarding.steps.<key>
+  category    OnboardingCategory
+  order       Int                @default(0)
+  status      OnboardingStatus   @default(PENDING)
+  completedAt DateTime?
+  createdAt   DateTime           @default(now())
+
+  @@index([employeeId])
 }

@@ -20,6 +20,7 @@
     "directory": "Annuaire",
     "team": "Mon équipe",
     "timeOff": "Congés",
+    "onboarding": "Intégration",
     "settings": "Paramètres",
     "signOut": "Se déconnecter",
     "openNavigation": "Ouvrir la navigation",
@@ -197,6 +198,41 @@
     "reason": "Motif",
     "status": "Statut",
     "empty": "Rien pour le moment."
+  },
+  "onboarding": {
+    "title": "Intégration",
+    "description": "Votre checklist des premiers jours — cochez chaque étape une fois terminée.",
+    "myOnboarding": "Mon intégration",
+    "progressCount": "{done} / {total} terminées",
+    "empty": "Aucune étape d'intégration assignée pour l'instant.",
+    "stepDone": "Terminé",
+    "teamProgress": "Intégration de l'équipe",
+    "overviewEmpty": "Aucun employé à afficher.",
+    "employee": "Employé",
+    "role": "Poste",
+    "department": "Département",
+    "progress": "Progression",
+    "status": "Statut",
+    "statusComplete": "Terminée",
+    "categories": {
+      "PAPERWORK": "Administratif",
+      "EQUIPMENT": "Équipement",
+      "ACCESS": "Accès",
+      "TRAINING": "Formation",
+      "ORIENTATION": "Orientation"
+    },
+    "steps": {
+      "signContract": "Signer votre contrat de travail",
+      "submitId": "Fournir votre pièce d'identité et documents légaux",
+      "bankDetails": "Communiquer votre RIB pour la paie",
+      "laptop": "Récupérer votre ordinateur et votre équipement",
+      "accessBadge": "Obtenir votre badge d'accès aux locaux",
+      "accounts": "Activer votre e-mail et vos comptes",
+      "securityTraining": "Suivre la formation sécurité & confidentialité",
+      "handbookReview": "Lire le manuel de l'employé",
+      "teamIntro": "Rencontrer votre équipe",
+      "managerMeeting": "Premier entretien avec votre manager"
+    }
   },
   "settings": {
     "title": "Paramètres",
