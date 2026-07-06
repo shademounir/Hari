@@ -1,8 +1,5 @@
 // SCRUM-075 — authorization tests for the HR company-wide dashboard (SCRUM-072
-// — "activité IA et documents"). This branch merges in Chaimaa MELLOUK's
-// feature/SCRUM-072-dashboard-rh-ia-documents (commit b46d304), which is NOT
-// YET merged into develop — rebase this branch once that PR lands so the diff
-// stops carrying SCRUM-072's files.
+// — "activité IA et documents"). 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { prisma } from "@/lib/prisma";
 import { can } from "@/lib/rbac";
