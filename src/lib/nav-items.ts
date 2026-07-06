@@ -8,6 +8,7 @@ import {
   UserMinus,
   BookOpen,
   BellRing,
+  ScrollText,
   Gauge,
   Settings,
 } from "lucide-react";
@@ -29,6 +30,7 @@ export type NavKey =
   | "offboarding"
   | "knowledgeBase"
   | "alerts"
+  | "audit"
   | "settings";
 
 export type NavItem = {
@@ -49,6 +51,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/offboarding", key: "offboarding", icon: UserMinus, permission: "employee:manage" },
   { href: "/kb", key: "knowledgeBase", icon: BookOpen },
   { href: "/alerts", key: "alerts", icon: BellRing, permission: "alerts:read" },
+  { href: "/audit", key: "audit", icon: ScrollText, permission: "alerts:read" },
   {
     href: "/settings",
     key: "settings",
