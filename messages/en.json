@@ -21,6 +21,7 @@
     "team": "My Team",
     "timeOff": "Time Off",
     "onboarding": "Onboarding",
+    "offboarding": "Offboarding",
     "settings": "Settings",
     "signOut": "Sign out",
     "openNavigation": "Open navigation",
@@ -232,6 +233,50 @@
       "handbookReview": "Read the employee handbook",
       "teamIntro": "Meet your team",
       "managerMeeting": "First 1:1 with your manager"
+    }
+  },
+  "offboarding": {
+    "title": "Offboarding",
+    "description": "Run the exit checklist for a departing employee, then archive their record.",
+    "initiate": "Start an offboarding",
+    "noCandidates": "No active employees are available to offboard.",
+    "employee": "Employee",
+    "reason": "Reason",
+    "lastDay": "Last day",
+    "startProcess": "Start",
+    "inProgress": "In progress",
+    "noneInProgress": "No offboarding in progress.",
+    "progress": "Progress",
+    "progressCount": "{done} / {total} done",
+    "completeAndArchive": "Complete & archive",
+    "archived": "Archived",
+    "archivedOn": "Archived on",
+    "reasons": {
+      "RESIGNATION": "Resignation",
+      "TERMINATION": "Termination",
+      "END_OF_CONTRACT": "End of contract",
+      "RETIREMENT": "Retirement",
+      "OTHER": "Other"
+    },
+    "categories": {
+      "ACCESS": "Access",
+      "EQUIPMENT": "Equipment",
+      "PAYROLL": "Payroll",
+      "KNOWLEDGE": "Knowledge",
+      "EXIT": "Exit"
+    },
+    "steps": {
+      "revokeAccounts": "Revoke accounts and SSO access",
+      "disableEmail": "Disable email and mailbox",
+      "collectBadge": "Collect building access badge",
+      "returnLaptop": "Recover laptop",
+      "returnDevices": "Recover phone and other devices",
+      "finalPay": "Process final pay",
+      "benefitsTermination": "Terminate benefits and insurance",
+      "knowledgeHandover": "Complete knowledge handover",
+      "documentation": "Archive documentation and files",
+      "exitInterview": "Conduct exit interview",
+      "offboardingLetter": "Issue offboarding letter"
     }
   },
   "settings": {
