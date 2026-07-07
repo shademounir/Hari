@@ -38,7 +38,9 @@ export function KpiCard({
           <Icon className="size-5" />
         </div>
       </div>
-      <p className="mt-3 text-3xl font-extrabold tracking-tight tabular-nums text-foreground">{value}</p>
+      <p className="mt-3 text-2xl font-extrabold leading-tight tracking-tight tabular-nums text-foreground">
+        {value}
+      </p>
       {deltaLabel && (
         <div className={`mt-2 flex items-center gap-1 text-xs font-medium ${tone}`}>
           <DeltaIcon className="size-3.5" />

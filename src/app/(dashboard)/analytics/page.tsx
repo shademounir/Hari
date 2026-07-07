@@ -14,6 +14,7 @@ import {
   AgePyramidChart,
   CategoryBarChart,
   DistributionPie,
+  GENDER_COLORS,
   MultiLineChart,
 } from "@/components/charts/analytics";
 
@@ -190,9 +191,13 @@ export default async function AnalyticsPage({
                 other: r.other,
               }))}
               series={[
-                { key: "female", label: tGender("FEMALE") },
-                { key: "male", label: tGender("MALE") },
-                { key: "other", label: tGender("OTHER") },
+                { key: "female", label: tGender("FEMALE"), color: GENDER_COLORS.female },
+                { key: "male", label: tGender("MALE"), color: GENDER_COLORS.male },
+                // Only surface "Other" when someone actually falls in it — otherwise
+                // it's a dead legend entry.
+                ...(diversity.genderByLevel.some((r) => r.other > 0)
+                  ? [{ key: "other", label: tGender("OTHER"), color: GENDER_COLORS.other }]
+                  : []),
               ]}
             />
           </ChartCard>

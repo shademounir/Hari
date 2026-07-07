@@ -21,6 +21,8 @@ import {
   YAxis,
 } from "recharts";
 
+// Sequential blue→teal ramp — for SINGLE-series bars/lines where magnitude, not
+// identity, is what the color conveys.
 const PALETTE = [
   "var(--color-chart-1)",
   "var(--color-chart-2)",
@@ -28,6 +30,12 @@ const PALETTE = [
   "var(--color-chart-4)",
   "var(--color-chart-5)",
 ];
+
+// Distinct hues for CATEGORICAL data (pie slices, stacked series) where adjacent
+// segments must be told apart at a glance. Anchored on the HARI blue + teal, then
+// spread across the wheel. Fixed hex so slices are stable in light AND dark.
+export const CATEGORICAL = ["#2563eb", "#14b8a6", "#8b5cf6", "#f59e0b", "#f43f5e", "#0ea5e9"];
+export const GENDER_COLORS = { female: "#2563eb", male: "#14b8a6", other: "#8b5cf6" };
 
 export type Series = { key: string; label: string; color?: string };
 export type Row = { label: string } & Record<string, string | number>;
@@ -210,7 +218,7 @@ export function DistributionPie({
   const total = data.reduce((s, d) => s + Number(d.value ?? 0), 0);
   if (!data.length || total === 0) return <EmptyBox height={height} label={emptyLabel} />;
   const shown = data.filter((d) => !hidden[d.label]);
-  const legend: Series[] = data.map((d, i) => ({ key: d.label, label: d.label, color: PALETTE[i % PALETTE.length] }));
+  const legend: Series[] = data.map((d, i) => ({ key: d.label, label: d.label, color: CATEGORICAL[i % CATEGORICAL.length] }));
   return (
     <div>
       <ResponsiveContainer width="100%" height={height}>
@@ -219,7 +227,7 @@ export function DistributionPie({
           <Pie data={shown} dataKey="value" nameKey="label" innerRadius="55%" outerRadius="80%" paddingAngle={2}>
             {shown.map((d) => {
               const i = data.findIndex((x) => x.label === d.label);
-              return <Cell key={d.label} fill={PALETTE[i % PALETTE.length]} />;
+              return <Cell key={d.label} fill={CATEGORICAL[i % CATEGORICAL.length]} />;
             })}
           </Pie>
         </PieChart>
@@ -251,17 +259,17 @@ export function AgePyramidChart({
           <XAxis type="number" tickFormatter={(v: number) => String(Math.abs(v))} {...axisProps} />
           <YAxis type="category" dataKey="label" width={56} {...axisProps} />
           <Tooltip {...tooltipStyle} formatter={(v) => String(Math.abs(Number(v)))} />
-          <Bar dataKey="female" name={femaleLabel} fill="var(--color-chart-1)" stackId="p" radius={[4, 0, 0, 4]} />
-          <Bar dataKey="male" name={maleLabel} fill="var(--color-chart-3)" stackId="p" radius={[0, 4, 4, 0]} />
+          <Bar dataKey="female" name={femaleLabel} fill={GENDER_COLORS.female} stackId="p" radius={[4, 0, 0, 4]} />
+          <Bar dataKey="male" name={maleLabel} fill={GENDER_COLORS.male} stackId="p" radius={[0, 4, 4, 0]} />
         </BarChart>
       </ResponsiveContainer>
       <ul className="mt-3 flex justify-center gap-4 text-xs text-muted-foreground">
         <li className="flex items-center gap-1.5">
-          <span className="inline-block size-2.5 rounded-sm" style={{ background: "var(--color-chart-1)" }} />
+          <span className="inline-block size-2.5 rounded-sm" style={{ background: GENDER_COLORS.female }} />
           {femaleLabel}
         </li>
         <li className="flex items-center gap-1.5">
-          <span className="inline-block size-2.5 rounded-sm" style={{ background: "var(--color-chart-3)" }} />
+          <span className="inline-block size-2.5 rounded-sm" style={{ background: GENDER_COLORS.male }} />
           {maleLabel}
         </li>
       </ul>
