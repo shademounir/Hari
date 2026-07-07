@@ -72,8 +72,12 @@ export const CHAT_MODELS: ChatModel[] = [
 
 // Default: a free model that reliably does BOTH tool-calling and reasoning,
 // so the tool-call UI and the thinking UI both light up out of the box.
+
 // export const DEFAULT_MODEL_ID = "gpt-oss-120b";
 
+// Default: a free model that reliably does BOTH tool-calling and reasoning,
+// so the tool-call UI and the thinking UI both light up out of the box.
+// ! NOTE: Use "gpt-oss-120b" if you need to revert to the previous free OpenRouter model.
 export const DEFAULT_MODEL_ID = "gemini-byok";
 
 // The closed vocabulary of chat error codes the server emits and the client
