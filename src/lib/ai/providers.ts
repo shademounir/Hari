@@ -30,7 +30,7 @@ export const CHAT_MODELS: ChatModel[] = [
     id: "gemini-byok",
     label: "Gemini Flash (BYOK)",
     provider: "openrouter",
-    providerModelId: "google/gemini-1.5-flash",
+    providerModelId: "google/gemini-2.5-flash",
     reasoning: false,
   },
   {
