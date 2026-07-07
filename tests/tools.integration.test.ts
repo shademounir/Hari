@@ -58,8 +58,11 @@ describe("getEmployeeDirectory — role scoping", () => {
   it("HR sees the whole company (active roster) with salaries visible", async () => {
     const tools = buildHrTools(callers.hr);
     const out = await call(tools.getEmployeeDirectory, {});
-    // 10 seeded employees, minus the 2 TERMINATED = 8.
-    expect(out.count).toBe(8);
+    // HR sees the ENTIRE company minus TERMINATED — asserted against the DB so the
+    // test stays correct as the seed's headcount changes (SCRUM-098 dense seed).
+    const expected = await prisma.employee.count({ where: { status: { not: "TERMINATED" } } });
+    expect(expected).toBeGreaterThan(0);
+    expect(out.count).toBe(expected);
     expect(out.people.some((p: { salary: number | null }) => typeof p.salary === "number")).toBe(true);
     expect(out.people.some((p: { status: string }) => p.status === "TERMINATED")).toBe(false);
   });
