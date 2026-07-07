@@ -54,6 +54,19 @@ describe("RBAC matrix", () => {
     expect(can("SUPER_ADMIN", "kb:manage")).toBe(true);
   });
 
+  it("departure-risk predictions: managers+ can read; only HR/Admin can recalibrate (SCRUM-098)", () => {
+    // read: MANAGER and up (managers see their own team, anonymized downstream).
+    expect(can("EMPLOYEE", "predictions:read")).toBe(false);
+    expect(can("MANAGER", "predictions:read")).toBe(true);
+    expect(can("HR_ADMIN", "predictions:read")).toBe(true);
+    expect(can("SUPER_ADMIN", "predictions:read")).toBe(true);
+    // manage (recalibration): HR/Admin only — a manager can view but not retune.
+    expect(can("EMPLOYEE", "predictions:manage")).toBe(false);
+    expect(can("MANAGER", "predictions:manage")).toBe(false);
+    expect(can("HR_ADMIN", "predictions:manage")).toBe(true);
+    expect(can("SUPER_ADMIN", "predictions:manage")).toBe(true);
+  });
+
   it("KB document visibility tiers are nested by role (HARI-59)", () => {
     expect(visibleDocTiers("EMPLOYEE")).toEqual(["ALL_EMPLOYEES"]);
     expect(visibleDocTiers("MANAGER")).toEqual(["ALL_EMPLOYEES", "MANAGERS"]);

@@ -20,6 +20,7 @@
     "directory": "Directory",
     "team": "My Team",
     "hrActivity": "HR Activity",
+    "predictions": "Predictions",
     "timeOff": "Time Off",
     "settings": "Settings",
     "signOut": "Sign out",
@@ -59,7 +60,9 @@
     "employee:manage": "Manage employee records",
     "admin:settings": "Manage platform settings",
     "kb:manage": "Manage the knowledge base",
-    "alerts:read": "View AI alerts"
+    "alerts:read": "View AI alerts",
+    "predictions:read": "View departure-risk predictions",
+    "predictions:manage": "Recalibrate the predictive model"
   },
   "leaveType": {
     "VACATION": "Vacation",
@@ -323,6 +326,126 @@
     "net": "Net",
     "period": "Most recent month"
   },
+  "predictions":   {
+    "title": "Predictive Workforce Analytics",
+    "description": "Early signals of disengagement, 12-month departure projections, and succession readiness.",
+    "band": {
+      "green": "Low",
+      "orange": "Moderate",
+      "red": "High"
+    },
+    "riskMap": {
+      "title": "Risk map",
+      "description": "Active employees ranked by current departure-risk score.",
+      "empty": "No employees to score yet.",
+      "liveNote": "Computed live — the nightly job will persist these scores.",
+      "col": {
+        "employee": "Employee",
+        "department": "Department",
+        "risk": "Risk",
+        "factors": "Why"
+      },
+      "filters": {
+        "label": "Filter",
+        "department": "Department",
+        "band": "Risk band",
+        "allDepartments": "All departments",
+        "allBands": "All risk levels"
+      },
+      "pagination": {
+        "showing": "Showing {from}–{to} of {total}",
+        "previous": "Previous",
+        "next": "Next"
+      }
+    },
+    "factor": {
+      "seniority": "Seniority",
+      "absenteeism": "Absenteeism",
+      "review": "Time since last review",
+      "salary": "Salary evolution",
+      "turnover": "Department turnover",
+      "jobProfile": "Job profile",
+      "burnout": "Burnout (unused PTO)",
+      "roleStagnation": "Role stagnation",
+      "dominoEffect": "Manager departure",
+      "engagement": "Engagement score"
+    },
+    "factors": {
+      "view": "Factors",
+      "sheetTitle": "Risk Analysis: {name}",
+      "title": "Contributing factors",
+      "description": "What drives {name}'s risk score, most influential first.",
+      "points": "{points} pts",
+      "none": "No factor is currently contributing risk.",
+      "privacyNote": "Shows each factor's contribution only — never the underlying sensitive values."
+    },
+    "projection": {
+      "title": "Departure projection",
+      "description": "Expected departures over the next 12 months, based on current risk.",
+      "chartTitle": "12-month departure projection",
+      "calibrating": "Calibration in progress",
+      "calibratingHint": "Projections need at least {min} active employees to be meaningful — currently {have}.",
+      "totalExpected": "expected departures over 12 months",
+      "chartAria": "Cumulative expected departures reaching {total} over 12 months",
+      "legendCumulative": "Cumulative",
+      "legendMonthly": "Per month"
+    },
+    "distribution": {
+      "title": "Risk distribution by department",
+      "filterLabel": "Department",
+      "allCompany": "All company"
+    },
+    "simulator": {
+      "title": "Recruitment simulator (What-if)",
+      "description": "Model the backfill plan if people leave a department.",
+      "help": "Pick a department and how many people leave; the AI drafts a backfill plan — profiles to hire, time to hire, and an estimated cost.",
+      "department": "Department",
+      "departmentPlaceholder": "Select a department",
+      "seniorityLevel": "Seniority level",
+      "count": "How many",
+      "budget": "Budget",
+      "budgetPlaceholder": "Max total budget",
+      "budgetHelp": "The maximum total budget for the whole backfill (hiring fees + onboarding). The AI keeps the plan within it where feasible.",
+      "urgency": "Urgency",
+      "submit": "Simulate",
+      "simulating": "Simulating…",
+      "aiErrorTitle": "AI Error",
+      "timeToHire": "Time to hire",
+      "estimatedCost": "Estimated cost",
+      "withinBudget": "Within budget",
+      "overBudget": "Over budget",
+      "weeks": "{weeks} weeks",
+      "profiles": "Profiles to recruit",
+      "risks": "Risks",
+      "recommendations": "Recommendations",
+      "seniority": {
+        "JUNIOR": "Junior",
+        "MID": "Mid",
+        "SENIOR": "Senior",
+        "LEAD": "Lead"
+      },
+      "urgencyLevel": {
+        "NORMAL": "Normal",
+        "HIGH": "High",
+        "CRITICAL": "Critical"
+      },
+      "error": {
+        "forbidden": "You don't have access to run this simulation.",
+        "invalid": "Please pick a department and a valid number.",
+        "rate_limited": "The AI model is rate-limited right now. Please wait a moment and try again.",
+        "ai_unavailable": "The AI planner is unavailable right now. Please try again later."
+      }
+    },
+    "succession": {
+      "title": "Succession planning",
+      "description": "Suggested internal successors for key people-management roles.",
+      "empty": "No people-management roles to plan for yet.",
+      "covered": "Successor ready",
+      "gap": "Succession gap",
+      "noSuccessor": "No obvious internal successor — consider developing or hiring a backup.",
+      "tenure": "{years} yrs tenure"
+    }
+  },
   "tools": {
     "status": {
       "searchHandbook": "Searching the handbook",
@@ -355,7 +478,8 @@
       "listPendingApprovals": "List requests awaiting your approval.",
       "approveLeave": "Approve or reject a pending request.",
       "getPayslip": "A payslip — your own, or anyone visible with elevated rights.",
-      "endConversation": "End the conversation and lock the chat — used only to decline abuse or unsafe requests."
+      "endConversation": "End the conversation and lock the chat — used only to decline abuse or unsafe requests.",
+      "predictDepartures": "Rank who is most at risk of leaving (managers: own team, anonymized; HR: full detail)."
     }
   },
   "login": {
@@ -598,6 +722,9 @@
       },
       "CONVERSATION_CLOSED": {
         "title": "Assistant ended a conversation"
+      },
+      "DEPARTURE_RISK": {
+        "title": "Employee at risk of departure"
       }
     },
     "colDetail": "Detail",

@@ -63,14 +63,23 @@ model Employee {
   salary         Int // annual, in the org's configured currency (see OrgSettings) — sensitive: only HR/Super can read via tools
   avatarUrl      String?
 
+  // SCRUM-098 (predictive analytics). Denormalized/derived signal anchors:
+  lastReviewDate     DateTime? // latest PerformanceReview.reviewDate (hot-path denormalization)
+  lastRoleChangeDate DateTime? // last title/role change → months-in-role; falls back to startDate
+  leftAt             DateTime? // set when status → TERMINATED; feeds dept turnover + the domino effect
+
   // Self-referential org chart.
   manager   Employee?  @relation("Reports", fields: [managerId], references: [id])
   managerId String?
   reports   Employee[] @relation("Reports")
 
-  leaveBalances LeaveBalance[]
-  leaveRequests LeaveRequest[] @relation("Requester")
-  approvals     LeaveRequest[] @relation("Approver")
+  leaveBalances     LeaveBalance[]
+  leaveRequests     LeaveRequest[]          @relation("Requester")
+  approvals         LeaveRequest[]          @relation("Approver")
+  reviews           PerformanceReview[]
+  salaryChanges     SalaryChange[]
+  engagementSurveys EngagementSurvey[]
+  riskSnapshots     DepartureRiskSnapshot[]
 }
 
 model LeaveBalance {
@@ -266,6 +275,7 @@ enum AlertKind {
   AI_GUARD_BLOCK // deterministic guard blocked a request
   AI_ERROR // model/stream failure
   CONVERSATION_CLOSED // the assistant ended a chat
+  DEPARTURE_RISK // SCRUM-098: computed departure-risk score above the alert threshold
 }
 
 enum AlertSeverity {
@@ -337,4 +347,95 @@ model AuditLog {
   @@index([createdAt])
   @@index([action])
   @@index([actorId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// SCRUM-098 — Predictive workforce analytics ("Pragmatic ML-Lite").
+// The scoring math lives in `lib/predictive/departure-risk.ts` (pure); these
+// tables hold the SIGNALS it reads and the SNAPSHOTS it writes. Snapshots +
+// alerts store only scores/bands/factor breakdowns — never names or salary —
+// mirroring the AiEvent/Alert no-PII contract.
+// ─────────────────────────────────────────────────────────────────────────
+
+/// Risk map band. LOW = green, MEDIUM = orange, HIGH = red.
+enum RiskBand {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+/// Performance-review history → the "time since last review" factor. The latest
+/// row is denormalized onto Employee.lastReviewDate for the hot path.
+model PerformanceReview {
+  id         String   @id @default(cuid())
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId String
+  reviewDate DateTime
+  rating     Int? // 1–5, optional; explicability only — never copied into an alert
+  reviewerId String? // raw id, no relation → survives reviewer deletion (audit-style)
+  createdAt  DateTime @default(now())
+
+  @@index([employeeId, reviewDate])
+}
+
+/// Salary-change history → the "salary evolution" factor (12-month growth %).
+/// Sensitive like Employee.salary: read only where `salary:read:all` holds.
+model SalaryChange {
+  id            String   @id @default(cuid())
+  employee      Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId    String
+  effectiveDate DateTime
+  amount        Int // new annual salary, org currency (as Employee.salary)
+  reason        String?
+  createdAt     DateTime @default(now())
+
+  @@index([employeeId, effectiveDate])
+}
+
+/// Internal-survey scores → the "engagement" weak signal (feedbacks internes).
+/// No free text on this hot-path model — numeric score only, no-PII contract.
+model EngagementSurvey {
+  id         String   @id @default(cuid())
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId String
+  score      Int // 0–10 (range validated in the write path, not the DB)
+  surveyDate DateTime
+  source     String? // campaign label (e.g. "quarterly-pulse") — never PII
+  createdAt  DateTime @default(now())
+
+  @@index([employeeId, surveyDate])
+}
+
+/// Adjustable coefficients (HR recalibration). Versioned + retained: editing
+/// activates a NEW row so past snapshots stay reproducible against their weights.
+model PredictiveWeightConfig {
+  id          String   @id @default(cuid())
+  version     Int      @unique @default(autoincrement())
+  weights     Json // { seniority, absenteeism, review, salary, turnover, jobProfile, burnout, roleStagnation, dominoEffect, engagement }
+  thresholds  Json // { medium, high }
+  active      Boolean  @default(true)
+  updatedById String? // raw id, audit-style
+  createdAt   DateTime @default(now())
+
+  @@index([active])
+}
+
+/// A computed departure-risk score for one employee at a point in time. Powers
+/// the risk map, 12-month projection, history, and accuracy backtesting. `factors`
+/// stores the explicable FactorContribution[] breakdown (no black box).
+model DepartureRiskSnapshot {
+  id            String   @id @default(cuid())
+  employee      Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId    String
+  score         Int // 0–100
+  band          RiskBand
+  factors       Json // FactorContribution[] from computeDepartureRisk
+  weightVersion Int // which PredictiveWeightConfig produced it (reproducibility)
+  computedAt    DateTime @default(now())
+  // Accuracy backtest: null until the outcome window elapses; true if the
+  // employee actually left within it. Never PII — a bare outcome flag.
+  departedWithin90d Boolean?
+
+  @@index([employeeId, computedAt])
+  @@index([band])
 }
