@@ -457,12 +457,35 @@
     },
     "succession": {
       "title": "Succession planning",
-      "description": "Suggested internal successors for key people-management roles.",
+      "description": "Bench strength and readiness for key people-management roles.",
       "empty": "No people-management roles to plan for yet.",
-      "covered": "Successor ready",
+      "bench": "Bench",
+      "benchCount": "{count, plural, one {# on bench} other {# on bench}}",
       "gap": "Succession gap",
+      "flightRisk": "Flight Risk",
       "noSuccessor": "No obvious internal successor — consider developing or hiring a backup.",
-      "tenure": "{years} yrs tenure"
+      "criticalGap": "Flight-risk manager with no ready successor — act now.",
+      "tenure": "{years} yrs tenure",
+      "transitionPlan": "AI Transition Plan",
+      "transition": {
+        "title": "Transition Plan: {role}",
+        "subtitle": "AI-generated hand-over plan to de-risk this succession.",
+        "recommended": "Recommended successor",
+        "knowledgeTransfer": "Knowledge transfer",
+        "skillGaps": "Skill gaps to address",
+        "close": "Close",
+        "errorTitle": "AI Error",
+        "error": {
+          "forbidden": "You don't have access to generate this plan.",
+          "rate_limited": "The AI model is rate-limited right now. Please wait a moment and try again.",
+          "ai_unavailable": "The AI planner is unavailable right now. Please try again later."
+        }
+      }
+    },
+    "readiness": {
+      "READY_NOW": "Ready now",
+      "READY_1_2Y": "Ready in 1–2 yrs",
+      "DEVELOPING": "Developing"
     }
   },
   "tools": {

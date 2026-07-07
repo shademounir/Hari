@@ -125,11 +125,16 @@ export async function getDepartments(): Promise<string[]> {
 
 // ── Section 4: Succession planning ──────────────────────────────────────
 
+/** How soon a candidate could step into the role. */
+export type ReadinessLevel = "READY_NOW" | "READY_1_2Y" | "DEVELOPING";
+
 export type SuccessionSuccessor = {
   name: string;
   title: string;
   tenureMonths: number;
-  band: RiskBand;
+  band: RiskBand; // the candidate's OWN departure risk
+  readinessScore: number; // 0–100
+  readinessLevel: ReadinessLevel;
 };
 
 export type SuccessionEntry = {
@@ -137,17 +142,40 @@ export type SuccessionEntry = {
   incumbentName: string;
   roleTitle: string;
   department: string;
-  /** Best internal successor, or null when none is obvious (→ show an alert badge). */
-  successor: SuccessionSuccessor | null;
+  /** The incumbent's OWN departure risk — HIGH means the role may open up soon. */
+  incumbentRiskBand: RiskBand;
+  /** Bench: up to 3 internal successors, strongest first (empty = a succession gap). */
+  successors: SuccessionSuccessor[];
 };
 
+/** Minimum readiness for a report to count as a viable bench candidate. */
+const MIN_READINESS = 35;
+/** Bench depth surfaced per role. */
+const MAX_BENCH = 3;
+
 /**
- * For each people-manager (an active employee with active direct reports), pick
- * the strongest internal successor among their reports. Fitness rewards tenure
- * and penalizes departure risk (a flight-risk successor is no succession plan).
- * A report only qualifies if they aren't themselves HIGH-risk and have ≥12 months
- * tenure; otherwise the role has no obvious successor. Takes the score map from
- * `getRiskMap` so it doesn't recompute scores.
+ * Readiness (0–100): 60% seniority (tenure, capped at 5 years) + 40% stability
+ * (the inverse of the candidate's OWN departure risk — a flight-risk successor is
+ * not real cover). Transparent and explainable, like the rest of the model.
+ */
+function readinessScore(tenureMonths: number, departureScore: number): number {
+  const seniority = Math.min(1, tenureMonths / 60) * 60;
+  const stability = (1 - Math.min(100, Math.max(0, departureScore)) / 100) * 40;
+  return Math.round(seniority + stability);
+}
+
+function readinessLevel(score: number): ReadinessLevel {
+  if (score >= 75) return "READY_NOW";
+  if (score >= 45) return "READY_1_2Y";
+  return "DEVELOPING";
+}
+
+/**
+ * For each people-manager (an active employee with active direct reports), rank
+ * the bench: the top {@link MAX_BENCH} reports by readiness (seniority + stability),
+ * keeping only those above {@link MIN_READINESS}. Also surfaces the incumbent's own
+ * departure risk so the UI can flag a flight-risk manager with a thin bench. Takes
+ * the score map from `getRiskMap`, so it recomputes nothing.
  */
 export async function getSuccessionPlan(
   scoreByEmployee: Map<string, { score: number; band: RiskBand }>,
@@ -169,32 +197,32 @@ export async function getSuccessionPlan(
   });
 
   return managers.map((m) => {
-    const ranked = m.reports
+    const successors: SuccessionSuccessor[] = m.reports
       .map((r) => {
         const risk = scoreByEmployee.get(r.id);
         const tenureMonths = Math.round(monthsBetween(r.startDate, asOf));
         const score = risk?.score ?? 0;
+        const readiness = readinessScore(tenureMonths, score);
         return {
           name: r.user.name,
           title: r.title,
           tenureMonths,
           band: risk?.band ?? ("LOW" as RiskBand),
-          fitness: tenureMonths - score, // simple, explainable: seniority minus risk
+          readinessScore: readiness,
+          readinessLevel: readinessLevel(readiness),
         };
       })
-      .sort((a, b) => b.fitness - a.fitness);
-
-    const best = ranked[0];
-    const qualifies = best && best.band !== "HIGH" && best.tenureMonths >= 12;
+      .filter((c) => c.readinessScore >= MIN_READINESS)
+      .sort((a, b) => b.readinessScore - a.readinessScore)
+      .slice(0, MAX_BENCH);
 
     return {
       incumbentId: m.id,
       incumbentName: m.user.name,
       roleTitle: m.title,
       department: m.department,
-      successor: qualifies
-        ? { name: best.name, title: best.title, tenureMonths: best.tenureMonths, band: best.band }
-        : null,
+      incumbentRiskBand: scoreByEmployee.get(m.id)?.band ?? "LOW",
+      successors,
     };
   });
 }

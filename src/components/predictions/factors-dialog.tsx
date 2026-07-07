@@ -49,36 +49,53 @@ export function FactorsDialog({
 
   return (
     <Sheet>
-      <SheetTrigger render={<Button variant="ghost" size="sm" className="text-xs" />}>
+      <SheetTrigger
+        render={<Button variant="ghost" size="sm" className="text-xs" />}
+      >
         <Info className="size-3.5" />
         {t("view")}
       </SheetTrigger>
       <SheetContent side="right" className="w-full gap-0 sm:max-w-md">
         <SheetHeader className="border-b">
-          <div className="flex items-center justify-between gap-3">
+          {/* <div className="flex items-center justify-between gap-3"> */}
+          <div className="flex items-center justify-between gap-3 pr-8">
             <SheetTitle>{t("sheetTitle", { name: employeeName })}</SheetTitle>
             <RiskBandBadge score={score} label={bandLabel} />
           </div>
-          <SheetDescription>{t("description", { name: employeeName })}</SheetDescription>
+          <SheetDescription>
+            {t("description", { name: employeeName })}
+          </SheetDescription>
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto p-4">
           {top.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">{t("none")}</p>
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              {t("none")}
+            </p>
           ) : (
             <ul className="space-y-2.5">
               {top.map((f) => (
-                <li key={f.key} className="space-y-2 rounded-lg bg-muted/40 p-3">
+                <li
+                  key={f.key}
+                  className="space-y-2 rounded-lg bg-muted/40 p-3"
+                >
                   <div className="flex items-center justify-between gap-3 text-sm">
-                    <span className="font-medium text-foreground">{f.label}</span>
+                    <span className="font-medium text-foreground">
+                      {f.label}
+                    </span>
                     <span className="shrink-0 tabular-nums font-semibold text-muted-foreground">
                       {t("points", { points: Math.round(f.points) })}
                     </span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-background">
                     <div
-                      className={cn("h-full rounded-full transition-all", barColor(f.normalized))}
-                      style={{ width: `${Math.max(4, Math.round(Math.min(1, f.normalized) * 100))}%` }}
+                      className={cn(
+                        "h-full rounded-full transition-all",
+                        barColor(f.normalized),
+                      )}
+                      style={{
+                        width: `${Math.max(4, Math.round(Math.min(1, f.normalized) * 100))}%`,
+                      }}
                     />
                   </div>
                 </li>

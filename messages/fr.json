@@ -457,12 +457,35 @@
     },
     "succession": {
       "title": "Plans de succession",
-      "description": "Successeurs internes suggérés pour les rôles clés d'encadrement.",
+      "description": "Profondeur du vivier et préparation pour les rôles clés d'encadrement.",
       "empty": "Aucun rôle d'encadrement à planifier pour le moment.",
-      "covered": "Successeur prêt",
+      "bench": "Vivier",
+      "benchCount": "{count, plural, one {# dans le vivier} other {# dans le vivier}}",
       "gap": "Absence de relève",
+      "flightRisk": "Risque de départ",
       "noSuccessor": "Aucun successeur interne évident — envisagez de former ou de recruter une relève.",
-      "tenure": "{years} ans d'ancienneté"
+      "criticalGap": "Manager à risque de départ sans relève prête — agissez maintenant.",
+      "tenure": "{years} ans d'ancienneté",
+      "transitionPlan": "Plan de transition IA",
+      "transition": {
+        "title": "Plan de transition : {role}",
+        "subtitle": "Plan de passation généré par l'IA pour sécuriser cette succession.",
+        "recommended": "Successeur recommandé",
+        "knowledgeTransfer": "Transfert de connaissances",
+        "skillGaps": "Compétences à développer",
+        "close": "Fermer",
+        "errorTitle": "Erreur IA",
+        "error": {
+          "forbidden": "Vous n'avez pas accès à la génération de ce plan.",
+          "rate_limited": "Le modèle IA est temporairement limité (trop de requêtes). Patientez un instant puis réessayez.",
+          "ai_unavailable": "Le planificateur IA est indisponible pour le moment. Réessayez plus tard."
+        }
+      }
+    },
+    "readiness": {
+      "READY_NOW": "Prêt maintenant",
+      "READY_1_2Y": "Prêt dans 1–2 ans",
+      "DEVELOPING": "En développement"
     }
   },
   "tools": {
