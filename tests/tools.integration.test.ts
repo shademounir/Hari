@@ -48,8 +48,8 @@ describe("getEmployeeDirectory — role scoping", () => {
   it("manager sees self + direct reports (active roster), salary still hidden", async () => {
     const tools = buildHrTools(callers.manager);
     const out = await call(tools.getEmployeeDirectory, {});
-    // Karim + 7 reports, minus the 2 TERMINATED (hidden by default) = 6.
-    expect(out.count).toBe(6);
+    // Karim + 13 reports, minus the 4 TERMINATED (hidden by default) = 10.
+    expect(out.count).toBe(10);
     expect(out.people.every((p: { salary: number | null }) => p.salary === null)).toBe(true);
     // TERMINATED employees are excluded from the default directory.
     expect(out.people.some((p: { status: string }) => p.status === "TERMINATED")).toBe(false);
@@ -58,8 +58,8 @@ describe("getEmployeeDirectory — role scoping", () => {
   it("HR sees the whole company (active roster) with salaries visible", async () => {
     const tools = buildHrTools(callers.hr);
     const out = await call(tools.getEmployeeDirectory, {});
-    // 10 seeded employees, minus the 2 TERMINATED = 8.
-    expect(out.count).toBe(8);
+    // 16 seeded employees, minus the 4 TERMINATED = 12.
+    expect(out.count).toBe(12);
     expect(out.people.some((p: { salary: number | null }) => typeof p.salary === "number")).toBe(true);
     expect(out.people.some((p: { status: string }) => p.status === "TERMINATED")).toBe(false);
   });

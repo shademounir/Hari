@@ -8,6 +8,8 @@ import {
   BellRing,
   Gauge,
   Activity,
+  BarChart3,
+  TrendingUp,
   Settings,
 } from "lucide-react";
 import type { Permission } from "@/lib/rbac";
@@ -24,6 +26,8 @@ export type NavKey =
   | "directory"
   | "team"
   | "hrActivity"
+  | "analytics"
+  | "teamAnalytics"
   | "timeOff"
   | "knowledgeBase"
   | "alerts"
@@ -43,6 +47,8 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/directory", key: "directory", icon: Users },
   { href: "/team", key: "team", icon: Gauge, permission: "dashboard:read:team" },
   { href: "/hr-activity", key: "hrActivity", icon: Activity, permission: "dashboard:read:company" },
+  { href: "/analytics", key: "analytics", icon: BarChart3, permission: "analytics:full" },
+  { href: "/team/analytics", key: "teamAnalytics", icon: TrendingUp, permission: "analytics:team" },
   { href: "/time-off", key: "timeOff", icon: CalendarDays },
   { href: "/kb", key: "knowledgeBase", icon: BookOpen },
   { href: "/alerts", key: "alerts", icon: BellRing, permission: "alerts:read" },

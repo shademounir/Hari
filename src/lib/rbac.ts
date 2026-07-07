@@ -26,6 +26,8 @@ export const PERMISSIONS = [
   "leave:approve", // approve/reject requests
   "dashboard:read:team", // view aggregated team KPIs (headcount, pending, AI usage)
   "dashboard:read:company", // view company-wide AI activity + document corpus KPIs (HR/Admin)
+  "analytics:full", // company-wide HR analytics: absenteeism, turnover, payroll, pyramid (HR/Admin)
+  "analytics:team", // team-scoped HR analytics for a manager (no payroll)
   "payslip:read:self",
   "payslip:read:any",
   "handbook:read", // RAG over the handbook / read the knowledge base
@@ -46,6 +48,8 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   "leave:approve": "Approve / reject leave",
   "dashboard:read:team": "View team KPI dashboard",
   "dashboard:read:company": "View company AI activity & documents dashboard",
+  "analytics:full": "View company HR analytics (absenteeism, turnover, payroll)",
+  "analytics:team": "View team HR analytics",
   "payslip:read:self": "View own payslips",
   "payslip:read:any": "View anyone's payslips",
   "handbook:read": "Ask the handbook (RAG)",
@@ -68,6 +72,7 @@ const MANAGER: Permission[] = [
   "directory:read:team",
   "leave:approve",
   "dashboard:read:team",
+  "analytics:team",
 ];
 
 const HR_ADMIN: Permission[] = [
@@ -79,6 +84,7 @@ const HR_ADMIN: Permission[] = [
   "kb:manage",
   "alerts:read",
   "dashboard:read:company",
+  "analytics:full",
 ];
 
 const SUPER_ADMIN: Permission[] = [
