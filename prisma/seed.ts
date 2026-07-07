@@ -582,7 +582,10 @@ async function seedPredictiveData() {
   for (const e of employees) {
     const rng = mulberry32(hashSeed(e.user.email));
     const roll = rng();
-    const persona: Persona = roll < 0.22 ? "high" : roll < 0.5 ? "medium" : "low";
+    let persona: Persona = roll < 0.22 ? "high" : roll < 0.5 ? "medium" : "low";
+    // Departed employees were mostly high-risk before leaving → gives the accuracy
+    // back-test (getModelAccuracy) a realistic, mostly-correct signal to score.
+    if (e.status === "TERMINATED") persona = rng() < 0.82 ? "high" : "medium";
     const r = PERSONA_RANGES[persona];
     const pick = (min: number, max: number) => min + rng() * (max - min);
 
@@ -610,8 +613,10 @@ async function seedPredictiveData() {
       surveys.push({ employeeId: e.id, score: engagement, surveyDate: monthsAgo(1 + (hashSeed(e.id) % 3)), source: "quarterly-pulse" });
     }
 
-    // Snapshot for the risk map / projection — ACTIVE employees only.
-    if (e.status === "ACTIVE") {
+    // Snapshot for ACTIVE (risk map / projection) and TERMINATED (accuracy
+    // back-test): a departed employee's last pre-departure snapshot is stamped at
+    // their leftAt so getModelAccuracy can score the prediction against the outcome.
+    if (e.status === "ACTIVE" || e.status === "TERMINATED") {
       const input: DepartureRiskInput = {
         asOf: NOW,
         startDate: e.startDate,
@@ -632,7 +637,7 @@ async function seedPredictiveData() {
         band: result.band,
         factors: result.factors as unknown as Prisma.InputJsonValue,
         weightVersion: 0,
-        computedAt: NOW,
+        computedAt: e.status === "TERMINATED" ? (e.leftAt ?? NOW) : NOW,
       });
     }
   }

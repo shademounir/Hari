@@ -2,11 +2,14 @@
 
 import { APICallError, generateObject } from "ai";
 import { z } from "zod";
+import { revalidatePath } from "next/cache";
 import { getLocale } from "next-intl/server";
 import { requireUser } from "@/lib/session";
 import { can } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
 import { getChatModel, DEFAULT_MODEL_ID } from "@/lib/ai/providers";
+import { getActiveModelConfig } from "@/lib/predictive/data-layer";
+import type { RiskWeights } from "@/lib/predictive/departure-risk";
 import {
   SENIORITY_LEVELS,
   URGENCY_LEVELS,
@@ -233,5 +236,66 @@ export async function generateTransitionPlan(input: TransitionPlanInput): Promis
   } catch (err) {
     console.error("[transition] plan generation failed:", err);
     return { ok: false, error: classifyAiError(err) };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// SCRUM-098 Increment 7 — model recalibration. HR_ADMIN adjusts the 10 factor
+// weights; we persist a NEW active PredictiveWeightConfig (old rows retained so
+// past snapshots stay reproducible against their version).
+// ─────────────────────────────────────────────────────────────────────────
+const weight = z.number().min(0).max(1);
+const WeightsSchema = z.object({
+  seniority: weight,
+  absenteeism: weight,
+  review: weight,
+  salary: weight,
+  turnover: weight,
+  jobProfile: weight,
+  burnout: weight,
+  roleStagnation: weight,
+  dominoEffect: weight,
+  engagement: weight,
+});
+
+export type SaveWeightsResult =
+  | { ok: true; version: number }
+  | { ok: false; error: "forbidden" | "invalid" | "internal" };
+
+/**
+ * Persist recalibrated weights. Gated on `predictions:manage`. Validates that the
+ * ten weights sum to 1.0 (±0.5% for rounding). Activates a new versioned config
+ * and deactivates the previous one; future scoring picks it up.
+ */
+export async function saveWeightConfigAction(weights: RiskWeights): Promise<SaveWeightsResult> {
+  const user = await requireUser();
+  if (!can(user.role, "predictions:manage")) return { ok: false, error: "forbidden" };
+
+  const parsed = WeightsSchema.safeParse(weights);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+
+  const sum = Object.values(parsed.data).reduce((a, b) => a + b, 0);
+  if (Math.abs(sum - 1) > 0.005) return { ok: false, error: "invalid" };
+
+  try {
+    // Reuse the current thresholds (recalibration only tunes weights here).
+    const { thresholds } = await getActiveModelConfig();
+    const row = await prisma.$transaction(async (tx) => {
+      await tx.predictiveWeightConfig.updateMany({ where: { active: true }, data: { active: false } });
+      return tx.predictiveWeightConfig.create({
+        data: {
+          weights: parsed.data,
+          thresholds,
+          active: true,
+          updatedById: user.id,
+        },
+        select: { version: true },
+      });
+    });
+    revalidatePath("/analytics/predictions");
+    return { ok: true, version: row.version };
+  } catch (err) {
+    console.error("[recalibrate] save failed:", err);
+    return { ok: false, error: "internal" };
   }
 }

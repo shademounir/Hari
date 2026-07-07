@@ -334,6 +334,32 @@
       "orange": "Moderate",
       "red": "High"
     },
+    "metrics": {
+      "accuracy": "Model accuracy",
+      "accuracyHint": "of {n} departed employees were flagged high-risk",
+      "noData": "Collecting outcomes — no departures scored yet",
+      "evaluated": "Employees evaluated",
+      "evaluatedHint": "Active employees with a current risk score",
+      "highRisk": "High risk",
+      "highRiskHint": "Scored above 60"
+    },
+    "recalibrate": {
+      "button": "Recalibrate",
+      "title": "Recalibrate the model",
+      "description": "Adjust how much each factor weighs in the departure-risk score. Weights must total 100%.",
+      "total": "Total",
+      "mustSum": "Must equal 100%",
+      "normalize": "Normalize to 100%",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saved": "Model recalibrated",
+      "errorTitle": "Recalibration failed",
+      "error": {
+        "forbidden": "You don't have permission to recalibrate the model.",
+        "invalid": "Weights must total exactly 100%.",
+        "internal": "Something went wrong saving the configuration. Please try again."
+      }
+    },
     "riskMap": {
       "title": "Risk map",
       "description": "Active employees ranked by current departure-risk score.",
@@ -429,6 +455,8 @@
       "submit": "Simulate",
       "simulating": "Simulating…",
       "aiErrorTitle": "AI Error",
+      "planTitle": "Recruitment plan",
+      "downloadPdf": "Download as PDF",
       "timeToHire": "Time to hire",
       "estimatedCost": "Estimated cost",
       "withinBudget": "Within budget",

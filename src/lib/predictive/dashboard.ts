@@ -123,6 +123,37 @@ export async function getDepartments(): Promise<string[]> {
   return rows.map((r) => r.department);
 }
 
+// ── Model accuracy (Taux de précision) ──────────────────────────────────
+
+export type ModelAccuracy = {
+  accuracyPct: number; // % of departed employees whose latest snapshot was HIGH
+  departed: number; // sample size (departed employees with a snapshot)
+  truePositives: number;
+};
+
+/**
+ * Back-test the model: of the employees who actually left (leftAt set) and had a
+ * risk snapshot, what share were flagged HIGH before leaving? A simple, honest
+ * true-positive rate. Returns null until there's at least one departed employee
+ * with a snapshot to score against.
+ */
+export async function getModelAccuracy(): Promise<ModelAccuracy | null> {
+  const leavers = await prisma.employee.findMany({
+    where: { leftAt: { not: null }, riskSnapshots: { some: {} } },
+    select: {
+      riskSnapshots: { orderBy: { computedAt: "desc" }, take: 1, select: { band: true } },
+    },
+  });
+  if (leavers.length === 0) return null;
+
+  const truePositives = leavers.filter((l) => l.riskSnapshots[0]?.band === "HIGH").length;
+  return {
+    accuracyPct: Math.round((truePositives / leavers.length) * 100),
+    departed: leavers.length,
+    truePositives,
+  };
+}
+
 // ── Section 4: Succession planning ──────────────────────────────────────
 
 /** How soon a candidate could step into the role. */

@@ -2,7 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { LineChart as LineChartIcon, ChevronDown, Check, Building2 } from "lucide-react";
+import {
+  LineChart as LineChartIcon,
+  ChevronDown,
+  Check,
+  Building2,
+} from "lucide-react";
 import {
   Area,
   Bar,
@@ -17,7 +22,10 @@ import {
   YAxis,
 } from "recharts";
 import { cn } from "@/lib/utils";
-import { projectDepartures, PROJECTION_MIN_HEADCOUNT } from "@/lib/predictive/projection";
+import {
+  projectDepartures,
+  PROJECTION_MIN_HEADCOUNT,
+} from "@/lib/predictive/projection";
 import { displayBand } from "./risk-band-badge";
 
 // Privacy-safe chart rows (no names/salary — just department + score).
@@ -26,7 +34,11 @@ export type AnalyticsRow = { department: string; score: number };
 type Period = "month" | "quarter" | "year";
 type ProjStyle = "area" | "line" | "bar";
 
-const BAND_COLORS = { green: "#10b981", orange: "#f59e0b", red: "#ef4444" } as const;
+const BAND_COLORS = {
+  green: "#10b981",
+  orange: "#f59e0b",
+  red: "#ef4444",
+} as const;
 const ACCENT = "#6366f1"; // cumulative
 const ACCENT_2 = "#94a3b8"; // per-period
 
@@ -67,7 +79,13 @@ function bucketProjection(
   }
 
   if (period === "year") {
-    return [{ label: String(base.getFullYear()), expected: round2(totalExpected), cumulative: round2(totalExpected) }];
+    return [
+      {
+        label: String(base.getFullYear()),
+        expected: round2(totalExpected),
+        cumulative: round2(totalExpected),
+      },
+    ];
   }
 
   // month (default)
@@ -75,7 +93,11 @@ function bucketProjection(
   return points.map((p) => {
     const d = new Date(base);
     d.setMonth(d.getMonth() + p.monthIndex);
-    return { label: monthFmt.format(d), expected: round2(p.expected), cumulative: round2(p.cumulative) };
+    return {
+      label: monthFmt.format(d),
+      expected: round2(p.expected),
+      cumulative: round2(p.cumulative),
+    };
   });
 }
 
@@ -108,15 +130,27 @@ export function DepartureAnalytics({
   const [stacked, setStacked] = useState(true);
 
   // Departments in play (empty selection = every department).
-  const activeDepts = selected.length ? departments.filter((d) => selected.includes(d)) : departments;
+  const activeDepts = selected.length
+    ? departments.filter((d) => selected.includes(d))
+    : departments;
 
   const filteredScores = useMemo(
-    () => rows.filter((r) => activeDepts.includes(r.department)).map((r) => r.score),
+    () =>
+      rows
+        .filter((r) => activeDepts.includes(r.department))
+        .map((r) => r.score),
     [rows, activeDepts],
   );
 
   const projectionData = useMemo(
-    () => bucketProjection(filteredScores, period, new Date(asOf), locale, tc("quarterShort")),
+    () =>
+      bucketProjection(
+        filteredScores,
+        period,
+        new Date(asOf),
+        locale,
+        tc("quarterShort"),
+      ),
     [filteredScores, period, asOf, locale, tc],
   );
 
@@ -161,7 +195,10 @@ export function DepartureAnalytics({
           <LineChartIcon className="size-8 text-muted-foreground/60" />
           <p className="text-sm font-medium">{t("calibrating")}</p>
           <p className="max-w-sm text-xs text-muted-foreground">
-            {t("calibratingHint", { min: PROJECTION_MIN_HEADCOUNT, have: activeCount })}
+            {t("calibratingHint", {
+              min: PROJECTION_MIN_HEADCOUNT,
+              have: activeCount,
+            })}
           </p>
         </div>
       ) : (
@@ -181,34 +218,87 @@ export function DepartureAnalytics({
               />
             </div>
             <ResponsiveContainer width="100%" height={260}>
-              <ComposedChart data={projectionData} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
+              <ComposedChart
+                data={projectionData}
+                margin={{ top: 8, right: 8, bottom: 0, left: -16 }}
+              >
                 <defs>
                   <linearGradient id="cumFill" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={ACCENT} stopOpacity={0.3} />
                     <stop offset="100%" stopColor={ACCENT} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis dataKey="label" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} width={40} />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="var(--border)"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                  tickLine={false}
+                  axisLine={false}
+                  width={40}
+                />
                 <Tooltip contentStyle={TOOLTIP_STYLE} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
 
                 {projStyle === "area" && (
-                  <Area type="monotone" dataKey="cumulative" name={t("legendCumulative")} stroke={ACCENT} strokeWidth={2.5} fill="url(#cumFill)" />
+                  <Area
+                    type="monotone"
+                    dataKey="cumulative"
+                    name={t("legendCumulative")}
+                    stroke={ACCENT}
+                    strokeWidth={2.5}
+                    fill="url(#cumFill)"
+                  />
                 )}
                 {projStyle === "line" && (
-                  <Line type="monotone" dataKey="cumulative" name={t("legendCumulative")} stroke={ACCENT} strokeWidth={2.5} dot={{ r: 2.5 }} />
+                  <Line
+                    type="monotone"
+                    dataKey="cumulative"
+                    name={t("legendCumulative")}
+                    stroke={ACCENT}
+                    strokeWidth={2.5}
+                    dot={{ r: 2.5 }}
+                  />
                 )}
                 {projStyle === "bar" && (
-                  <Bar dataKey="expected" name={t("legendMonthly")} fill={ACCENT} radius={[4, 4, 0, 0]} maxBarSize={48} />
+                  <Bar
+                    dataKey="expected"
+                    name={t("legendMonthly")}
+                    fill={ACCENT}
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={48}
+                  />
                 )}
 
                 {/* Secondary series: on area/line show per-period line; on bar overlay the cumulative line. */}
                 {projStyle === "bar" ? (
-                  <Line type="monotone" dataKey="cumulative" name={t("legendCumulative")} stroke={ACCENT_2} strokeWidth={2} dot={false} />
+                  <Line
+                    type="monotone"
+                    dataKey="cumulative"
+                    name={t("legendCumulative")}
+                    stroke={ACCENT_2}
+                    strokeWidth={2}
+                    dot={false}
+                  />
                 ) : (
-                  <Line type="monotone" dataKey="expected" name={t("legendMonthly")} stroke={ACCENT_2} strokeWidth={2} dot={false} strokeDasharray="4 3" />
+                  <Line
+                    type="monotone"
+                    dataKey="expected"
+                    name={t("legendMonthly")}
+                    stroke={ACCENT_2}
+                    strokeWidth={2}
+                    dot={false}
+                    strokeDasharray="4 3"
+                  />
                 )}
               </ComposedChart>
             </ResponsiveContainer>
@@ -228,15 +318,55 @@ export function DepartureAnalytics({
               />
             </div>
             <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={distributionData} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis dataKey="department" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} interval={0} angle={-20} textAnchor="end" height={54} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} tickLine={false} axisLine={false} width={40} />
+              <BarChart
+                data={distributionData}
+                margin={{ top: 8, right: 8, bottom: 0, left: -16 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="var(--border)"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="department"
+                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                  tickLine={false}
+                  axisLine={false}
+                  interval={0}
+                  angle={-20}
+                  textAnchor="end"
+                  height={54}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                  tickLine={false}
+                  axisLine={false}
+                  width={40}
+                />
                 <Tooltip contentStyle={TOOLTIP_STYLE} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="green" stackId={stacked ? "risk" : undefined} name={tBand("green")} fill={BAND_COLORS.green} radius={stacked ? [0, 0, 0, 0] : [3, 3, 0, 0]} />
-                <Bar dataKey="orange" stackId={stacked ? "risk" : undefined} name={tBand("orange")} fill={BAND_COLORS.orange} radius={stacked ? [0, 0, 0, 0] : [3, 3, 0, 0]} />
-                <Bar dataKey="red" stackId={stacked ? "risk" : undefined} name={tBand("red")} fill={BAND_COLORS.red} radius={stacked ? [4, 4, 0, 0] : [3, 3, 0, 0]} />
+                <Bar
+                  dataKey="green"
+                  stackId={stacked ? "risk" : undefined}
+                  name={tBand("green")}
+                  fill={BAND_COLORS.green}
+                  radius={stacked ? [0, 0, 0, 0] : [3, 3, 0, 0]}
+                />
+                <Bar
+                  dataKey="orange"
+                  stackId={stacked ? "risk" : undefined}
+                  name={tBand("orange")}
+                  fill={BAND_COLORS.orange}
+                  radius={stacked ? [0, 0, 0, 0] : [3, 3, 0, 0]}
+                />
+                <Bar
+                  dataKey="red"
+                  stackId={stacked ? "risk" : undefined}
+                  name={tBand("red")}
+                  fill={BAND_COLORS.red}
+                  radius={stacked ? [4, 4, 0, 0] : [3, 3, 0, 0]}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -287,8 +417,14 @@ function LabeledSegmented<T extends string>(props: {
 }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs font-medium text-muted-foreground">{props.label}</span>
-      <Segmented value={props.value} onChange={props.onChange} options={props.options} />
+      <span className="text-xs font-medium text-muted-foreground">
+        {props.label}
+      </span>
+      <Segmented
+        value={props.value}
+        onChange={props.onChange}
+        options={props.options}
+      />
     </div>
   );
 }
@@ -310,10 +446,16 @@ function MultiSelect({
 }) {
   const [open, setOpen] = useState(false);
   const toggle = (d: string) =>
-    onChange(selected.includes(d) ? selected.filter((x) => x !== d) : [...selected, d]);
+    onChange(
+      selected.includes(d) ? selected.filter((x) => x !== d) : [...selected, d],
+    );
 
   const summary =
-    selected.length === 0 ? allLabel : selected.length === 1 ? selected[0] : selectedLabel(selected.length);
+    selected.length === 0
+      ? allLabel
+      : selected.length === 1
+        ? selected[0]
+        : selectedLabel(selected.length);
 
   return (
     <div className="relative">
@@ -325,14 +467,19 @@ function MultiSelect({
         className="inline-flex h-8 items-center gap-2 rounded-lg border bg-background px-3 text-xs font-medium hover:bg-muted"
       >
         <Building2 className="size-3.5 text-muted-foreground" />
-        <span className="max-w-[10rem] truncate">{summary}</span>
+        <span className="max-w-40 truncate">{summary}</span>
         <ChevronDown className="size-3.5 text-muted-foreground" />
       </button>
 
       {open && (
         <>
           {/* click-away backdrop */}
-          <button aria-hidden tabIndex={-1} className="fixed inset-0 z-40 cursor-default" onClick={() => setOpen(false)} />
+          <button
+            aria-hidden
+            tabIndex={-1}
+            className="fixed inset-0 z-40 cursor-default"
+            onClick={() => setOpen(false)}
+          />
           <div className="absolute z-50 mt-1 max-h-64 w-56 overflow-y-auto rounded-lg border bg-popover p-1 shadow-lg">
             <button
               type="button"
@@ -340,7 +487,9 @@ function MultiSelect({
               className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted"
             >
               {allLabel}
-              {selected.length === 0 && <Check className="size-3.5 text-primary" />}
+              {selected.length === 0 && (
+                <Check className="size-3.5 text-primary" />
+              )}
             </button>
             {options.map((d) => {
               const checked = selected.includes(d);
@@ -358,7 +507,9 @@ function MultiSelect({
                       checked ? "border-primary bg-primary" : "border-input",
                     )}
                   >
-                    {checked && <Check className="size-3 text-primary-foreground" />}
+                    {checked && (
+                      <Check className="size-3 text-primary-foreground" />
+                    )}
                   </span>
                   <span className="truncate">{d}</span>
                 </button>

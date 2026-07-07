@@ -12,6 +12,7 @@ import {
   TriangleAlert,
   Lightbulb,
   CheckCircle2,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -253,7 +254,17 @@ function PlanView({ plan }: { plan: RecruitmentPlan }) {
   }).format(plan.estimatedCost.amount);
 
   return (
-    <div className="space-y-4 rounded-xl border bg-muted/30 p-4">
+    <div className="printable space-y-4 rounded-xl border bg-muted/30 p-4">
+      <div className="print-hidden flex items-center justify-between gap-2">
+        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          {t("planTitle")}
+        </span>
+        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => window.print()}>
+          <Download className="size-4" />
+          {t("downloadPdf")}
+        </Button>
+      </div>
+
       <p className="text-sm text-foreground">{plan.summary}</p>
 
       <div className="grid gap-3 sm:grid-cols-2">

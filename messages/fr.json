@@ -334,6 +334,32 @@
       "orange": "Modéré",
       "red": "Élevé"
     },
+    "metrics": {
+      "accuracy": "Précision du modèle",
+      "accuracyHint": "des {n} employés partis étaient signalés à risque élevé",
+      "noData": "Collecte des résultats — aucun départ évalué pour l'instant",
+      "evaluated": "Employés évalués",
+      "evaluatedHint": "Employés actifs avec un score de risque actuel",
+      "highRisk": "Risque élevé",
+      "highRiskHint": "Score supérieur à 60"
+    },
+    "recalibrate": {
+      "button": "Recalibrer",
+      "title": "Recalibrer le modèle",
+      "description": "Ajustez le poids de chaque facteur dans le score de risque de départ. Le total doit faire 100 %.",
+      "total": "Total",
+      "mustSum": "Doit être égal à 100 %",
+      "normalize": "Normaliser à 100 %",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "saved": "Modèle recalibré",
+      "errorTitle": "Échec du recalibrage",
+      "error": {
+        "forbidden": "Vous n'avez pas la permission de recalibrer le modèle.",
+        "invalid": "Le total des poids doit être exactement 100 %.",
+        "internal": "Une erreur est survenue lors de l'enregistrement. Veuillez réessayer."
+      }
+    },
     "riskMap": {
       "title": "Carte des risques",
       "description": "Employés actifs classés par score de risque de départ actuel.",
@@ -429,6 +455,8 @@
       "submit": "Simuler",
       "simulating": "Simulation…",
       "aiErrorTitle": "Erreur IA",
+      "planTitle": "Plan de recrutement",
+      "downloadPdf": "Télécharger en PDF",
       "timeToHire": "Délai de recrutement",
       "estimatedCost": "Coût estimé",
       "withinBudget": "Dans le budget",
