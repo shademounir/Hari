@@ -206,11 +206,6 @@
       "publishedShare": "Publiés"
     }
   },
-  "docStatus": {
-    "DRAFT": "Brouillon",
-    "PUBLISHED": "Publié",
-    "ARCHIVED": "Archivé"
-  },
   "timeOff": {
     "title": "Congés",
     "description": "Astuce : demandez des congés ou validez des demandes en interrogeant l'assistant IA.",

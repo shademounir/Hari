@@ -206,11 +206,6 @@
       "publishedShare": "Published"
     }
   },
-  "docStatus": {
-    "DRAFT": "Draft",
-    "PUBLISHED": "Published",
-    "ARCHIVED": "Archived"
-  },
   "timeOff": {
     "title": "Time Off",
     "description": "Tip: request time off or approve requests by asking the AI Assistant.",
