@@ -395,6 +395,25 @@
       "filterLabel": "Département",
       "allCompany": "Toute l'entreprise"
     },
+    "controls": {
+      "departments": "Départements",
+      "allDepartments": "Tous les départements",
+      "selected": "{count} sélectionnés",
+      "period": "Période",
+      "quarterShort": "T",
+      "stacked": "Empilé",
+      "grouped": "Groupé"
+    },
+    "period": {
+      "month": "Mensuel",
+      "quarter": "Trimestriel",
+      "year": "Annuel"
+    },
+    "chartStyle": {
+      "area": "Aire",
+      "line": "Ligne",
+      "bar": "Barres"
+    },
     "simulator": {
       "title": "Simulateur de recrutement (What-if)",
       "description": "Modélisez le plan de remplacement si des personnes quittent un département.",

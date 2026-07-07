@@ -395,6 +395,25 @@
       "filterLabel": "Department",
       "allCompany": "All company"
     },
+    "controls": {
+      "departments": "Departments",
+      "allDepartments": "All departments",
+      "selected": "{count} selected",
+      "period": "Period",
+      "quarterShort": "Q",
+      "stacked": "Stacked",
+      "grouped": "Grouped"
+    },
+    "period": {
+      "month": "Monthly",
+      "quarter": "Quarterly",
+      "year": "Yearly"
+    },
+    "chartStyle": {
+      "area": "Area",
+      "line": "Line",
+      "bar": "Bar"
+    },
     "simulator": {
       "title": "Recruitment simulator (What-if)",
       "description": "Model the backfill plan if people leave a department.",
