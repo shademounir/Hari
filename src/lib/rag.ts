@@ -13,13 +13,7 @@
 
 import { sanitizeRetrievedContent } from "@/lib/ai/prompt-guard";
 
-// Local shim for environments where @prisma/client types are unavailable.
-// We only need the `sql` tag at runtime for prisma.$queryRaw; pass-through is fine.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const Prisma: any = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  sql: (s: any) => s,
-};
+import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { embedText, toVectorLiteral } from "@/lib/ai/embeddings";
