@@ -19,6 +19,7 @@
     "assistant": "Assistant IA",
     "directory": "Annuaire",
     "team": "Mon équipe",
+    "hrActivity": "Activité RH",
     "timeOff": "Congés",
     "settings": "Paramètres",
     "signOut": "Se déconnecter",
@@ -51,6 +52,7 @@
     "leave:read:self": "Voir ses propres congés",
     "leave:approve": "Approuver / refuser les congés",
     "dashboard:read:team": "Voir le tableau de bord de l'équipe",
+    "dashboard:read:company": "Voir le tableau de bord de l'activité IA et des documents de l'entreprise",
     "payslip:read:self": "Voir ses propres fiches de paie",
     "payslip:read:any": "Voir les fiches de paie de chacun",
     "handbook:read": "Interroger le guide (RAG)",
@@ -182,6 +184,26 @@
       "approved": "{count, plural, one {# demande approuvée} other {# demandes approuvées}}",
       "rejected": "{count, plural, one {# demande refusée} other {# demandes refusées}}",
       "failed": "Aucun changement — la demande a peut-être déjà été traitée."
+    }
+  },
+  "hrDashboard": {
+    "title": "Tableau de bord Activité RH",
+    "description": "Activité de l'assistant IA à l'échelle de l'entreprise et état du corpus documentaire.",
+    "kpi": {
+      "aiQuestions7d": "Questions IA (7j)",
+      "aiRefusals7d": "Refus IA (7j)",
+      "aiErrors7d": "Erreurs IA (7j)",
+      "openAlerts": "Alertes ouvertes"
+    },
+    "anomaly": {
+      "normal": "Normal",
+      "elevated": "Élevé",
+      "high": "Fort",
+      "insufficient_data": "Pas de référence"
+    },
+    "corpus": {
+      "title": "Corpus documentaire",
+      "publishedShare": "Publiés"
     }
   },
   "timeOff": {

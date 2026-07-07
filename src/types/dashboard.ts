@@ -102,3 +102,24 @@ export type TeamDashboardModel = {
   /** Inclusive window the capacity heatmap covers, echoed for the header. */
   capacityRange: { start: string; end: string };
 };
+
+// ── HR company-wide dashboard (SCRUM-072: AI activity + document corpus) ──
+
+export type HrKpiKey = "aiQuestions7d" | "aiRefusals7d" | "aiErrors7d" | "openAlerts";
+
+export type HrKpiCardModel = {
+  key: HrKpiKey;
+  value: number;
+  series: TrendPoint[]; // sparkline
+  anomaly: AnomalyResult;
+};
+
+/** Document counts by lifecycle status, company-wide — from lib/kb.ts. */
+export type DocStatusCounts = { DRAFT: number; PUBLISHED: number; ARCHIVED: number; all: number };
+
+export type HrDashboardModel = {
+  kpis: HrKpiCardModel[];
+  /** Refusals as a share of (questions + refusals) over the KPI window, 0..100. */
+  refusalRatePct: number;
+  docStatusCounts: DocStatusCounts;
+};

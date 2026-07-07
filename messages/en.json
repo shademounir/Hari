@@ -19,6 +19,7 @@
     "assistant": "AI Assistant",
     "directory": "Directory",
     "team": "My Team",
+    "hrActivity": "HR Activity",
     "timeOff": "Time Off",
     "settings": "Settings",
     "signOut": "Sign out",
@@ -51,6 +52,7 @@
     "leave:read:self": "View own leave",
     "leave:approve": "Approve / reject leave",
     "dashboard:read:team": "View team KPI dashboard",
+    "dashboard:read:company": "View company AI activity & documents dashboard",
     "payslip:read:self": "View own payslips",
     "payslip:read:any": "View anyone's payslips",
     "handbook:read": "Ask the handbook (RAG)",
@@ -182,6 +184,26 @@
       "approved": "{count, plural, one {# request approved} other {# requests approved}}",
       "rejected": "{count, plural, one {# request rejected} other {# requests rejected}}",
       "failed": "Nothing changed — the request may have already been handled."
+    }
+  },
+  "hrDashboard": {
+    "title": "HR Activity Dashboard",
+    "description": "Company-wide AI assistant activity and the state of the document corpus.",
+    "kpi": {
+      "aiQuestions7d": "AI questions (7d)",
+      "aiRefusals7d": "AI refusals (7d)",
+      "aiErrors7d": "AI errors (7d)",
+      "openAlerts": "Open alerts"
+    },
+    "anomaly": {
+      "normal": "Normal",
+      "elevated": "Elevated",
+      "high": "High",
+      "insufficient_data": "No baseline"
+    },
+    "corpus": {
+      "title": "Document corpus",
+      "publishedShare": "Published"
     }
   },
   "timeOff": {

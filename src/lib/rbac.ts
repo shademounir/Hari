@@ -25,6 +25,7 @@ export const PERMISSIONS = [
   "leave:read:self",
   "leave:approve", // approve/reject requests
   "dashboard:read:team", // view aggregated team KPIs (headcount, pending, AI usage)
+  "dashboard:read:company", // view company-wide AI activity + document corpus KPIs (HR/Admin)
   "payslip:read:self",
   "payslip:read:any",
   "handbook:read", // RAG over the handbook / read the knowledge base
@@ -44,6 +45,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   "leave:read:self": "View own leave",
   "leave:approve": "Approve / reject leave",
   "dashboard:read:team": "View team KPI dashboard",
+  "dashboard:read:company": "View company AI activity & documents dashboard",
   "payslip:read:self": "View own payslips",
   "payslip:read:any": "View anyone's payslips",
   "handbook:read": "Ask the handbook (RAG)",
@@ -76,6 +78,7 @@ const HR_ADMIN: Permission[] = [
   "employee:manage",
   "kb:manage",
   "alerts:read",
+  "dashboard:read:company",
 ];
 
 const SUPER_ADMIN: Permission[] = [
