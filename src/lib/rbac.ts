@@ -34,6 +34,7 @@ export const PERMISSIONS = [
   "kb:manage", // create/edit/publish/archive KB documents & collections
   "employee:manage", // create/edit employees
   "alerts:read", // view + triage AI observability alerts (Admin/HR)
+  "documents:download:any", // download any generated document (HR/Admin); employees download their own implicitly
   "admin:settings", // platform settings
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
@@ -56,6 +57,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   "kb:manage": "Manage the knowledge base",
   "employee:manage": "Manage employee records",
   "alerts:read": "View AI alerts",
+  "documents:download:any": "Download any generated HR document",
   "admin:settings": "Manage platform settings",
 };
 
@@ -85,6 +87,7 @@ const HR_ADMIN: Permission[] = [
   "alerts:read",
   "dashboard:read:company",
   "analytics:full",
+  "documents:download:any",
 ];
 
 const SUPER_ADMIN: Permission[] = [
