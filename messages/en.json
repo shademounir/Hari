@@ -37,7 +37,8 @@
     "userMenu": "Account menu",
     "alerts": "Alerts",
     "analytics": "HR Analytics",
-    "teamAnalytics": "Team Analytics"
+    "teamAnalytics": "Team Analytics",
+    "documents": "Documents"
   },
   "roles": {
     "EMPLOYEE": "Employee",
@@ -64,7 +65,8 @@
     "admin:settings": "Manage platform settings",
     "kb:manage": "Manage the knowledge base",
     "alerts:read": "View AI alerts",
-    "documents:download:any": "Download any generated HR document"
+    "documents:download:any": "Download any generated HR document",
+    "documents:request": "Request own HR documents"
   },
   "leaveType": {
     "VACATION": "Vacation",
@@ -717,5 +719,14 @@
     "toastAcknowledged": "Alert acknowledged",
     "toastResolved": "Alert resolved",
     "toastReopened": "Alert reopened"
+  },
+  "documents": {
+    "title": "My Documents",
+    "description": "Request and track your HR documents.",
+    "workCertificateTitle": "Work Certificate",
+    "workCertificateDescription": "Request an automatically generated work certificate.",
+    "requestWorkCertificate": "Request certificate",
+    "requestSuccess": "Your request has been submitted successfully.",
+    "forbidden": "You are not allowed to access this page."
   }
 }
