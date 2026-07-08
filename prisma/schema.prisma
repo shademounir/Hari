@@ -63,14 +63,26 @@ model Employee {
   salary         Int // annual, in the org's configured currency (see OrgSettings) — sensitive: only HR/Super can read via tools
   avatarUrl      String?
 
+  // HR analytics (HARI-122 / SCRUM-097). All nullable/defaulted — additive, never
+  // read by name-facing surfaces; only the RBAC-gated analytics layer aggregates them.
+  birthDate       DateTime? // for the age pyramid (aggregated into bands, never shown raw)
+  gender          Gender? // diversity split; optional, self-declared
+  contractType    ContractType    @default(CDI) // CDI/CDD/… — orthogonal to employmentType (time)
+  timeToHireDays  Int? // days between requisition open and arrival — recruitment KPI
+  terminationDate DateTime? // set when status = TERMINATED — powers turnover over time
+  departureReason DepartureReason? // why they left — turnover breakdown
+
   // Self-referential org chart.
   manager   Employee?  @relation("Reports", fields: [managerId], references: [id])
   managerId String?
   reports   Employee[] @relation("Reports")
 
-  leaveBalances LeaveBalance[]
-  leaveRequests LeaveRequest[] @relation("Requester")
-  approvals     LeaveRequest[] @relation("Approver")
+  leaveBalances    LeaveBalance[]
+  leaveRequests    LeaveRequest[]      @relation("Requester")
+  approvals        LeaveRequest[]      @relation("Approver")
+  payrollSnapshots PayrollSnapshot[]
+  reviewsReceived  PerformanceReview[] @relation("ReviewSubject")
+  reviewsGiven     PerformanceReview[] @relation("Reviewer")
 }
 
 model LeaveBalance {
@@ -213,6 +225,62 @@ enum EmploymentType {
   FULL_TIME
   PART_TIME
   CONTRACTOR
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// HR analytics dimensions + facts (HARI-122 / SCRUM-097)
+// ─────────────────────────────────────────────────────────────────────────
+
+enum Gender {
+  FEMALE
+  MALE
+  OTHER
+}
+
+/// Nature of the employment contract (fr labour taxonomy) — distinct from
+/// EmploymentType (which is about working time). Used by the contract filter.
+enum ContractType {
+  CDI // permanent
+  CDD // fixed-term
+  ALTERNANCE // work-study
+  STAGE // internship
+}
+
+/// Why an employee left — drives the turnover breakdown.
+enum DepartureReason {
+  VOLUNTARY // resignation
+  INVOLUNTARY // dismissal
+  RETIREMENT
+  END_OF_CONTRACT // CDD/stage reached its term
+}
+
+/// One month of gross pay for one employee — the fact table behind the payroll
+/// evolution curve and historical department breakdown (salary alone is a single
+/// current snapshot, so it can't show 12-month trends).
+model PayrollSnapshot {
+  id         String   @id @default(cuid())
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId String
+  month      DateTime // first day of the month (UTC)
+  grossAmount Int // gross pay for that month, in the org currency
+
+  @@unique([employeeId, month])
+  @@index([month])
+}
+
+/// A conducted annual review ("entretien annuel"). Powers review-coverage KPIs
+/// (HARI-122) and the time-since-last-review engagement signal (HARI-124).
+model PerformanceReview {
+  id          String   @id @default(cuid())
+  employee    Employee @relation("ReviewSubject", fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId  String
+  reviewer    Employee? @relation("Reviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  reviewerId  String?
+  conductedAt DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([employeeId])
+  @@index([conductedAt])
 }
 
 // ─────────────────────────────────────────────────────────────────────────
