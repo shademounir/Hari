@@ -47,6 +47,10 @@ model User {
   alertsRaised   Alert[]      @relation("AlertSubject")
   alertsAcked    Alert[]      @relation("AlertAck")
   alertsResolved Alert[]      @relation("AlertResolved")
+
+  // HARI-88: document generation back-relations.
+  documentsRequested GeneratedDocument[] @relation("DocumentRequester")
+  documentsValidated GeneratedDocument[] @relation("DocumentValidator")
 }
 
 /// HR profile / org data.
@@ -85,19 +89,19 @@ model LeaveBalance {
 }
 
 model LeaveRequest {
-  id         String      @id @default(cuid())
-  employee   Employee    @relation("Requester", fields: [employeeId], references: [id], onDelete: Cascade)
-  employeeId String
-  type       LeaveType
-  startDate  DateTime
-  endDate    DateTime
-  days       Int
-  reason     String? // the requester's stated reason for the leave
+  id           String      @id @default(cuid())
+  employee     Employee    @relation("Requester", fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId   String
+  type         LeaveType
+  startDate    DateTime
+  endDate      DateTime
+  days         Int
+  reason       String? // the requester's stated reason for the leave
   decisionNote String? // the approver's note (required on rejection) — SCRUM-071 B1
-  status     LeaveStatus @default(PENDING)
-  approver   Employee?   @relation("Approver", fields: [approverId], references: [id])
-  approverId String?
-  createdAt  DateTime    @default(now())
+  status       LeaveStatus @default(PENDING)
+  approver     Employee?   @relation("Approver", fields: [approverId], references: [id])
+  approverId   String?
+  createdAt    DateTime    @default(now())
 }
 
 /// Org-wide settings, a single row (id = "singleton"). Editable by a super admin
@@ -337,4 +341,61 @@ model AuditLog {
   @@index([createdAt])
   @@index([action])
   @@index([actorId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// HR document generation (HARI-88 / SCRUM-078)
+// ─────────────────────────────────────────────────────────────────────────
+
+/// Document types that can be generated. Sprint 4 supports WORK_CERTIFICATE only.
+enum GeneratedDocumentType {
+  WORK_CERTIFICATE
+}
+
+/// Lifecycle of a generated document request.
+enum GeneratedDocumentStatus {
+  REQUESTED // employee submitted the request
+  VALIDATED // HR approved, PDF generation queued
+  GENERATED // PDF produced, download link available
+  DOWNLOADED // employee has downloaded the document
+  REJECTED // HR rejected the request
+}
+
+/// HARI-88 / SCRUM-078: an HR document requested by an employee (e.g. work certificate).
+/// Drives the full generation workflow: request → HR validation → PDF generation → download.
+/// PDF generation (SCRUM-081) and MinIO storage are deferred; pdfUrl is reserved for that sprint.
+model GeneratedDocument {
+  id     String                  @id @default(cuid())
+  type   GeneratedDocumentType
+  status GeneratedDocumentStatus @default(REQUESTED)
+
+  // Requester — SetNull so the record outlives account deletion.
+  requestedBy   User?   @relation("DocumentRequester", fields: [requestedById], references: [id], onDelete: SetNull)
+  requestedById String?
+
+  // HR validator — null until HR acts on the request.
+  validatedBy   User?   @relation("DocumentValidator", fields: [validatedById], references: [id], onDelete: SetNull)
+  validatedById String?
+
+  // Required when status = REJECTED, null otherwise.
+  rejectionNote String?
+
+  // Link to the generated PDF — populated by SCRUM-081, null until then.
+  pdfUrl String?
+
+  // Workflow timestamps — one per lifecycle transition.
+  requestedAt  DateTime  @default(now())
+  validatedAt  DateTime?
+  generatedAt  DateTime?
+  downloadedAt DateTime?
+  rejectedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([requestedById])
+  @@index([validatedById])
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
 }
