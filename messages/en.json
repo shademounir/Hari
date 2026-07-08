@@ -63,7 +63,8 @@
     "employee:manage": "Manage employee records",
     "admin:settings": "Manage platform settings",
     "kb:manage": "Manage the knowledge base",
-    "alerts:read": "View AI alerts"
+    "alerts:read": "View AI alerts",
+    "documents:download:any": "Download any generated HR document"
   },
   "leaveType": {
     "VACATION": "Vacation",

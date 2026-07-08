@@ -63,7 +63,8 @@
     "employee:manage": "Gérer les dossiers des employés",
     "admin:settings": "Gérer les paramètres de la plateforme",
     "kb:manage": "Gérer la base de connaissances",
-    "alerts:read": "Voir les alertes IA"
+    "alerts:read": "Voir les alertes IA",
+    "documents:download:any": "Télécharger tout document RH généré"
   },
   "leaveType": {
     "VACATION": "Congés",
