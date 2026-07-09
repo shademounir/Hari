@@ -35,6 +35,8 @@ export const PERMISSIONS = [
   "employee:manage", // create/edit employees
   "alerts:read", // view + triage AI observability alerts (Admin/HR)
   "documents:request", // request own generated HR documents
+  "predictions:read", // view departure-risk predictions (managers: own team, anonymized; HR: full)
+  "predictions:manage", // recalibrate model weights / thresholds (HR/Admin)
   "documents:download:any", // download any generated document (HR/Admin); employees download their own implicitly
   "admin:settings", // platform settings
 ] as const;
@@ -59,6 +61,8 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   "employee:manage": "Manage employee records",
   "alerts:read": "View AI alerts",
   "documents:request": "Request own HR documents",
+  "predictions:read": "View departure-risk predictions",
+  "predictions:manage": "Recalibrate the predictive model",
   "documents:download:any": "Download any generated HR document",
   "admin:settings": "Manage platform settings",
 };
@@ -77,6 +81,7 @@ const MANAGER: Permission[] = [
   "directory:read:team",
   "leave:approve",
   "dashboard:read:team",
+  "predictions:read", // own team only, anonymized (enforced in the data/tool layer)
   "analytics:team",
 ];
 
@@ -89,6 +94,7 @@ const HR_ADMIN: Permission[] = [
   "kb:manage",
   "alerts:read",
   "dashboard:read:company",
+  "predictions:manage", // recalibration; predictions:read inherited from MANAGER
   "analytics:full",
   "documents:download:any",
 ];
