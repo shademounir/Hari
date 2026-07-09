@@ -541,7 +541,8 @@ model GeneratedDocument {
   // Required when status = REJECTED, null otherwise.
   rejectionNote String?
 
-  // Link to the generated PDF — populated by SCRUM-081, null until then.
+  // MinIO object key of the generated PDF (documents/<id>.pdf); null until GENERATED.
+  // Set by generateWorkCertificate (SCRUM-081); served via the download proxy route.
   pdfUrl String?
 
   // Workflow timestamps — one per lifecycle transition.

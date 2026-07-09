@@ -2,10 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getLocale } from "next-intl/server";
 
 import { prisma } from "@/lib/prisma";
 import { can } from "@/lib/rbac";
 import { requireUser } from "@/lib/session";
+import {
+  generateWorkCertificate,
+  rejectDocumentRequest,
+  type FulfillResult,
+} from "@/lib/documents";
 
 export async function requestWorkCertificate() {
   const user = await requireUser();
@@ -34,4 +40,25 @@ export async function requestWorkCertificate() {
 
   revalidatePath("/documents");
   redirect("/documents?requested=1");
+}
+
+/**
+ * HR fulfillment: validate a request and produce the real PDF. Gated inside
+ * `generateWorkCertificate` (documents:download:any). Returns a typed result so the
+ * client can toast; revalidates the queue on success.
+ */
+export async function generateDocumentAction(id: string): Promise<FulfillResult> {
+  const user = await requireUser();
+  const locale = await getLocale();
+  const result = await generateWorkCertificate({ userId: user.id, role: user.role }, id, locale);
+  if (result.ok) revalidatePath("/documents");
+  return result;
+}
+
+/** HR rejects a request with a note. Gated inside `rejectDocumentRequest`. */
+export async function rejectDocumentAction(id: string, note: string): Promise<FulfillResult> {
+  const user = await requireUser();
+  const result = await rejectDocumentRequest({ userId: user.id, role: user.role }, id, note);
+  if (result.ok) revalidatePath("/documents");
+  return result;
 }

@@ -938,6 +938,37 @@
     "workCertificateDescription": "Demandez une attestation de travail générée automatiquement par les RH.",
     "requestWorkCertificate": "Demander une attestation",
     "requestSuccess": "Votre demande a bien été enregistrée.",
-    "forbidden": "Vous n'êtes pas autorisé à accéder à cette page."
+    "forbidden": "Vous n'êtes pas autorisé à accéder à cette page.",
+    "myDocuments": "Mes documents",
+    "noDocuments": "Vous n'avez encore demandé aucun document.",
+    "download": "Télécharger",
+    "status": {
+      "REQUESTED": "En attente",
+      "VALIDATED": "Validé",
+      "GENERATED": "Prêt",
+      "DOWNLOADED": "Téléchargé",
+      "REJECTED": "Refusé"
+    },
+    "queue": {
+      "title": "Demandes à traiter",
+      "empty": "Aucune demande de document à traiter.",
+      "generate": "Générer",
+      "reject": "Refuser",
+      "generated": "Document généré.",
+      "rejected": "Demande refusée.",
+      "actionError": "Échec de l'action",
+      "rejectTitle": "Refuser cette demande",
+      "rejectDescription": "L'employé verra ce motif.",
+      "rejectPlaceholder": "Motif du refus…",
+      "cancel": "Annuler",
+      "confirmReject": "Refuser la demande",
+      "reason": {
+        "forbidden": "Vous n'avez pas l'autorisation.",
+        "not_found": "Document introuvable.",
+        "invalid_state": "Cette demande ne peut plus être traitée.",
+        "no_requester": "Le compte du demandeur est introuvable.",
+        "no_employee": "Aucune fiche employé pour le demandeur."
+      }
+    }
   }
 }

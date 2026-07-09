@@ -938,6 +938,37 @@
     "workCertificateDescription": "Request an automatically generated work certificate.",
     "requestWorkCertificate": "Request certificate",
     "requestSuccess": "Your request has been submitted successfully.",
-    "forbidden": "You are not allowed to access this page."
+    "forbidden": "You are not allowed to access this page.",
+    "myDocuments": "My documents",
+    "noDocuments": "You haven't requested any documents yet.",
+    "download": "Download",
+    "status": {
+      "REQUESTED": "Pending",
+      "VALIDATED": "Validated",
+      "GENERATED": "Ready",
+      "DOWNLOADED": "Downloaded",
+      "REJECTED": "Rejected"
+    },
+    "queue": {
+      "title": "Requests to process",
+      "empty": "No document requests to process.",
+      "generate": "Generate",
+      "reject": "Reject",
+      "generated": "Document generated.",
+      "rejected": "Request rejected.",
+      "actionError": "Action failed",
+      "rejectTitle": "Reject this request",
+      "rejectDescription": "The employee will see this reason.",
+      "rejectPlaceholder": "Reason for rejection…",
+      "cancel": "Cancel",
+      "confirmReject": "Reject request",
+      "reason": {
+        "forbidden": "You don't have permission.",
+        "not_found": "Document not found.",
+        "invalid_state": "This request can no longer be processed.",
+        "no_requester": "The requester's account is missing.",
+        "no_employee": "No employee record for the requester."
+      }
+    }
   }
 }
