@@ -29,6 +29,7 @@ export type NavKey =
   | "predictions"
   | "analytics"
   | "teamAnalytics"
+  | "engagement"
   | "timeOff"
   | "documents"
   | "knowledgeBase"
@@ -64,7 +65,10 @@ export const NAV_ITEMS: NavItem[] = [
     key: "team",
     icon: Gauge,
     permission: "dashboard:read:team",
-    children: [{ href: "/team/analytics", ns: "nav", key: "teamAnalytics", permission: "analytics:team" }],
+    children: [
+      { href: "/team/analytics", ns: "nav", key: "teamAnalytics", permission: "analytics:team" },
+      { href: "/team/engagement", ns: "nav", key: "engagement", permission: "engagement:read:team" },
+    ],
   },
   { href: "/hr-activity", key: "hrActivity", icon: Activity, permission: "dashboard:read:company" },
   {
