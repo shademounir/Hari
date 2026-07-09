@@ -8,9 +8,7 @@ import {
   BellRing,
   Gauge,
   Activity,
-  TrendingDown,
   BarChart3,
-  TrendingUp,
   FileText,
   Settings,
 } from "lucide-react";
@@ -37,23 +35,47 @@ export type NavKey =
   | "alerts"
   | "settings";
 
+type SettingsKey = (typeof SETTINGS_SECTIONS)[number]["key"];
+
+/**
+ * A sub-item under a nav parent. `ns` says which i18n namespace resolves its
+ * label — `nav` for feature children (Team Analytics, Predictions), `settings`
+ * for the Settings sub-pages — so both can share one accordion structure.
+ * `permission` gates the child independently of its parent.
+ */
+export type NavChild =
+  | { href: string; ns: "nav"; key: NavKey; permission?: Permission }
+  | { href: string; ns: "settings"; key: SettingsKey; permission?: Permission };
+
 export type NavItem = {
   href: string;
   key: NavKey;
   icon: ComponentType<{ className?: string }>;
   permission?: Permission;
-  children?: { href: string; labelKey: (typeof SETTINGS_SECTIONS)[number]["key"] }[];
+  children?: NavChild[];
 };
 
 export const NAV_ITEMS: NavItem[] = [
   { href: "/", key: "dashboard", icon: LayoutDashboard },
   { href: "/chat", key: "assistant", icon: Bot },
   { href: "/directory", key: "directory", icon: Users },
-  { href: "/team", key: "team", icon: Gauge, permission: "dashboard:read:team" },
+  {
+    href: "/team",
+    key: "team",
+    icon: Gauge,
+    permission: "dashboard:read:team",
+    children: [{ href: "/team/analytics", ns: "nav", key: "teamAnalytics", permission: "analytics:team" }],
+  },
   { href: "/hr-activity", key: "hrActivity", icon: Activity, permission: "dashboard:read:company" },
-  { href: "/analytics/predictions", key: "predictions", icon: TrendingDown, permission: "dashboard:read:company" },
-  { href: "/analytics", key: "analytics", icon: BarChart3, permission: "analytics:full" },
-  { href: "/team/analytics", key: "teamAnalytics", icon: TrendingUp, permission: "analytics:team" },
+  {
+    href: "/analytics",
+    key: "analytics",
+    icon: BarChart3,
+    permission: "analytics:full",
+    children: [
+      { href: "/analytics/predictions", ns: "nav", key: "predictions", permission: "dashboard:read:company" },
+    ],
+  },
   { href: "/time-off", key: "timeOff", icon: CalendarDays },
   { href: "/documents", key: "documents", icon: FileText, permission: "documents:request" },
   { href: "/kb", key: "knowledgeBase", icon: BookOpen },
@@ -65,7 +87,8 @@ export const NAV_ITEMS: NavItem[] = [
     permission: "admin:settings",
     children: SETTINGS_SECTIONS.filter((s) => s.href !== "/settings").map((s) => ({
       href: s.href,
-      labelKey: s.key,
+      ns: "settings" as const,
+      key: s.key,
     })),
   },
 ];

@@ -67,13 +67,9 @@
     "kb:manage": "Manage the knowledge base",
     "alerts:read": "View AI alerts",
     "documents:download:any": "Download any generated HR document",
-    "documents:request": "Request own HR documents"
-
+    "documents:request": "Request own HR documents",
     "predictions:read": "View departure-risk predictions",
     "predictions:manage": "Recalibrate the predictive model"
-
-    "documents:download:any": "Download any generated HR document"
-
   },
   "leaveType": {
     "VACATION": "Vacation",
@@ -281,6 +277,8 @@
     "reject": "Reject",
     "status": "Status",
     "leaveHistory": "Leave history",
+    "viewNote": "View note",
+    "decisionNoteFor": "Manager's note for {name}",
     "filters": "Filters",
     "searchPlaceholder": "Search by employee name…",
     "optionPlaceholder": "Filter options…",

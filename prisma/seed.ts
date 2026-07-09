@@ -57,13 +57,14 @@ type Seed = {
   employmentType?: "FULL_TIME" | "PART_TIME" | "CONTRACTOR";
   // Generated-workforce extras (SCRUM-098). Optional so the hand-written demo
   // accounts above are unaffected; the predictive pass fills in the rest.
-  startDate?: Date;
+  // `startDate` accepts a Date (generateWorkforce) or an ISO string (hand-written
+  // PEOPLE / SCRUM-097 rows); the creation loop coerces via `new Date(...)`.
+  startDate?: Date | string; // defaults to 2023-01-15
   leftAt?: Date; // set for TERMINATED so department turnover has real data
   vacationUsed?: number;
   sickUsed?: number;
   // HR-analytics dimensions (HARI-122). Optional so demo accounts can omit them
   // and fall back to sensible defaults.
-  startDate?: string; // ISO date; defaults to 2023-01-15
   birthDate?: string; // ISO date → age pyramid
   gender?: "FEMALE" | "MALE" | "OTHER";
   contractType?: "CDI" | "CDD" | "ALTERNANCE" | "STAGE";
@@ -510,7 +511,6 @@ async function seedPeople() {
             department: p.department,
             location: p.location,
             salary: p.salary,
-            startDate: p.startDate ?? new Date("2023-01-15"),
             leftAt: p.leftAt ?? null,
             startDate: new Date(p.startDate ?? "2023-01-15"),
             status: (p.status as EmploymentStatus) ?? EmploymentStatus.ACTIVE,
@@ -777,8 +777,9 @@ async function seedPredictiveData() {
     const reviewDate = monthsAgo(reviewMonthsAgo);
     const roleChangeDate = monthsAgo(roleMonths);
 
-    // History rows (coherent with the signals above).
-    reviews.push({ employeeId: e.id, reviewDate, rating });
+    // History rows (coherent with the signals above). PerformanceReview is the
+    // unified model (SCRUM-097 + 098): the review date is `conductedAt`.
+    reviews.push({ employeeId: e.id, conductedAt: reviewDate, rating });
     roleAnchors.push({ id: e.id, lastReviewDate: reviewDate, lastRoleChangeDate: roleChangeDate });
     const priorSalary = Math.round(e.salary / (1 + salaryGrowth));
     salaries.push({ employeeId: e.id, effectiveDate: monthsAgo(13), amount: priorSalary, reason: "Annual review" });

@@ -17,17 +17,9 @@ ALTER TABLE "Employee"
     ADD COLUMN "lastRoleChangeDate" TIMESTAMP(3),
     ADD COLUMN "leftAt" TIMESTAMP(3);
 
--- CreateTable
-CREATE TABLE "PerformanceReview" (
-    "id" TEXT NOT NULL,
-    "employeeId" TEXT NOT NULL,
-    "reviewDate" TIMESTAMP(3) NOT NULL,
-    "rating" INTEGER,
-    "reviewerId" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "PerformanceReview_pkey" PRIMARY KEY ("id")
-);
+-- AlterTable: PerformanceReview already exists (SCRUM-097 analytics migration).
+-- SCRUM-098 only adds an optional rating used for explicability.
+ALTER TABLE "PerformanceReview" ADD COLUMN "rating" INTEGER;
 
 -- CreateTable
 CREATE TABLE "SalaryChange" (
@@ -81,9 +73,6 @@ CREATE TABLE "DepartureRiskSnapshot" (
 );
 
 -- CreateIndex
-CREATE INDEX "PerformanceReview_employeeId_reviewDate_idx" ON "PerformanceReview"("employeeId", "reviewDate");
-
--- CreateIndex
 CREATE INDEX "SalaryChange_employeeId_effectiveDate_idx" ON "SalaryChange"("employeeId", "effectiveDate");
 
 -- CreateIndex
@@ -100,9 +89,6 @@ CREATE INDEX "DepartureRiskSnapshot_employeeId_computedAt_idx" ON "DepartureRisk
 
 -- CreateIndex
 CREATE INDEX "DepartureRiskSnapshot_band_idx" ON "DepartureRiskSnapshot"("band");
-
--- AddForeignKey
-ALTER TABLE "PerformanceReview" ADD CONSTRAINT "PerformanceReview_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "SalaryChange" ADD CONSTRAINT "SalaryChange_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee"("id") ON DELETE CASCADE ON UPDATE CASCADE;

@@ -21,14 +21,21 @@ import { NAV_ITEMS } from "@/lib/nav-items";
 export function CommandSearch({ role }: { role: Role }) {
   const router = useRouter();
   const t = useTranslations("nav");
+  const tSettings = useTranslations("settings");
   const tTop = useTranslations("topbar");
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
 
-  const pages = NAV_ITEMS.filter((p) => !p.permission || can(role, p.permission)).map(
-    (p) => ({ href: p.href, icon: p.icon, label: t(p.key) }),
-  );
+  // Flatten nav parents + their permission-visible children so nested pages
+  // (Team Analytics, Predictions, Settings sub-pages) stay searchable in ⌘K.
+  const pages = NAV_ITEMS.filter((p) => !p.permission || can(role, p.permission)).flatMap((p) => {
+    const parent = { href: p.href, icon: p.icon, label: t(p.key) };
+    const kids = (p.children ?? [])
+      .filter((c) => !c.permission || can(role, c.permission))
+      .map((c) => ({ href: c.href, icon: p.icon, label: c.ns === "nav" ? t(c.key) : tSettings(c.key) }));
+    return [parent, ...kids];
+  });
   const results = pages.filter((p) =>
     p.label.toLowerCase().includes(query.trim().toLowerCase()),
   );

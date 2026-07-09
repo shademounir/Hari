@@ -88,16 +88,15 @@ model Employee {
   leaveBalances     LeaveBalance[]
   leaveRequests     LeaveRequest[]          @relation("Requester")
   approvals         LeaveRequest[]          @relation("Approver")
-  reviews           PerformanceReview[]
+  // SCRUM-098 (predictive analytics)
   salaryChanges     SalaryChange[]
   engagementSurveys EngagementSurvey[]
   riskSnapshots     DepartureRiskSnapshot[]
-  leaveBalances    LeaveBalance[]
-  leaveRequests    LeaveRequest[]      @relation("Requester")
-  approvals        LeaveRequest[]      @relation("Approver")
-  payrollSnapshots PayrollSnapshot[]
-  reviewsReceived  PerformanceReview[] @relation("ReviewSubject")
-  reviewsGiven     PerformanceReview[] @relation("Reviewer")
+  // SCRUM-097 (HR analytics). Reviews are unified into one PerformanceReview model
+  // (subject + reviewer); SCRUM-098's rating lives there too.
+  payrollSnapshots  PayrollSnapshot[]
+  reviewsReceived   PerformanceReview[]     @relation("ReviewSubject")
+  reviewsGiven      PerformanceReview[]     @relation("Reviewer")
 }
 
 model LeaveBalance {
@@ -286,13 +285,14 @@ model PayrollSnapshot {
 /// A conducted annual review ("entretien annuel"). Powers review-coverage KPIs
 /// (HARI-122) and the time-since-last-review engagement signal (HARI-124).
 model PerformanceReview {
-  id          String   @id @default(cuid())
-  employee    Employee @relation("ReviewSubject", fields: [employeeId], references: [id], onDelete: Cascade)
+  id          String    @id @default(cuid())
+  employee    Employee  @relation("ReviewSubject", fields: [employeeId], references: [id], onDelete: Cascade)
   employeeId  String
   reviewer    Employee? @relation("Reviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
   reviewerId  String?
   conductedAt DateTime
-  createdAt   DateTime @default(now())
+  rating      Int? // SCRUM-098: optional 1–5 rating (explicability only, never copied into an alert)
+  createdAt   DateTime  @default(now())
 
   @@index([employeeId])
   @@index([conductedAt])
@@ -438,20 +438,6 @@ enum RiskBand {
   HIGH
 }
 
-/// Performance-review history → the "time since last review" factor. The latest
-/// row is denormalized onto Employee.lastReviewDate for the hot path.
-model PerformanceReview {
-  id         String   @id @default(cuid())
-  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  employeeId String
-  reviewDate DateTime
-  rating     Int? // 1–5, optional; explicability only — never copied into an alert
-  reviewerId String? // raw id, no relation → survives reviewer deletion (audit-style)
-  createdAt  DateTime @default(now())
-
-  @@index([employeeId, reviewDate])
-}
-
 /// Salary-change history → the "salary evolution" factor (12-month growth %).
 /// Sensitive like Employee.salary: read only where `salary:read:all` holds.
 model SalaryChange {
@@ -512,6 +498,9 @@ model DepartureRiskSnapshot {
 
   @@index([employeeId, computedAt])
   @@index([band])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 // HR document generation (HARI-88 / SCRUM-078)
 // ─────────────────────────────────────────────────────────────────────────
 

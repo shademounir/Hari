@@ -50,7 +50,7 @@ type EmpRow = {
   salary: number;
   department: string;
   startDate: Date;
-  terminationDate: Date | null;
+  leftAt: Date | null;
   departureReason: string | null;
   birthDate: Date | null;
   gender: "FEMALE" | "MALE" | "OTHER" | null;
@@ -60,7 +60,7 @@ type EmpRow = {
 };
 
 const isActiveAsOf = (e: EmpRow, at: Date): boolean =>
-  e.startDate <= at && (!e.terminationDate || e.terminationDate > at);
+  e.startDate <= at && (!e.leftAt || e.leftAt > at);
 const isActiveNow = (e: EmpRow): boolean => e.status !== "TERMINATED";
 
 const pct = (num: number, den: number): number => (den > 0 ? Math.round((num / den) * 1000) / 10 : 0);
@@ -131,9 +131,9 @@ function buildAbsenteeism(
 }
 
 function buildTurnover(emps: EmpRow[], now: Date): TurnoverModel {
-  const leavers = emps.filter((e) => e.terminationDate);
+  const leavers = emps.filter((e) => e.leftAt);
   const twelveAgo = new Date(now.getTime() - YEAR_MS);
-  const departures12 = leavers.filter((e) => e.terminationDate! > twelveAgo);
+  const departures12 = leavers.filter((e) => e.leftAt! > twelveAgo);
 
   const headNow = emps.filter((e) => isActiveAsOf(e, now)).length;
   const headThen = emps.filter((e) => isActiveAsOf(e, twelveAgo)).length;
@@ -145,18 +145,18 @@ function buildTurnover(emps: EmpRow[], now: Date): TurnoverModel {
     const end = monthEnd(start);
     return {
       month: monthKey(start),
-      value: leavers.filter((e) => e.terminationDate! >= start && e.terminationDate! <= end).length,
+      value: leavers.filter((e) => e.leftAt! >= start && e.leftAt! <= end).length,
     };
   });
 
-  const window = leavers.filter((e) => e.terminationDate! > new Date(now.getTime() - 2 * YEAR_MS));
+  const window = leavers.filter((e) => e.leftAt! > new Date(now.getTime() - 2 * YEAR_MS));
   const reasonCounts = new Map<string, number>();
   for (const e of window) reasonCounts.set(e.departureReason ?? "VOLUNTARY", (reasonCounts.get(e.departureReason ?? "VOLUNTARY") ?? 0) + 1);
   const byReason: Slice[] = [...reasonCounts.entries()].map(([key, value]) => ({ key, value }));
 
   const tenure = { lt1y: 0, y1to3: 0, gt3y: 0 };
   for (const e of window) {
-    const years = (e.terminationDate!.getTime() - e.startDate.getTime()) / YEAR_MS;
+    const years = (e.leftAt!.getTime() - e.startDate.getTime()) / YEAR_MS;
     if (years < 1) tenure.lt1y++;
     else if (years < 3) tenure.y1to3++;
     else tenure.gt3y++;
@@ -298,7 +298,7 @@ async function fetchData(scope: AnalyticsScope, filters: AnalyticsFilters, now: 
       salary: true,
       department: true,
       startDate: true,
-      terminationDate: true,
+      leftAt: true,
       departureReason: true,
       birthDate: true,
       gender: true,

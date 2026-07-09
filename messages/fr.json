@@ -67,10 +67,9 @@
     "kb:manage": "Gérer la base de connaissances",
     "alerts:read": "Voir les alertes IA",
     "documents:download:any": "Télécharger tout document RH généré",
-    "documents:request": "Demander ses propres documents RH"
+    "documents:request": "Demander ses propres documents RH",
     "predictions:read": "Voir les prédictions de risque de départ",
     "predictions:manage": "Recalibrer le modèle prédictif"
-    "documents:download:any": "Télécharger tout document RH généré"
   },
   "leaveType": {
     "VACATION": "Congés",
@@ -278,6 +277,8 @@
     "reject": "Refuser",
     "status": "Statut",
     "leaveHistory": "Historique des congés",
+    "viewNote": "Voir la note",
+    "decisionNoteFor": "Note du manager pour {name}",
     "filters": "Filtres",
     "searchPlaceholder": "Rechercher par nom d'employé…",
     "optionPlaceholder": "Filtrer les options…",
