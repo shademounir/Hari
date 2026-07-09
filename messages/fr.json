@@ -20,6 +20,7 @@
     "directory": "Annuaire",
     "team": "Mon équipe",
     "hrActivity": "Activité RH",
+    "predictions": "Prédictions",
     "timeOff": "Congés",
     "settings": "Paramètres",
     "signOut": "Se déconnecter",
@@ -64,6 +65,8 @@
     "admin:settings": "Gérer les paramètres de la plateforme",
     "kb:manage": "Gérer la base de connaissances",
     "alerts:read": "Voir les alertes IA",
+    "predictions:read": "Voir les prédictions de risque de départ",
+    "predictions:manage": "Recalibrer le modèle prédictif"
     "documents:download:any": "Télécharger tout document RH généré"
   },
   "leaveType": {
@@ -434,6 +437,196 @@
     "net": "Net",
     "period": "Mois le plus récent"
   },
+  "predictions":   {
+    "title": "Analyse prédictive des effectifs",
+    "description": "Signaux faibles de désengagement, projections de départs à 12 mois et préparation de la relève.",
+    "band": {
+      "green": "Faible",
+      "orange": "Modéré",
+      "red": "Élevé"
+    },
+    "metrics": {
+      "accuracy": "Précision du modèle",
+      "accuracyHint": "des {n} employés partis étaient signalés à risque élevé",
+      "noData": "Collecte des résultats — aucun départ évalué pour l'instant",
+      "evaluated": "Employés évalués",
+      "evaluatedHint": "Employés actifs avec un score de risque actuel",
+      "highRisk": "Risque élevé",
+      "highRiskHint": "Score supérieur à 60"
+    },
+    "recalibrate": {
+      "button": "Recalibrer",
+      "title": "Recalibrer le modèle",
+      "description": "Ajustez le poids de chaque facteur dans le score de risque de départ. Le total doit faire 100 %.",
+      "total": "Total",
+      "mustSum": "Doit être égal à 100 %",
+      "normalize": "Normaliser à 100 %",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "saved": "Modèle recalibré",
+      "errorTitle": "Échec du recalibrage",
+      "error": {
+        "forbidden": "Vous n'avez pas la permission de recalibrer le modèle.",
+        "invalid": "Le total des poids doit être exactement 100 %.",
+        "internal": "Une erreur est survenue lors de l'enregistrement. Veuillez réessayer."
+      }
+    },
+    "riskMap": {
+      "title": "Carte des risques",
+      "description": "Employés actifs classés par score de risque de départ actuel.",
+      "empty": "Aucun employé à évaluer pour le moment.",
+      "liveNote": "Calculé en direct — le traitement nocturne enregistrera ces scores.",
+      "col": {
+        "employee": "Employé",
+        "department": "Département",
+        "risk": "Risque",
+        "factors": "Pourquoi"
+      },
+      "filters": {
+        "label": "Filtrer",
+        "department": "Département",
+        "band": "Niveau de risque",
+        "allDepartments": "Tous les départements",
+        "allBands": "Tous les niveaux"
+      },
+      "pagination": {
+        "showing": "Affichage {from}–{to} sur {total}",
+        "previous": "Précédent",
+        "next": "Suivant"
+      }
+    },
+    "factor": {
+      "seniority": "Ancienneté",
+      "absenteeism": "Absentéisme",
+      "review": "Temps depuis le dernier entretien",
+      "salary": "Évolution salariale",
+      "turnover": "Turnover du département",
+      "jobProfile": "Profil de poste",
+      "burnout": "Épuisement (congés non pris)",
+      "roleStagnation": "Stagnation dans le poste",
+      "dominoEffect": "Départ du manager",
+      "engagement": "Score d'engagement"
+    },
+    "factors": {
+      "view": "Facteurs",
+      "sheetTitle": "Analyse du risque : {name}",
+      "title": "Facteurs contributifs",
+      "description": "Ce qui influence le score de risque de {name}, du plus déterminant au moins.",
+      "points": "{points} pts",
+      "none": "Aucun facteur ne contribue au risque actuellement.",
+      "privacyNote": "Affiche uniquement la contribution de chaque facteur — jamais les valeurs sensibles sous-jacentes."
+    },
+    "projection": {
+      "title": "Prévision des départs",
+      "description": "Départs attendus sur les 12 prochains mois, selon le risque actuel.",
+      "chartTitle": "Projection des départs sur 12 mois",
+      "calibrating": "Calibrage en cours",
+      "calibratingHint": "Les prévisions nécessitent au moins {min} employés actifs pour être fiables — actuellement {have}.",
+      "totalExpected": "départs attendus sur 12 mois",
+      "chartAria": "Départs cumulés attendus atteignant {total} sur 12 mois",
+      "legendCumulative": "Cumulé",
+      "legendMonthly": "Par mois"
+    },
+    "distribution": {
+      "title": "Répartition du risque par département",
+      "filterLabel": "Département",
+      "allCompany": "Toute l'entreprise"
+    },
+    "controls": {
+      "departments": "Départements",
+      "allDepartments": "Tous les départements",
+      "selected": "{count} sélectionnés",
+      "period": "Période",
+      "quarterShort": "T",
+      "stacked": "Empilé",
+      "grouped": "Groupé"
+    },
+    "period": {
+      "month": "Mensuel",
+      "quarter": "Trimestriel",
+      "year": "Annuel"
+    },
+    "chartStyle": {
+      "area": "Aire",
+      "line": "Ligne",
+      "bar": "Barres"
+    },
+    "simulator": {
+      "title": "Simulateur de recrutement (What-if)",
+      "description": "Modélisez le plan de remplacement si des personnes quittent un département.",
+      "help": "Choisissez un département et le nombre de départs ; l'IA propose un plan de remplacement — profils à recruter, délai et coût estimé.",
+      "department": "Département",
+      "departmentPlaceholder": "Choisir un département",
+      "seniorityLevel": "Niveau de séniorité",
+      "count": "Combien",
+      "budget": "Budget",
+      "budgetPlaceholder": "Budget total maximum",
+      "budgetHelp": "Le budget total maximum pour tout le remplacement (frais de recrutement + intégration). L'IA maintient le plan dans cette limite lorsque c'est possible.",
+      "urgency": "Urgence",
+      "submit": "Simuler",
+      "simulating": "Simulation…",
+      "aiErrorTitle": "Erreur IA",
+      "planTitle": "Plan de recrutement",
+      "downloadPdf": "Télécharger en PDF",
+      "timeToHire": "Délai de recrutement",
+      "estimatedCost": "Coût estimé",
+      "withinBudget": "Dans le budget",
+      "overBudget": "Dépasse le budget",
+      "weeks": "{weeks} semaines",
+      "profiles": "Profils à recruter",
+      "risks": "Risques",
+      "recommendations": "Recommandations",
+      "seniority": {
+        "JUNIOR": "Junior",
+        "MID": "Confirmé",
+        "SENIOR": "Senior",
+        "LEAD": "Lead"
+      },
+      "urgencyLevel": {
+        "NORMAL": "Normale",
+        "HIGH": "Élevée",
+        "CRITICAL": "Critique"
+      },
+      "error": {
+        "forbidden": "Vous n'avez pas accès à cette simulation.",
+        "invalid": "Veuillez choisir un département et un nombre valide.",
+        "rate_limited": "Le modèle IA est temporairement limité (trop de requêtes). Patientez un instant puis réessayez.",
+        "ai_unavailable": "Le planificateur IA est indisponible pour le moment. Réessayez plus tard."
+      }
+    },
+    "succession": {
+      "title": "Plans de succession",
+      "description": "Profondeur du vivier et préparation pour les rôles clés d'encadrement.",
+      "empty": "Aucun rôle d'encadrement à planifier pour le moment.",
+      "bench": "Vivier",
+      "benchCount": "{count, plural, one {# dans le vivier} other {# dans le vivier}}",
+      "gap": "Absence de relève",
+      "flightRisk": "Risque de départ",
+      "noSuccessor": "Aucun successeur interne évident — envisagez de former ou de recruter une relève.",
+      "criticalGap": "Manager à risque de départ sans relève prête — agissez maintenant.",
+      "tenure": "{years} ans d'ancienneté",
+      "transitionPlan": "Plan de transition IA",
+      "transition": {
+        "title": "Plan de transition : {role}",
+        "subtitle": "Plan de passation généré par l'IA pour sécuriser cette succession.",
+        "recommended": "Successeur recommandé",
+        "knowledgeTransfer": "Transfert de connaissances",
+        "skillGaps": "Compétences à développer",
+        "close": "Fermer",
+        "errorTitle": "Erreur IA",
+        "error": {
+          "forbidden": "Vous n'avez pas accès à la génération de ce plan.",
+          "rate_limited": "Le modèle IA est temporairement limité (trop de requêtes). Patientez un instant puis réessayez.",
+          "ai_unavailable": "Le planificateur IA est indisponible pour le moment. Réessayez plus tard."
+        }
+      }
+    },
+    "readiness": {
+      "READY_NOW": "Prêt maintenant",
+      "READY_1_2Y": "Prêt dans 1–2 ans",
+      "DEVELOPING": "En développement"
+    }
+  },
   "tools": {
     "status": {
       "searchHandbook": "Recherche dans le guide",
@@ -466,7 +659,8 @@
       "listPendingApprovals": "Liste les demandes en attente de votre validation.",
       "approveLeave": "Approuve ou refuse une demande en attente.",
       "getPayslip": "Une fiche de paie — la vôtre, ou celle de toute personne visible avec des droits élevés.",
-      "endConversation": "Mettre fin à la conversation et verrouiller le chat — uniquement pour refuser des abus ou des demandes dangereuses."
+      "endConversation": "Mettre fin à la conversation et verrouiller le chat — uniquement pour refuser des abus ou des demandes dangereuses.",
+      "predictDepartures": "Classer les personnes les plus à risque de départ (managers : leur équipe, anonymisé ; RH : détail complet)."
     }
   },
   "login": {
@@ -709,6 +903,9 @@
       },
       "CONVERSATION_CLOSED": {
         "title": "L'assistant a mis fin à une conversation"
+      },
+      "DEPARTURE_RISK": {
+        "title": "Employé à risque de départ"
       }
     },
     "colDetail": "Détail",
