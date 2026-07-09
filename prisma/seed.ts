@@ -819,16 +819,22 @@ async function seedPredictiveData() {
     }
   }
 
-  await prisma.performanceReview.createMany({ data: reviews });
-  await prisma.salaryChange.createMany({ data: salaries });
-  if (surveys.length) await prisma.engagementSurvey.createMany({ data: surveys });
-  await prisma.departureRiskSnapshot.createMany({ data: snapshots });
-  for (const a of roleAnchors) {
-    await prisma.employee.update({
-      where: { id: a.id },
-      data: { lastReviewDate: a.lastReviewDate, lastRoleChangeDate: a.lastRoleChangeDate },
-    });
-  }
+  // Atomic: the idempotency guard keys on snapshots (written last), so all four
+  // inserts + the role-anchor updates must commit together. Otherwise a crash after
+  // the reviews/salaries insert but before snapshots would let a re-run (0 snapshots)
+  // duplicate them. Mirrors the transaction discipline in team-activity.ts.
+  await prisma.$transaction([
+    prisma.performanceReview.createMany({ data: reviews }),
+    prisma.salaryChange.createMany({ data: salaries }),
+    ...(surveys.length ? [prisma.engagementSurvey.createMany({ data: surveys })] : []),
+    ...roleAnchors.map((a) =>
+      prisma.employee.update({
+        where: { id: a.id },
+        data: { lastReviewDate: a.lastReviewDate, lastRoleChangeDate: a.lastRoleChangeDate },
+      }),
+    ),
+    prisma.departureRiskSnapshot.createMany({ data: snapshots }),
+  ]);
 
   const bands = snapshots.reduce(
     (acc, s) => ((acc[s.band] = (acc[s.band] ?? 0) + 1), acc),
