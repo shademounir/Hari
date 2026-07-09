@@ -97,6 +97,13 @@ model Employee {
   payrollSnapshots  PayrollSnapshot[]
   reviewsReceived   PerformanceReview[]     @relation("ReviewSubject")
   reviewsGiven      PerformanceReview[]     @relation("Reviewer")
+
+  // Predictive/turnover query paths (SCRUM-098): active-headcount and departure
+  // aggregates filter on status/department/leftAt every batch pass, and the manager
+  // risk scope filters managerId+status. Without these the groupBy/count sequential-scan.
+  @@index([status, department])
+  @@index([leftAt])
+  @@index([managerId, status])
 }
 
 model LeaveBalance {
@@ -492,9 +499,6 @@ model DepartureRiskSnapshot {
   factors       Json // FactorContribution[] from computeDepartureRisk
   weightVersion Int // which PredictiveWeightConfig produced it (reproducibility)
   computedAt    DateTime @default(now())
-  // Accuracy backtest: null until the outcome window elapses; true if the
-  // employee actually left within it. Never PII — a bare outcome flag.
-  departedWithin90d Boolean?
 
   @@index([employeeId, computedAt])
   @@index([band])
