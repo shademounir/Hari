@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import {
   LineChart as LineChartIcon,
@@ -445,6 +445,7 @@ function MultiSelect({
   selectedLabel: (count: number) => string;
 }) {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const toggle = (d: string) =>
     onChange(
       selected.includes(d) ? selected.filter((x) => x !== d) : [...selected, d],
@@ -458,12 +459,24 @@ function MultiSelect({
         : selectedLabel(selected.length);
 
   return (
-    <div className="relative">
+    <div
+      className="relative"
+      onKeyDown={(e) => {
+        if (e.key === "Escape" && open) {
+          setOpen(false);
+          triggerRef.current?.focus();
+        }
+      }}
+    >
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        aria-label={triggerLabel}
+        aria-haspopup="true"
+        // Include the current selection so the accessible name reflects state, instead
+        // of a static "Departments" that masks what's actually selected (WCAG 4.1.2).
+        aria-label={`${triggerLabel}: ${summary}`}
         className="inline-flex h-8 items-center gap-2 rounded-lg border bg-background px-3 text-xs font-medium hover:bg-muted"
       >
         <Building2 className="size-3.5 text-muted-foreground" />

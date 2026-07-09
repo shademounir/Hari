@@ -25,6 +25,7 @@ export type NavKey =
   | "assistant"
   | "directory"
   | "team"
+  | "teamPredictions"
   | "hrActivity"
   | "predictions"
   | "analytics"
@@ -64,7 +65,12 @@ export const NAV_ITEMS: NavItem[] = [
     key: "team",
     icon: Gauge,
     permission: "dashboard:read:team",
-    children: [{ href: "/team/analytics", ns: "nav", key: "teamAnalytics", permission: "analytics:team" }],
+    children: [
+      { href: "/team/analytics", ns: "nav", key: "teamAnalytics", permission: "analytics:team" },
+      // Manager-scoped, anonymized departure-risk. HR holds predictions:read too but
+      // is redirected to the full board by the page, so this reads as the manager surface.
+      { href: "/team/predictions", ns: "nav", key: "teamPredictions", permission: "predictions:read" },
+    ],
   },
   { href: "/hr-activity", key: "hrActivity", icon: Activity, permission: "dashboard:read:company" },
   {

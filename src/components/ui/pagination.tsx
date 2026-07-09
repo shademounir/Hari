@@ -6,11 +6,17 @@ import { buttonVariants } from "@/components/ui/button";
 // shadcn-style pagination built on Next <Link> so paging is pure navigation
 // (bookmarkable URLs, no client JS). Labels are passed in by the caller to keep
 // it i18n-friendly.
-function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
+function Pagination({
+  className,
+  "aria-label": ariaLabel = "pagination",
+  ...props
+}: React.ComponentProps<"nav">) {
   return (
     <nav
       role="navigation"
-      aria-label="pagination"
+      // Landmark name is caller-supplied so it can be localized; falls back to the
+      // English literal only when no label is passed.
+      aria-label={ariaLabel}
       data-slot="pagination"
       className={cn("mx-auto flex w-full justify-center", className)}
       {...props}

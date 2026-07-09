@@ -53,7 +53,7 @@ export async function RiskMapPagination({
       <p className="text-xs text-muted-foreground">{t("showing", { from, to, total })}</p>
 
       {pageCount > 1 && (
-        <Pagination className="mx-0 w-auto justify-end">
+        <Pagination className="mx-0 w-auto justify-end" aria-label={t("landmark")}>
           <PaginationContent>
             <PaginationItem>
               <PaginationPrevious

@@ -6,6 +6,10 @@ import { auth } from "@/lib/auth";
 import { authorizeDocumentDownload } from "@/lib/documents";
 import { getObject } from "@/lib/storage";
 
+// Prisma + AWS SDK + auth() — Node runtime, always dynamic (never cached).
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -21,12 +25,14 @@ export async function GET(
   );
 
   if (!result.ok) {
+    // Don't echo the internal reason vocabulary; a 403/404 status is enough and a
+    // 404 (rather than 403) for out-of-scope ids keeps the endpoint IDOR-quiet.
     const status = result.reason === "forbidden" ? 403 : 404;
-    return new Response(result.reason, { status });
+    return new Response(status === 403 ? "Forbidden" : "Not found", { status });
   }
 
   const object = await getObject(result.pdfUrl);
-  if (!object) return new Response("not_found", { status: 404 });
+  if (!object) return new Response("Not found", { status: 404 });
 
   const headers = new Headers({
     "Content-Type": "application/pdf",
