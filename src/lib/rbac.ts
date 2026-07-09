@@ -34,6 +34,7 @@ export const PERMISSIONS = [
   "kb:manage", // create/edit/publish/archive KB documents & collections
   "employee:manage", // create/edit employees
   "alerts:read", // view + triage AI observability alerts (Admin/HR)
+  "documents:request", // request own generated HR documents
   "predictions:read", // view departure-risk predictions (managers: own team, anonymized; HR: full)
   "predictions:manage", // recalibrate model weights / thresholds (HR/Admin)
   "documents:download:any", // download any generated document (HR/Admin); employees download their own implicitly
@@ -59,6 +60,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   "kb:manage": "Manage the knowledge base",
   "employee:manage": "Manage employee records",
   "alerts:read": "View AI alerts",
+  "documents:request": "Request own HR documents",
   "predictions:read": "View departure-risk predictions",
   "predictions:manage": "Recalibrate the predictive model",
   "documents:download:any": "Download any generated HR document",
@@ -71,6 +73,7 @@ const EMPLOYEE: Permission[] = [
   "leave:read:self",
   "payslip:read:self",
   "handbook:read",
+  "documents:request",
 ];
 
 const MANAGER: Permission[] = [

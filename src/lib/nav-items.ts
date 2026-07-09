@@ -11,6 +11,7 @@ import {
   TrendingDown,
   BarChart3,
   TrendingUp,
+  FileText,
   Settings,
 } from "lucide-react";
 import type { Permission } from "@/lib/rbac";
@@ -31,6 +32,7 @@ export type NavKey =
   | "analytics"
   | "teamAnalytics"
   | "timeOff"
+  | "documents"
   | "knowledgeBase"
   | "alerts"
   | "settings";
@@ -53,6 +55,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/analytics", key: "analytics", icon: BarChart3, permission: "analytics:full" },
   { href: "/team/analytics", key: "teamAnalytics", icon: TrendingUp, permission: "analytics:team" },
   { href: "/time-off", key: "timeOff", icon: CalendarDays },
+  { href: "/documents", key: "documents", icon: FileText, permission: "documents:request" },
   { href: "/kb", key: "knowledgeBase", icon: BookOpen },
   { href: "/alerts", key: "alerts", icon: BellRing, permission: "alerts:read" },
   {

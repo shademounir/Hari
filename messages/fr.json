@@ -38,7 +38,8 @@
     "userMenu": "Menu du compte",
     "alerts": "Alertes",
     "analytics": "Analytique RH",
-    "teamAnalytics": "Analytique équipe"
+    "teamAnalytics": "Analytique équipe",
+    "documents": "Documents"
   },
   "roles": {
     "EMPLOYEE": "Collaborateur",
@@ -65,6 +66,8 @@
     "admin:settings": "Gérer les paramètres de la plateforme",
     "kb:manage": "Gérer la base de connaissances",
     "alerts:read": "Voir les alertes IA",
+    "documents:download:any": "Télécharger tout document RH généré",
+    "documents:request": "Demander ses propres documents RH"
     "predictions:read": "Voir les prédictions de risque de départ",
     "predictions:manage": "Recalibrer le modèle prédictif"
     "documents:download:any": "Télécharger tout document RH généré"
@@ -914,5 +917,14 @@
     "toastAcknowledged": "Alerte prise en compte",
     "toastResolved": "Alerte résolue",
     "toastReopened": "Alerte rouverte"
+  },
+  "documents": {
+    "title": "Mes documents",
+    "description": "Demandez et suivez vos documents RH.",
+    "workCertificateTitle": "Attestation de travail",
+    "workCertificateDescription": "Demandez une attestation de travail générée automatiquement par les RH.",
+    "requestWorkCertificate": "Demander une attestation",
+    "requestSuccess": "Votre demande a bien été enregistrée.",
+    "forbidden": "Vous n'êtes pas autorisé à accéder à cette page."
   }
 }
