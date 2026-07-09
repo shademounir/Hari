@@ -36,7 +36,9 @@
     "knowledgeBase": "Knowledge Base",
     "breadcrumb": "Breadcrumb",
     "userMenu": "Account menu",
-    "alerts": "Alerts"
+    "alerts": "Alerts",
+    "analytics": "HR Analytics",
+    "teamAnalytics": "Team Analytics"
   },
   "roles": {
     "EMPLOYEE": "Employee",
@@ -54,6 +56,8 @@
     "leave:approve": "Approve / reject leave",
     "dashboard:read:team": "View team KPI dashboard",
     "dashboard:read:company": "View company AI activity & documents dashboard",
+    "analytics:full": "View company HR analytics (absenteeism, turnover, payroll)",
+    "analytics:team": "View team HR analytics",
     "payslip:read:self": "View own payslips",
     "payslip:read:any": "View anyone's payslips",
     "handbook:read": "Ask the handbook (RAG)",
@@ -61,13 +65,123 @@
     "admin:settings": "Manage platform settings",
     "kb:manage": "Manage the knowledge base",
     "alerts:read": "View AI alerts",
+
     "predictions:read": "View departure-risk predictions",
     "predictions:manage": "Recalibrate the predictive model"
+
+    "documents:download:any": "Download any generated HR document"
+
   },
   "leaveType": {
     "VACATION": "Vacation",
     "SICK": "Sick",
     "PERSONAL": "Personal"
+  },
+  "contractType": {
+    "all": "All contracts",
+    "CDI": "Permanent (CDI)",
+    "CDD": "Fixed-term (CDD)",
+    "ALTERNANCE": "Work-study",
+    "STAGE": "Internship"
+  },
+  "hrAnalytics": {
+    "title": "HR Analytics",
+    "description": "Absenteeism, turnover, payroll, diversity and reviews across the company.",
+    "noData": "No data for this selection",
+    "teamTitle": "Team Analytics",
+    "teamDescription": "Headcount, absences and reviews for your team.",
+    "exportCsv": "Export CSV",
+    "filters": {
+      "department": "Department",
+      "allDepartments": "All departments",
+      "contract": "Contract",
+      "level": "Level",
+      "allLevels": "All levels",
+      "period": "Period",
+      "month": "This month",
+      "quarter": "Last quarter",
+      "semester": "Last 6 months",
+      "year": "Last 12 months"
+    },
+    "kpi": {
+      "headcount": "Active headcount",
+      "absenteeism": "Absenteeism rate",
+      "turnover": "Turnover (12 mo)",
+      "payroll": "Monthly payroll",
+      "timeToHire": "Avg. time to hire",
+      "vsPrevMonth": "vs previous month",
+      "vsLastYear": "vs last year",
+      "days": "days"
+    },
+    "absenteeism": {
+      "title": "Absenteeism",
+      "byMonth": "Monthly rate (12 months)",
+      "byType": "By absence type",
+      "topDepartments": "Top departments by absenteeism",
+      "rate": "Rate",
+      "department": "Department",
+      "daysLost": "Days lost"
+    },
+    "turnover": {
+      "title": "Turnover",
+      "trend": "Departures per month (24 months)",
+      "byReason": "By reason",
+      "byTenure": "Leaver tenure",
+      "topDepartments": "Departments by departures",
+      "departures": "Departures"
+    },
+    "departureReason": {
+      "VOLUNTARY": "Resignation",
+      "INVOLUNTARY": "Dismissal",
+      "RETIREMENT": "Retirement",
+      "END_OF_CONTRACT": "End of contract"
+    },
+    "tenure": {
+      "lt1y": "< 1 year",
+      "y1to3": "1–3 years",
+      "gt3y": "> 3 years"
+    },
+    "payroll": {
+      "title": "Payroll",
+      "trend": "Gross payroll (12 months)",
+      "byBand": "By salary band",
+      "byDepartment": "By department (this month)",
+      "currentMonth": "This month",
+      "restricted": "Payroll data is restricted to HR and administrators."
+    },
+    "salaryBand": {
+      "lt120k": "< 120k",
+      "120to180k": "120–180k",
+      "180to250k": "180–250k",
+      "gte250k": "> 250k"
+    },
+    "diversity": {
+      "title": "Age & diversity",
+      "agePyramid": "Age pyramid",
+      "genderByLevel": "Gender by level",
+      "tenureByDept": "Average tenure by department",
+      "years": "years"
+    },
+    "gender": {
+      "FEMALE": "Women",
+      "MALE": "Men",
+      "OTHER": "Other"
+    },
+    "reviews": {
+      "title": "Annual reviews",
+      "coverage": "Reviewed this year",
+      "overdue": "No review in over 12 months",
+      "employee": "Employee",
+      "department": "Department",
+      "lastReview": "Last review",
+      "never": "Never",
+      "allDone": "Everyone has a recent review.",
+      "reviewsToPlan": "Reviews to plan"
+    },
+    "team": {
+      "headcount": "Team headcount",
+      "onLeave": "On leave now"
+    }
   },
   "leaveStatus": {
     "PENDING": "Pending",

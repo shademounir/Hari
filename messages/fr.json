@@ -36,7 +36,9 @@
     "knowledgeBase": "Base de connaissances",
     "breadcrumb": "Fil d'Ariane",
     "userMenu": "Menu du compte",
-    "alerts": "Alertes"
+    "alerts": "Alertes",
+    "analytics": "Analytique RH",
+    "teamAnalytics": "Analytique équipe"
   },
   "roles": {
     "EMPLOYEE": "Collaborateur",
@@ -54,6 +56,8 @@
     "leave:approve": "Approuver / refuser les congés",
     "dashboard:read:team": "Voir le tableau de bord de l'équipe",
     "dashboard:read:company": "Voir le tableau de bord de l'activité IA et des documents de l'entreprise",
+    "analytics:full": "Voir les analyses RH de l'entreprise (absentéisme, turnover, masse salariale)",
+    "analytics:team": "Voir les analyses RH de l'équipe",
     "payslip:read:self": "Voir ses propres fiches de paie",
     "payslip:read:any": "Voir les fiches de paie de chacun",
     "handbook:read": "Interroger le guide (RAG)",
@@ -63,11 +67,118 @@
     "alerts:read": "Voir les alertes IA",
     "predictions:read": "Voir les prédictions de risque de départ",
     "predictions:manage": "Recalibrer le modèle prédictif"
+    "documents:download:any": "Télécharger tout document RH généré"
   },
   "leaveType": {
     "VACATION": "Congés",
     "SICK": "Maladie",
     "PERSONAL": "Personnel"
+  },
+  "contractType": {
+    "all": "Tous les contrats",
+    "CDI": "CDI",
+    "CDD": "CDD",
+    "ALTERNANCE": "Alternance",
+    "STAGE": "Stage"
+  },
+  "hrAnalytics": {
+    "title": "Analytique RH",
+    "description": "Absentéisme, turnover, masse salariale, diversité et entretiens de l'entreprise.",
+    "noData": "Aucune donnée pour cette sélection",
+    "teamTitle": "Analytique de l'équipe",
+    "teamDescription": "Effectif, absences et entretiens de votre équipe.",
+    "exportCsv": "Exporter CSV",
+    "filters": {
+      "department": "Département",
+      "allDepartments": "Tous les départements",
+      "contract": "Contrat",
+      "level": "Niveau",
+      "allLevels": "Tous les niveaux",
+      "period": "Période",
+      "month": "Ce mois-ci",
+      "quarter": "Dernier trimestre",
+      "semester": "6 derniers mois",
+      "year": "12 derniers mois"
+    },
+    "kpi": {
+      "headcount": "Effectif actif",
+      "absenteeism": "Taux d'absentéisme",
+      "turnover": "Turnover (12 mois)",
+      "payroll": "Masse salariale mensuelle",
+      "timeToHire": "Délai moyen de recrutement",
+      "vsPrevMonth": "vs mois précédent",
+      "vsLastYear": "vs année précédente",
+      "days": "jours"
+    },
+    "absenteeism": {
+      "title": "Absentéisme",
+      "byMonth": "Taux mensuel (12 mois)",
+      "byType": "Par type d'absence",
+      "topDepartments": "Départements les plus touchés",
+      "rate": "Taux",
+      "department": "Département",
+      "daysLost": "Jours perdus"
+    },
+    "turnover": {
+      "title": "Turnover",
+      "trend": "Départs par mois (24 mois)",
+      "byReason": "Par motif",
+      "byTenure": "Ancienneté des partants",
+      "topDepartments": "Départements par départs",
+      "departures": "Départs"
+    },
+    "departureReason": {
+      "VOLUNTARY": "Démission",
+      "INVOLUNTARY": "Licenciement",
+      "RETIREMENT": "Retraite",
+      "END_OF_CONTRACT": "Fin de contrat"
+    },
+    "tenure": {
+      "lt1y": "< 1 an",
+      "y1to3": "1–3 ans",
+      "gt3y": "> 3 ans"
+    },
+    "payroll": {
+      "title": "Masse salariale",
+      "trend": "Masse salariale brute (12 mois)",
+      "byBand": "Par tranche de salaire",
+      "byDepartment": "Par département (ce mois-ci)",
+      "currentMonth": "Ce mois-ci",
+      "restricted": "Les données de masse salariale sont réservées aux RH et administrateurs."
+    },
+    "salaryBand": {
+      "lt120k": "< 120k",
+      "120to180k": "120–180k",
+      "180to250k": "180–250k",
+      "gte250k": "> 250k"
+    },
+    "diversity": {
+      "title": "Âges & diversité",
+      "agePyramid": "Pyramide des âges",
+      "genderByLevel": "Répartition H/F par niveau",
+      "tenureByDept": "Ancienneté moyenne par département",
+      "years": "ans"
+    },
+    "gender": {
+      "FEMALE": "Femmes",
+      "MALE": "Hommes",
+      "OTHER": "Autre"
+    },
+    "reviews": {
+      "title": "Entretiens annuels",
+      "coverage": "Entretien cette année",
+      "overdue": "Sans entretien depuis plus de 12 mois",
+      "employee": "Collaborateur",
+      "department": "Département",
+      "lastReview": "Dernier entretien",
+      "never": "Jamais",
+      "allDone": "Tout le monde a un entretien récent.",
+      "reviewsToPlan": "Entretiens à planifier"
+    },
+    "team": {
+      "headcount": "Effectif de l'équipe",
+      "onLeave": "En congé actuellement"
+    }
   },
   "leaveStatus": {
     "PENDING": "En attente",

@@ -24,6 +24,7 @@ import {
   computeDepartureRisk,
   type DepartureRiskInput,
 } from "../src/lib/predictive/departure-risk";
+import { seedAnalytics } from "./analytics-seed";
 
 // Seed corpus is authored in markdown for readability; store it as HTML (the
 // editor + reader work in HTML). Seed-only, so it lives here rather than in the
@@ -60,16 +61,34 @@ type Seed = {
   leftAt?: Date; // set for TERMINATED so department turnover has real data
   vacationUsed?: number;
   sickUsed?: number;
+  // HR-analytics dimensions (HARI-122). Optional so demo accounts can omit them
+  // and fall back to sensible defaults.
+  startDate?: string; // ISO date; defaults to 2023-01-15
+  birthDate?: string; // ISO date → age pyramid
+  gender?: "FEMALE" | "MALE" | "OTHER";
+  contractType?: "CDI" | "CDD" | "ALTERNANCE" | "STAGE";
+  timeToHireDays?: number;
+  terminationDate?: string; // ISO date; required in spirit when status = TERMINATED
+  departureReason?: "VOLUNTARY" | "INVOLUNTARY" | "RETIREMENT" | "END_OF_CONTRACT";
 };
 
 // Seed-only attributes for the demo login accounts. Their identity fields
 // (name, role, title, department, location) come from the shared DEMO_USERS so
 // the seed and the login page can never disagree about who these accounts are.
-const DEMO_EXTRAS: Record<string, { salary: number; manager?: string }> = {
-  "admin@hari.ma": { salary: 350000 },
-  "rh@hari.ma": { salary: 250000 },
-  "manager@hari.ma": { salary: 300000 },
-  "collaborateur@hari.ma": { salary: 180000, manager: "manager@hari.ma" },
+const DEMO_EXTRAS: Record<
+  string,
+  Pick<Seed, "salary" | "manager" | "birthDate" | "gender" | "contractType" | "timeToHireDays">
+> = {
+  "admin@hari.ma": { salary: 350000, birthDate: "1978-04-12", gender: "MALE", timeToHireDays: 52 },
+  "rh@hari.ma": { salary: 250000, birthDate: "1985-09-30", gender: "FEMALE", timeToHireDays: 40 },
+  "manager@hari.ma": { salary: 300000, birthDate: "1982-11-05", gender: "MALE", timeToHireDays: 45 },
+  "collaborateur@hari.ma": {
+    salary: 180000,
+    manager: "manager@hari.ma",
+    birthDate: "1994-06-18",
+    gender: "FEMALE",
+    timeToHireDays: 33,
+  },
 };
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -236,7 +255,9 @@ const PEOPLE: Seed[] = [
     login: true,
   })),
 
-  // Comptes secondaires pour peupler l'annuaire et les équipes
+  // Comptes secondaires pour peupler l'annuaire, les équipes et les analytics RH.
+  // Attributs (naissance, genre, contrat, départs) répartis pour donner des
+  // courbes réalistes : pyramide des âges, turnover sur 24 mois, mixité, contrats.
   {
     email: "a.mansouri@hari.ma",
     name: "Amina Mansouri",
@@ -249,12 +270,17 @@ const PEOPLE: Seed[] = [
     login: false,
     status: "ON_LEAVE",
     employmentType: "PART_TIME",
+    startDate: "2023-03-01",
+    birthDate: "1996-02-14",
+    gender: "FEMALE",
+    contractType: "CDI",
+    timeToHireDays: 30,
   },
   {
     email: "a.elmarrouni@hari.ma",
     name: "Ahmed El marrouni",
     role: "EMPLOYEE",
-    title: "Développeuse Full stack",
+    title: "Développeur Full stack",
     department: "IT",
     location: "Tetouan",
     salary: 150000,
@@ -262,6 +288,11 @@ const PEOPLE: Seed[] = [
     login: false,
     status: "ACTIVE",
     employmentType: "CONTRACTOR",
+    startDate: "2024-09-02",
+    birthDate: "1999-08-21",
+    gender: "MALE",
+    contractType: "CDD",
+    timeToHireDays: 25,
   },
   {
     email: "m.bennani@hari.ma",
@@ -275,6 +306,13 @@ const PEOPLE: Seed[] = [
     login: false,
     status: "TERMINATED",
     employmentType: "FULL_TIME",
+    startDate: "2022-05-10",
+    birthDate: "1990-12-01",
+    gender: "MALE",
+    contractType: "CDI",
+    timeToHireDays: 48,
+    terminationDate: "2025-08-31",
+    departureReason: "VOLUNTARY",
   },
   {
     email: "s.amrani@hari.ma",
@@ -288,6 +326,11 @@ const PEOPLE: Seed[] = [
     login: false,
     status: "ACTIVE",
     employmentType: "PART_TIME",
+    startDate: "2023-06-15",
+    birthDate: "1993-04-09",
+    gender: "FEMALE",
+    contractType: "CDI",
+    timeToHireDays: 38,
   },
   {
     email: "o.alaoui@hari.ma",
@@ -301,7 +344,13 @@ const PEOPLE: Seed[] = [
     login: false,
     status: "ON_LEAVE",
     employmentType: "FULL_TIME",
-  }, {
+    startDate: "2021-11-08",
+    birthDate: "1987-07-19",
+    gender: "MALE",
+    contractType: "CDI",
+    timeToHireDays: 60,
+  },
+  {
     email: "f.idrissi@hari.ma",
     name: "Fatima Zahra Idrissi",
     role: "EMPLOYEE",
@@ -313,6 +362,126 @@ const PEOPLE: Seed[] = [
     login: false,
     status: "TERMINATED",
     employmentType: "CONTRACTOR",
+    startDate: "2023-02-01",
+    birthDate: "1995-10-25",
+    gender: "FEMALE",
+    contractType: "CDD",
+    timeToHireDays: 22,
+    terminationDate: "2025-03-15",
+    departureReason: "END_OF_CONTRACT",
+  },
+  // — Effectif élargi (autres départements, âges, contrats, départs échelonnés) —
+  {
+    email: "y.bouzid@hari.ma",
+    name: "Yassine Bouzid",
+    role: "EMPLOYEE",
+    title: "Commercial Grands Comptes",
+    department: "Sales",
+    location: "Casablanca",
+    salary: 175000,
+    manager: "manager@hari.ma",
+    login: false,
+    status: "ACTIVE",
+    employmentType: "FULL_TIME",
+    startDate: "2020-01-20",
+    birthDate: "1975-03-03",
+    gender: "MALE",
+    contractType: "CDI",
+    timeToHireDays: 55,
+  },
+  {
+    email: "l.haddadi@hari.ma",
+    name: "Leila Haddadi",
+    role: "EMPLOYEE",
+    title: "Contrôleuse de Gestion",
+    department: "Finance",
+    location: "Rabat",
+    salary: 195000,
+    manager: "manager@hari.ma",
+    login: false,
+    status: "ACTIVE",
+    employmentType: "FULL_TIME",
+    startDate: "2019-09-01",
+    birthDate: "1968-01-28",
+    gender: "FEMALE",
+    contractType: "CDI",
+    timeToHireDays: 70,
+  },
+  {
+    email: "h.tahiri@hari.ma",
+    name: "Hamza Tahiri",
+    role: "EMPLOYEE",
+    title: "Chargé Marketing",
+    department: "Marketing",
+    location: "Tanger",
+    salary: 120000,
+    manager: "manager@hari.ma",
+    login: false,
+    status: "ACTIVE",
+    employmentType: "FULL_TIME",
+    startDate: "2025-01-06",
+    birthDate: "2001-05-16",
+    gender: "MALE",
+    contractType: "ALTERNANCE",
+    timeToHireDays: 18,
+  },
+  {
+    email: "n.ouazzani@hari.ma",
+    name: "Nour Ouazzani",
+    role: "EMPLOYEE",
+    title: "Stagiaire Data",
+    department: "IT",
+    location: "Tétouan",
+    salary: 60000,
+    manager: "manager@hari.ma",
+    login: false,
+    status: "ACTIVE",
+    employmentType: "FULL_TIME",
+    startDate: "2026-02-02",
+    birthDate: "2003-09-11",
+    gender: "FEMALE",
+    contractType: "STAGE",
+    timeToHireDays: 12,
+  },
+  {
+    email: "r.sabri@hari.ma",
+    name: "Rachid Sabri",
+    role: "EMPLOYEE",
+    title: "Administrateur Systèmes",
+    department: "Infrastructure",
+    location: "Casablanca",
+    salary: 165000,
+    manager: "manager@hari.ma",
+    login: false,
+    status: "TERMINATED",
+    employmentType: "FULL_TIME",
+    startDate: "2018-04-03",
+    birthDate: "1961-02-20",
+    gender: "MALE",
+    contractType: "CDI",
+    timeToHireDays: 65,
+    terminationDate: "2024-12-31",
+    departureReason: "RETIREMENT",
+  },
+  {
+    email: "k.benjelloun@hari.ma",
+    name: "Khadija Benjelloun",
+    role: "EMPLOYEE",
+    title: "Business Analyst",
+    department: "Sales",
+    location: "Rabat",
+    salary: 140000,
+    manager: "manager@hari.ma",
+    login: false,
+    status: "TERMINATED",
+    employmentType: "FULL_TIME",
+    startDate: "2023-10-16",
+    birthDate: "1992-11-30",
+    gender: "FEMALE",
+    contractType: "CDI",
+    timeToHireDays: 42,
+    terminationDate: "2026-05-20",
+    departureReason: "INVOLUNTARY",
   },
 
   // SCRUM-098: dense generated workforce (≥50 active, ≥10 non-active).
@@ -343,8 +512,15 @@ async function seedPeople() {
             salary: p.salary,
             startDate: p.startDate ?? new Date("2023-01-15"),
             leftAt: p.leftAt ?? null,
+            startDate: new Date(p.startDate ?? "2023-01-15"),
             status: (p.status as EmploymentStatus) ?? EmploymentStatus.ACTIVE,
             employmentType: (p.employmentType as EmploymentType) ?? EmploymentType.FULL_TIME,
+            birthDate: p.birthDate ? new Date(p.birthDate) : null,
+            gender: p.gender ?? null,
+            contractType: p.contractType ?? "CDI",
+            timeToHireDays: p.timeToHireDays ?? null,
+            terminationDate: p.terminationDate ? new Date(p.terminationDate) : null,
+            departureReason: p.departureReason ?? null,
 
             leaveBalances: {
               create: [
@@ -668,6 +844,7 @@ async function main() {
   await seedPeople();
   await seedTeamActivity(prisma);
   await seedPredictiveData();
+  await seedAnalytics(prisma);
   await seedKnowledgeBase();
 }
 

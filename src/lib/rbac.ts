@@ -26,6 +26,8 @@ export const PERMISSIONS = [
   "leave:approve", // approve/reject requests
   "dashboard:read:team", // view aggregated team KPIs (headcount, pending, AI usage)
   "dashboard:read:company", // view company-wide AI activity + document corpus KPIs (HR/Admin)
+  "analytics:full", // company-wide HR analytics: absenteeism, turnover, payroll, pyramid (HR/Admin)
+  "analytics:team", // team-scoped HR analytics for a manager (no payroll)
   "payslip:read:self",
   "payslip:read:any",
   "handbook:read", // RAG over the handbook / read the knowledge base
@@ -34,6 +36,7 @@ export const PERMISSIONS = [
   "alerts:read", // view + triage AI observability alerts (Admin/HR)
   "predictions:read", // view departure-risk predictions (managers: own team, anonymized; HR: full)
   "predictions:manage", // recalibrate model weights / thresholds (HR/Admin)
+  "documents:download:any", // download any generated document (HR/Admin); employees download their own implicitly
   "admin:settings", // platform settings
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
@@ -48,6 +51,8 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   "leave:approve": "Approve / reject leave",
   "dashboard:read:team": "View team KPI dashboard",
   "dashboard:read:company": "View company AI activity & documents dashboard",
+  "analytics:full": "View company HR analytics (absenteeism, turnover, payroll)",
+  "analytics:team": "View team HR analytics",
   "payslip:read:self": "View own payslips",
   "payslip:read:any": "View anyone's payslips",
   "handbook:read": "Ask the handbook (RAG)",
@@ -56,6 +61,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   "alerts:read": "View AI alerts",
   "predictions:read": "View departure-risk predictions",
   "predictions:manage": "Recalibrate the predictive model",
+  "documents:download:any": "Download any generated HR document",
   "admin:settings": "Manage platform settings",
 };
 
@@ -73,6 +79,7 @@ const MANAGER: Permission[] = [
   "leave:approve",
   "dashboard:read:team",
   "predictions:read", // own team only, anonymized (enforced in the data/tool layer)
+  "analytics:team",
 ];
 
 const HR_ADMIN: Permission[] = [
@@ -85,6 +92,8 @@ const HR_ADMIN: Permission[] = [
   "alerts:read",
   "dashboard:read:company",
   "predictions:manage", // recalibration; predictions:read inherited from MANAGER
+  "analytics:full",
+  "documents:download:any",
 ];
 
 const SUPER_ADMIN: Permission[] = [
