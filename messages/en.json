@@ -743,7 +743,31 @@
       "band": "Risk level",
       "allDepartments": "All departments",
       "allManagers": "All managers",
-      "allBands": "All levels"
+      "allBands": "All levels",
+      "search": "Search by name",
+      "searchPlaceholder": "Search…",
+      "selected": "{count} selected",
+      "sort": "Sort by",
+      "sort_risk": "Most at risk",
+      "sort_scoreDesc": "Highest engagement",
+      "sort_name": "Name (A–Z)",
+      "sort_momentum": "Fastest decline"
+    },
+    "trend": {
+      "title": "Engagement trend",
+      "description": "Average engagement across the current view over recent weeks.",
+      "avgLabel": "Avg. engagement",
+      "noData": "Not enough history yet."
+    },
+    "distribution": {
+      "title": "Quadrant breakdown by department",
+      "description": "How each department splits across the four quadrants.",
+      "noData": "No data for this selection."
+    },
+    "pagination": {
+      "showing": "Showing {from}–{to} of {total}",
+      "previous": "Previous",
+      "next": "Next"
     }
   },
   "tools": {

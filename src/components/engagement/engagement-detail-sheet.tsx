@@ -65,7 +65,7 @@ export function EngagementDetailSheet({ row }: { row: EngagementDetail }) {
         <Info className="size-3.5" />
         {t("view")}
       </SheetTrigger>
-      <SheetContent side="right" className="w-full gap-0 sm:max-w-lg">
+      <SheetContent side="right" className="w-full gap-0 sm:!w-[50vw] sm:!max-w-[50vw]">
         <SheetHeader className="border-b">
           <div className="flex items-center justify-between gap-3 pr-8">
             <SheetTitle>{t("title", { name: row.name })}</SheetTitle>

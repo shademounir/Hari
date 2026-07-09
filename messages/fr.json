@@ -743,7 +743,31 @@
       "band": "Niveau de risque",
       "allDepartments": "Tous les départements",
       "allManagers": "Tous les managers",
-      "allBands": "Tous les niveaux"
+      "allBands": "Tous les niveaux",
+      "search": "Rechercher par nom",
+      "searchPlaceholder": "Rechercher…",
+      "selected": "{count} sélectionnés",
+      "sort": "Trier par",
+      "sort_risk": "Plus à risque",
+      "sort_scoreDesc": "Engagement le plus élevé",
+      "sort_name": "Nom (A–Z)",
+      "sort_momentum": "Baisse la plus rapide"
+    },
+    "trend": {
+      "title": "Tendance de l'engagement",
+      "description": "Engagement moyen de la vue actuelle sur les dernières semaines.",
+      "avgLabel": "Engagement moyen",
+      "noData": "Historique insuffisant."
+    },
+    "distribution": {
+      "title": "Répartition par quadrant et département",
+      "description": "Comment chaque département se répartit entre les quatre quadrants.",
+      "noData": "Aucune donnée pour cette sélection."
+    },
+    "pagination": {
+      "showing": "Affichage {from}–{to} sur {total}",
+      "previous": "Précédent",
+      "next": "Suivant"
     }
   },
   "tools": {

@@ -654,3 +654,39 @@ export async function getEngagementDashboard(caller: {
 
   return rows.sort((a, b) => a.score - b.score);
 }
+
+/** One weekly point on the average-engagement trend line. */
+export type EngagementTrendPoint = { weekStart: string; avg: number };
+
+/**
+ * Average engagement score per week over the window, for a given set of employees.
+ * The caller MUST pass ids from a scope-enforced read (e.g. getEngagementDashboard)
+ * — this function trusts them and does not re-check RBAC.
+ */
+export async function getEngagementTrend(
+  employeeIds: string[],
+  asOf: Date,
+  weeks = 26,
+): Promise<EngagementTrendPoint[]> {
+  if (employeeIds.length === 0) return [];
+  const since = shiftDays(asOf, weeks * 7);
+  const snaps = await prisma.engagementSnapshot.findMany({
+    where: { employeeId: { in: employeeIds }, computedAt: { gte: since } },
+    select: { score: true, computedAt: true },
+    orderBy: { computedAt: "asc" },
+  });
+
+  // Bucket into fixed 7-day windows from `since` for an evenly-spaced x-axis.
+  const buckets = new Map<number, { sum: number; count: number; start: number }>();
+  for (const s of snaps) {
+    const idx = Math.floor((s.computedAt.getTime() - since.getTime()) / (7 * DAY_MS));
+    const b = buckets.get(idx) ?? { sum: 0, count: 0, start: since.getTime() + idx * 7 * DAY_MS };
+    b.sum += s.score;
+    b.count += 1;
+    buckets.set(idx, b);
+  }
+
+  return [...buckets.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([, b]) => ({ weekStart: new Date(b.start).toISOString(), avg: Math.round(b.sum / b.count) }));
+}
