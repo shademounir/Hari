@@ -28,7 +28,10 @@ export type ChatModel = {
 export const CHAT_MODELS: ChatModel[] = [
   {
     id: "gemini-byok",
-    label: "Gemini Flash (BYOK)",
+    // NOTE: routes through the shared OPENROUTER_API_KEY (not a per-user key), and
+    // google/gemini-2.5-flash is a PAID model with no reasoning channel. Selecting it
+    // bills the project account and leaves the thinking UI dark — it is not the default.
+    label: "Gemini 2.5 Flash (paid)",
     provider: "openrouter",
     providerModelId: "google/gemini-2.5-flash",
     reasoning: false,
@@ -70,15 +73,11 @@ export const CHAT_MODELS: ChatModel[] = [
   },
 ];
 
-// Default: a free model that reliably does BOTH tool-calling and reasoning,
-// so the tool-call UI and the thinking UI both light up out of the box.
-
-// export const DEFAULT_MODEL_ID = "gpt-oss-120b";
-
-// Default: a free model that reliably does BOTH tool-calling and reasoning,
-// so the tool-call UI and the thinking UI both light up out of the box.
-// ! NOTE: Use "gpt-oss-120b" if you need to revert to the previous free OpenRouter model.
-export const DEFAULT_MODEL_ID = "gemini-byok";
+// Default: a FREE model that reliably does BOTH tool-calling and reasoning, so the
+// tool-call UI and the thinking UI both light up out of the box at zero cost. The paid
+// "gemini-byok" entry above stays selectable, but must never be the default (it bills
+// the shared key and emits no reasoning channel).
+export const DEFAULT_MODEL_ID = "gpt-oss-120b";
 
 // The closed vocabulary of chat error codes the server emits and the client
 // localizes (chat.errors.<code>). Single source of truth so the two sides can't
