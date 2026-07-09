@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { can, type Role } from "@/lib/rbac";
 import { NAV_ITEMS } from "@/lib/nav-items";
@@ -63,7 +64,15 @@ export function NavBody({
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3" aria-label={t("primary")}>
         {items.map((item) => {
-          const hasChildren = !!item.children?.length;
+          // Only children the user may actually reach. If a parent's children are
+          // all gated away, treat it as a leaf so it still highlights on sub-routes.
+          const visibleChildren = (item.children ?? []).filter(
+            (c) => !c.permission || can(user.role, c.permission),
+          );
+          const hasChildren = visibleChildren.length > 0;
+          // A parent WITH children highlights ONLY on its exact route — the active
+          // sub-route highlights instead (no more double-highlight). A leaf
+          // highlights on any nested path under it.
           const active =
             item.href === "/"
               ? pathname === "/"
@@ -85,13 +94,23 @@ export function NavBody({
                 )}
               >
                 <item.icon className="size-[18px]" />
-                {t(item.key)}
+                <span className="flex-1 truncate">{t(item.key)}</span>
+                {hasChildren && (
+                  <ChevronRight
+                    aria-hidden
+                    className={cn(
+                      "size-4 shrink-0 text-on-navy-muted transition-transform duration-200",
+                      open && "rotate-90",
+                    )}
+                  />
+                )}
               </Link>
 
               {open && (
                 <div className="mt-1 space-y-0.5">
-                  {item.children!.map((child) => {
+                  {visibleChildren.map((child) => {
                     const childActive = inSection(child.href);
+                    const label = child.ns === "nav" ? t(child.key) : tSettings(child.key);
                     return (
                       <Link
                         key={child.href}
@@ -105,7 +124,7 @@ export function NavBody({
                             : "text-on-navy-muted hover:bg-white/5 hover:text-on-navy",
                         )}
                       >
-                        {tSettings(child.labelKey)}
+                        {label}
                       </Link>
                     );
                   })}

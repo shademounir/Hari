@@ -26,6 +26,13 @@ describe("RBAC matrix", () => {
     expect(can("MANAGER", "alerts:read")).toBe(false);
   });
 
+  it("only HR/Admin hold the company-wide AI activity + documents dashboard permission (SCRUM-072)", () => {
+    expect(can("HR_ADMIN", "dashboard:read:company")).toBe(true);
+    expect(can("SUPER_ADMIN", "dashboard:read:company")).toBe(true);
+    expect(can("MANAGER", "dashboard:read:company")).toBe(false);
+    expect(can("EMPLOYEE", "dashboard:read:company")).toBe(false);
+  });
+
   it("HR can read the whole company, salaries and payslips", () => {
     expect(can("HR_ADMIN", "directory:read:all")).toBe(true);
     expect(can("HR_ADMIN", "salary:read:all")).toBe(true);
@@ -45,6 +52,19 @@ describe("RBAC matrix", () => {
     expect(can("MANAGER", "kb:manage")).toBe(false);
     expect(can("HR_ADMIN", "kb:manage")).toBe(true);
     expect(can("SUPER_ADMIN", "kb:manage")).toBe(true);
+  });
+
+  it("departure-risk predictions: managers+ can read; only HR/Admin can recalibrate (SCRUM-098)", () => {
+    // read: MANAGER and up (managers see their own team, anonymized downstream).
+    expect(can("EMPLOYEE", "predictions:read")).toBe(false);
+    expect(can("MANAGER", "predictions:read")).toBe(true);
+    expect(can("HR_ADMIN", "predictions:read")).toBe(true);
+    expect(can("SUPER_ADMIN", "predictions:read")).toBe(true);
+    // manage (recalibration): HR/Admin only — a manager can view but not retune.
+    expect(can("EMPLOYEE", "predictions:manage")).toBe(false);
+    expect(can("MANAGER", "predictions:manage")).toBe(false);
+    expect(can("HR_ADMIN", "predictions:manage")).toBe(true);
+    expect(can("SUPER_ADMIN", "predictions:manage")).toBe(true);
   });
 
   it("KB document visibility tiers are nested by role (HARI-59)", () => {

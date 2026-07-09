@@ -253,3 +253,26 @@
   font-size: 1.125rem !important;
   line-height: 1.4 !important;
 }
+
+/* SCRUM-098: "Download as PDF" for the recruitment simulator. window.print()
+   isolates a `.printable` region — everything else is hidden so the browser's
+   Save-as-PDF yields a clean, single-card document. */
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  .printable,
+  .printable * {
+    visibility: visible !important;
+  }
+  .printable {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 1.5rem;
+  }
+  .print-hidden {
+    display: none !important;
+  }
+}

@@ -3,6 +3,7 @@
 // `TeamScope` (resolved once by lib/hr.ts); it NEVER computes scope itself, so
 // the directoryWhere invariant is preserved. The bucketing core is exported for
 // direct unit testing with the mock factory.
+import type { AiEventKind } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { TeamScope } from "@/lib/hr";
 import type { TrendGranularity, TrendPoint, TrendSeries } from "@/types/dashboard";
@@ -92,4 +93,21 @@ export async function getAiUsageTrend(
     granularity: window.granularity,
     points: bucketCounts(rows.map((r) => r.createdAt), window),
   };
+}
+
+/**
+ * AI event volume over time, company-wide (no team scope) — feeds the HR
+ * dashboard (SCRUM-072). Unlike `getAiUsageTrend`, this is deliberately
+ * unscoped: the caller's permission (`dashboard:read:company`) is checked by
+ * the assembler, not here, since this is a pure DB read reused across kinds.
+ */
+export async function getCompanyAiEventTrend(
+  window: TrendWindow,
+  kind: AiEventKind,
+): Promise<TrendPoint[]> {
+  const rows = await prisma.aiEvent.findMany({
+    where: { kind, createdAt: { gte: window.start, lte: window.end } },
+    select: { createdAt: true },
+  });
+  return bucketCounts(rows.map((r) => r.createdAt), window);
 }

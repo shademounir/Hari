@@ -58,6 +58,8 @@ export function alertDetail(a: Pick<AlertView, "kind" | "params">): string | nul
       return pick("code");
     case "CONVERSATION_CLOSED":
       return pick("reason");
+    case "DEPARTURE_RISK":
+      return pick("score");
     default:
       return null;
   }
