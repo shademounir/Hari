@@ -14,9 +14,17 @@ const VARIANT: Record<AnomalyStatus, "default" | "secondary" | "destructive" | "
  * Compact status pill for a KPI's anomaly verdict. Server component: it reads the
  * localized status label and, for a real deviation, appends the signed percent
  * change with a direction arrow. `insufficient_data` renders muted, no number.
+ * `namespace` picks which i18n namespace's `anomaly.*` keys to read (every
+ * dashboard namespace defines the same four labels) — defaults to "team".
  */
-export async function AnomalyBadge({ anomaly }: { anomaly: AnomalyResult }) {
-  const t = await getTranslations("team");
+export async function AnomalyBadge({
+  anomaly,
+  namespace = "team",
+}: {
+  anomaly: AnomalyResult;
+  namespace?: "team" | "hrDashboard";
+}) {
+  const t = await getTranslations(namespace);
   const { status, deltaPct } = anomaly;
 
   const flagged = status === "elevated" || status === "high";

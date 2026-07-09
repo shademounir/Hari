@@ -27,6 +27,13 @@ export type ChatModel = {
 // (Free models come and go — if one 404s/429s, swap it or use "openrouter/free".)
 export const CHAT_MODELS: ChatModel[] = [
   {
+    id: "gemini-byok",
+    label: "Gemini Flash (BYOK)",
+    provider: "openrouter",
+    providerModelId: "google/gemini-2.5-flash",
+    reasoning: false,
+  },
+  {
     id: "gpt-oss-120b",
     label: "GPT-OSS 120B",
     provider: "openrouter",
@@ -65,7 +72,13 @@ export const CHAT_MODELS: ChatModel[] = [
 
 // Default: a free model that reliably does BOTH tool-calling and reasoning,
 // so the tool-call UI and the thinking UI both light up out of the box.
-export const DEFAULT_MODEL_ID = "gpt-oss-120b";
+
+// export const DEFAULT_MODEL_ID = "gpt-oss-120b";
+
+// Default: a free model that reliably does BOTH tool-calling and reasoning,
+// so the tool-call UI and the thinking UI both light up out of the box.
+// ! NOTE: Use "gpt-oss-120b" if you need to revert to the previous free OpenRouter model.
+export const DEFAULT_MODEL_ID = "gemini-byok";
 
 // The closed vocabulary of chat error codes the server emits and the client
 // localizes (chat.errors.<code>). Single source of truth so the two sides can't

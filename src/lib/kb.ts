@@ -291,6 +291,26 @@ function assertManage(caller: KbCaller): void {
   }
 }
 
+export type DocStatusCounts = { DRAFT: number; PUBLISHED: number; ARCHIVED: number; all: number };
+
+/**
+ * Document counts by lifecycle status, company-wide — feeds the HR dashboard's
+ * corpus card (SCRUM-072). Gated on `dashboard:read:company` (not `kb:manage`):
+ * this is a read-only aggregate for the dashboard, not a KB-admin action.
+ * Zeroed, never thrown, unless the caller may read the dashboard — mirrors
+ * `getAlertStatusCounts`'s gate-and-zero shape.
+ */
+export async function getDocumentStatusCounts(caller: { role: Role }): Promise<DocStatusCounts> {
+  const counts: DocStatusCounts = { DRAFT: 0, PUBLISHED: 0, ARCHIVED: 0, all: 0 };
+  if (!can(caller.role, "dashboard:read:company")) return counts;
+  const grouped = await prisma.hrDocument.groupBy({ by: ["status"], _count: { _all: true } });
+  for (const g of grouped) {
+    counts[g.status] = g._count._all;
+    counts.all += g._count._all;
+  }
+  return counts;
+}
+
 /**
  * Free slug derived from `base`, de-duped with a numeric suffix (`overview-2`, …);
  * "untitled" if `base` slugifies empty. Pass `excludeId` when editing. Avoids the

@@ -56,7 +56,8 @@ export function Topbar({ user }: { user: NavUser }) {
   for (const seg of segments.slice(1)) {
     acc = `${acc === "/" ? "" : acc}/${seg}`;
     const child = topItem?.children?.find((c) => c.href === acc);
-    crumbs.push({ label: child ? tSettings(child.labelKey) : humanize(seg), href: acc });
+    const childLabel = child ? (child.ns === "nav" ? t(child.key) : tSettings(child.key)) : humanize(seg);
+    crumbs.push({ label: childLabel, href: acc });
   }
 
   return (
