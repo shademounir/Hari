@@ -10,7 +10,11 @@
 // same "a tool can't see more than the UI" invariant as lib/hr.ts. Drafts and
 // archived docs have no chunks (see lib/kb/ingest.ts); the status filter is
 // belt-and-suspenders for any stale row.
+
+import { sanitizeRetrievedContent } from "@/lib/ai/prompt-guard";
+
 import { Prisma } from "@prisma/client";
+
 import { prisma } from "@/lib/prisma";
 import { embedText, toVectorLiteral } from "@/lib/ai/embeddings";
 import { visibleDocTiers, type Role } from "@/lib/rbac";
@@ -38,6 +42,7 @@ export async function searchHandbook(
 ): Promise<HandbookHit[]> {
   const vec = toVectorLiteral(await embedText(query));
   const tiers = visibleDocTiers(caller.role);
+
   // What the assistant may retrieve = the reader's gate (PUBLISHED + caller's
   // visible tiers) AND the super-admin assistant-access policy. The policy is
   // additive-only: a per-document override (true/false) wins over the collection
@@ -92,5 +97,9 @@ export async function searchHandbook(
       LIMIT ${k}
     `,
   );
-  return rows;
+
+  return rows.map((row: HandbookHit) => ({
+    ...row,
+    content: sanitizeRetrievedContent(row.content),
+  }));
 }

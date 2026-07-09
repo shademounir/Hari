@@ -127,6 +127,24 @@ export async function seedTeamActivity(
     const pool = LEAVE_REASONS[type];
     return pool[randInt(0, pool.length - 1)];
   };
+  // Realistic approver notes so the /team decision-note UI has content to show.
+  const REJECTION_NOTES = [
+    "Période de forte activité — merci de reporter après la clôture trimestrielle.",
+    "Trop de chevauchements dans l'équipe sur ces dates ; couverture insuffisante.",
+    "Solde de congés insuffisant pour la durée demandée.",
+    "Demande reçue trop tard pour être validée à temps.",
+    "Un collègue est déjà absent sur la même semaine.",
+  ];
+  const APPROVAL_NOTES = [
+    "Validé — pensez à documenter la passation avant votre départ.",
+    "Accordé exceptionnellement, la couverture est assurée par l'équipe.",
+  ];
+  const pickNote = (status: LeaveStatus): string | null => {
+    if (status === "REJECTED") return REJECTION_NOTES[randInt(0, REJECTION_NOTES.length - 1)];
+    // A minority of approvals carry a note too.
+    if (status === "APPROVED" && rand() < 0.25) return APPROVAL_NOTES[randInt(0, APPROVAL_NOTES.length - 1)];
+    return null;
+  };
   const today = startOfDayUtc(now);
 
   // ── Leave requests ────────────────────────────────────────────────────
@@ -143,6 +161,7 @@ export async function seedTeamActivity(
     days: number;
     reason: string | null;
     status: LeaveStatus;
+    decisionNote: string | null;
     approverId: string | null;
     createdAt: Date;
   }[] = [];
@@ -154,6 +173,7 @@ export async function seedTeamActivity(
     lengthDays: number,
     status: LeaveStatus,
     reason: string | null,
+    decisionNote: string | null = null,
   ) => {
     const end = addDays(start, lengthDays - 1);
     leave.push({
@@ -164,6 +184,8 @@ export async function seedTeamActivity(
       days: lengthDays,
       reason,
       status,
+      // Rejections always carry a note (schema/UX contract); some approvals do too.
+      decisionNote: decisionNote ?? pickNote(status),
       approverId: status === "APPROVED" || status === "REJECTED" ? manager.id : null,
       // requested ~2 weeks before it starts, but never in the future
       createdAt: new Date(Math.min(addDays(start, -14).getTime(), today.getTime())),

@@ -19,6 +19,8 @@
     "assistant": "AI Assistant",
     "directory": "Directory",
     "team": "My Team",
+    "hrActivity": "HR Activity",
+    "predictions": "Predictions",
     "timeOff": "Time Off",
     "onboarding": "Onboarding",
     "offboarding": "Offboarding",
@@ -37,7 +39,10 @@
     "breadcrumb": "Breadcrumb",
     "userMenu": "Account menu",
     "alerts": "Alerts",
-    "audit": "Audit Log"
+    "audit": "Audit Log",
+    "analytics": "HR Analytics",
+    "teamAnalytics": "Team Analytics",
+    "documents": "Documents"
   },
   "roles": {
     "EMPLOYEE": "Employee",
@@ -54,18 +59,131 @@
     "leave:read:self": "View own leave",
     "leave:approve": "Approve / reject leave",
     "dashboard:read:team": "View team KPI dashboard",
+    "dashboard:read:company": "View company AI activity & documents dashboard",
+    "analytics:full": "View company HR analytics (absenteeism, turnover, payroll)",
+    "analytics:team": "View team HR analytics",
     "payslip:read:self": "View own payslips",
     "payslip:read:any": "View anyone's payslips",
     "handbook:read": "Ask the handbook (RAG)",
     "employee:manage": "Manage employee records",
     "admin:settings": "Manage platform settings",
     "kb:manage": "Manage the knowledge base",
-    "alerts:read": "View AI alerts"
+    "alerts:read": "View AI alerts",
+    "documents:download:any": "Download any generated HR document",
+    "documents:request": "Request own HR documents",
+    "predictions:read": "View departure-risk predictions",
+    "predictions:manage": "Recalibrate the predictive model"
   },
   "leaveType": {
     "VACATION": "Vacation",
     "SICK": "Sick",
     "PERSONAL": "Personal"
+  },
+  "contractType": {
+    "all": "All contracts",
+    "CDI": "Permanent (CDI)",
+    "CDD": "Fixed-term (CDD)",
+    "ALTERNANCE": "Work-study",
+    "STAGE": "Internship"
+  },
+  "hrAnalytics": {
+    "title": "HR Analytics",
+    "description": "Absenteeism, turnover, payroll, diversity and reviews across the company.",
+    "noData": "No data for this selection",
+    "teamTitle": "Team Analytics",
+    "teamDescription": "Headcount, absences and reviews for your team.",
+    "exportCsv": "Export CSV",
+    "filters": {
+      "department": "Department",
+      "allDepartments": "All departments",
+      "contract": "Contract",
+      "level": "Level",
+      "allLevels": "All levels",
+      "period": "Period",
+      "month": "This month",
+      "quarter": "Last quarter",
+      "semester": "Last 6 months",
+      "year": "Last 12 months"
+    },
+    "kpi": {
+      "headcount": "Active headcount",
+      "absenteeism": "Absenteeism rate",
+      "turnover": "Turnover (12 mo)",
+      "payroll": "Monthly payroll",
+      "timeToHire": "Avg. time to hire",
+      "vsPrevMonth": "vs previous month",
+      "vsLastYear": "vs last year",
+      "days": "days"
+    },
+    "absenteeism": {
+      "title": "Absenteeism",
+      "byMonth": "Monthly rate (12 months)",
+      "byType": "By absence type",
+      "topDepartments": "Top departments by absenteeism",
+      "rate": "Rate",
+      "department": "Department",
+      "daysLost": "Days lost"
+    },
+    "turnover": {
+      "title": "Turnover",
+      "trend": "Departures per month (24 months)",
+      "byReason": "By reason",
+      "byTenure": "Leaver tenure",
+      "topDepartments": "Departments by departures",
+      "departures": "Departures"
+    },
+    "departureReason": {
+      "VOLUNTARY": "Resignation",
+      "INVOLUNTARY": "Dismissal",
+      "RETIREMENT": "Retirement",
+      "END_OF_CONTRACT": "End of contract"
+    },
+    "tenure": {
+      "lt1y": "< 1 year",
+      "y1to3": "1–3 years",
+      "gt3y": "> 3 years"
+    },
+    "payroll": {
+      "title": "Payroll",
+      "trend": "Gross payroll (12 months)",
+      "byBand": "By salary band",
+      "byDepartment": "By department (this month)",
+      "currentMonth": "This month",
+      "restricted": "Payroll data is restricted to HR and administrators."
+    },
+    "salaryBand": {
+      "lt120k": "< 120k",
+      "120to180k": "120–180k",
+      "180to250k": "180–250k",
+      "gte250k": "> 250k"
+    },
+    "diversity": {
+      "title": "Age & diversity",
+      "agePyramid": "Age pyramid",
+      "genderByLevel": "Gender by level",
+      "tenureByDept": "Average tenure by department",
+      "years": "years"
+    },
+    "gender": {
+      "FEMALE": "Women",
+      "MALE": "Men",
+      "OTHER": "Other"
+    },
+    "reviews": {
+      "title": "Annual reviews",
+      "coverage": "Reviewed this year",
+      "overdue": "No review in over 12 months",
+      "employee": "Employee",
+      "department": "Department",
+      "lastReview": "Last review",
+      "never": "Never",
+      "allDone": "Everyone has a recent review.",
+      "reviewsToPlan": "Reviews to plan"
+    },
+    "team": {
+      "headcount": "Team headcount",
+      "onLeave": "On leave now"
+    }
   },
   "leaveStatus": {
     "PENDING": "Pending",
@@ -162,6 +280,8 @@
     "reject": "Reject",
     "status": "Status",
     "leaveHistory": "Leave history",
+    "viewNote": "View note",
+    "decisionNoteFor": "Manager's note for {name}",
     "filters": "Filters",
     "searchPlaceholder": "Search by employee name…",
     "optionPlaceholder": "Filter options…",
@@ -185,6 +305,26 @@
       "approved": "{count, plural, one {# request approved} other {# requests approved}}",
       "rejected": "{count, plural, one {# request rejected} other {# requests rejected}}",
       "failed": "Nothing changed — the request may have already been handled."
+    }
+  },
+  "hrDashboard": {
+    "title": "HR Activity Dashboard",
+    "description": "Company-wide AI assistant activity and the state of the document corpus.",
+    "kpi": {
+      "aiQuestions7d": "AI questions (7d)",
+      "aiRefusals7d": "AI refusals (7d)",
+      "aiErrors7d": "AI errors (7d)",
+      "openAlerts": "Open alerts"
+    },
+    "anomaly": {
+      "normal": "Normal",
+      "elevated": "Elevated",
+      "high": "High",
+      "insufficient_data": "No baseline"
+    },
+    "corpus": {
+      "title": "Document corpus",
+      "publishedShare": "Published"
     }
   },
   "timeOff": {
@@ -406,6 +546,196 @@
     "net": "Net",
     "period": "Most recent month"
   },
+  "predictions":   {
+    "title": "Predictive Workforce Analytics",
+    "description": "Early signals of disengagement, 12-month departure projections, and succession readiness.",
+    "band": {
+      "green": "Low",
+      "orange": "Moderate",
+      "red": "High"
+    },
+    "metrics": {
+      "accuracy": "Model accuracy",
+      "accuracyHint": "of {n} departed employees were flagged high-risk",
+      "noData": "Collecting outcomes — no departures scored yet",
+      "evaluated": "Employees evaluated",
+      "evaluatedHint": "Active employees with a current risk score",
+      "highRisk": "High risk",
+      "highRiskHint": "Scored above 60"
+    },
+    "recalibrate": {
+      "button": "Recalibrate",
+      "title": "Recalibrate the model",
+      "description": "Adjust how much each factor weighs in the departure-risk score. Weights must total 100%.",
+      "total": "Total",
+      "mustSum": "Must equal 100%",
+      "normalize": "Normalize to 100%",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saved": "Model recalibrated",
+      "errorTitle": "Recalibration failed",
+      "error": {
+        "forbidden": "You don't have permission to recalibrate the model.",
+        "invalid": "Weights must total exactly 100%.",
+        "internal": "Something went wrong saving the configuration. Please try again."
+      }
+    },
+    "riskMap": {
+      "title": "Risk map",
+      "description": "Active employees ranked by current departure-risk score.",
+      "empty": "No employees to score yet.",
+      "liveNote": "Computed live — the nightly job will persist these scores.",
+      "col": {
+        "employee": "Employee",
+        "department": "Department",
+        "risk": "Risk",
+        "factors": "Why"
+      },
+      "filters": {
+        "label": "Filter",
+        "department": "Department",
+        "band": "Risk band",
+        "allDepartments": "All departments",
+        "allBands": "All risk levels"
+      },
+      "pagination": {
+        "showing": "Showing {from}–{to} of {total}",
+        "previous": "Previous",
+        "next": "Next"
+      }
+    },
+    "factor": {
+      "seniority": "Seniority",
+      "absenteeism": "Absenteeism",
+      "review": "Time since last review",
+      "salary": "Salary evolution",
+      "turnover": "Department turnover",
+      "jobProfile": "Job profile",
+      "burnout": "Burnout (unused PTO)",
+      "roleStagnation": "Role stagnation",
+      "dominoEffect": "Manager departure",
+      "engagement": "Engagement score"
+    },
+    "factors": {
+      "view": "Factors",
+      "sheetTitle": "Risk Analysis: {name}",
+      "title": "Contributing factors",
+      "description": "What drives {name}'s risk score, most influential first.",
+      "points": "{points} pts",
+      "none": "No factor is currently contributing risk.",
+      "privacyNote": "Shows each factor's contribution only — never the underlying sensitive values."
+    },
+    "projection": {
+      "title": "Departure projection",
+      "description": "Expected departures over the next 12 months, based on current risk.",
+      "chartTitle": "12-month departure projection",
+      "calibrating": "Calibration in progress",
+      "calibratingHint": "Projections need at least {min} active employees to be meaningful — currently {have}.",
+      "totalExpected": "expected departures over 12 months",
+      "chartAria": "Cumulative expected departures reaching {total} over 12 months",
+      "legendCumulative": "Cumulative",
+      "legendMonthly": "Per month"
+    },
+    "distribution": {
+      "title": "Risk distribution by department",
+      "filterLabel": "Department",
+      "allCompany": "All company"
+    },
+    "controls": {
+      "departments": "Departments",
+      "allDepartments": "All departments",
+      "selected": "{count} selected",
+      "period": "Period",
+      "quarterShort": "Q",
+      "stacked": "Stacked",
+      "grouped": "Grouped"
+    },
+    "period": {
+      "month": "Monthly",
+      "quarter": "Quarterly",
+      "year": "Yearly"
+    },
+    "chartStyle": {
+      "area": "Area",
+      "line": "Line",
+      "bar": "Bar"
+    },
+    "simulator": {
+      "title": "Recruitment simulator (What-if)",
+      "description": "Model the backfill plan if people leave a department.",
+      "help": "Pick a department and how many people leave; the AI drafts a backfill plan — profiles to hire, time to hire, and an estimated cost.",
+      "department": "Department",
+      "departmentPlaceholder": "Select a department",
+      "seniorityLevel": "Seniority level",
+      "count": "How many",
+      "budget": "Budget",
+      "budgetPlaceholder": "Max total budget",
+      "budgetHelp": "The maximum total budget for the whole backfill (hiring fees + onboarding). The AI keeps the plan within it where feasible.",
+      "urgency": "Urgency",
+      "submit": "Simulate",
+      "simulating": "Simulating…",
+      "aiErrorTitle": "AI Error",
+      "planTitle": "Recruitment plan",
+      "downloadPdf": "Download as PDF",
+      "timeToHire": "Time to hire",
+      "estimatedCost": "Estimated cost",
+      "withinBudget": "Within budget",
+      "overBudget": "Over budget",
+      "weeks": "{weeks} weeks",
+      "profiles": "Profiles to recruit",
+      "risks": "Risks",
+      "recommendations": "Recommendations",
+      "seniority": {
+        "JUNIOR": "Junior",
+        "MID": "Mid",
+        "SENIOR": "Senior",
+        "LEAD": "Lead"
+      },
+      "urgencyLevel": {
+        "NORMAL": "Normal",
+        "HIGH": "High",
+        "CRITICAL": "Critical"
+      },
+      "error": {
+        "forbidden": "You don't have access to run this simulation.",
+        "invalid": "Please pick a department and a valid number.",
+        "rate_limited": "The AI model is rate-limited right now. Please wait a moment and try again.",
+        "ai_unavailable": "The AI planner is unavailable right now. Please try again later."
+      }
+    },
+    "succession": {
+      "title": "Succession planning",
+      "description": "Bench strength and readiness for key people-management roles.",
+      "empty": "No people-management roles to plan for yet.",
+      "bench": "Bench",
+      "benchCount": "{count, plural, one {# on bench} other {# on bench}}",
+      "gap": "Succession gap",
+      "flightRisk": "Flight Risk",
+      "noSuccessor": "No obvious internal successor — consider developing or hiring a backup.",
+      "criticalGap": "Flight-risk manager with no ready successor — act now.",
+      "tenure": "{years} yrs tenure",
+      "transitionPlan": "AI Transition Plan",
+      "transition": {
+        "title": "Transition Plan: {role}",
+        "subtitle": "AI-generated hand-over plan to de-risk this succession.",
+        "recommended": "Recommended successor",
+        "knowledgeTransfer": "Knowledge transfer",
+        "skillGaps": "Skill gaps to address",
+        "close": "Close",
+        "errorTitle": "AI Error",
+        "error": {
+          "forbidden": "You don't have access to generate this plan.",
+          "rate_limited": "The AI model is rate-limited right now. Please wait a moment and try again.",
+          "ai_unavailable": "The AI planner is unavailable right now. Please try again later."
+        }
+      }
+    },
+    "readiness": {
+      "READY_NOW": "Ready now",
+      "READY_1_2Y": "Ready in 1–2 yrs",
+      "DEVELOPING": "Developing"
+    }
+  },
   "tools": {
     "status": {
       "searchHandbook": "Searching the handbook",
@@ -438,7 +768,8 @@
       "listPendingApprovals": "List requests awaiting your approval.",
       "approveLeave": "Approve or reject a pending request.",
       "getPayslip": "A payslip — your own, or anyone visible with elevated rights.",
-      "endConversation": "End the conversation and lock the chat — used only to decline abuse or unsafe requests."
+      "endConversation": "End the conversation and lock the chat — used only to decline abuse or unsafe requests.",
+      "predictDepartures": "Rank who is most at risk of leaving (managers: own team, anonymized; HR: full detail)."
     }
   },
   "login": {
@@ -681,6 +1012,9 @@
       },
       "CONVERSATION_CLOSED": {
         "title": "Assistant ended a conversation"
+      },
+      "DEPARTURE_RISK": {
+        "title": "Employee at risk of departure"
       }
     },
     "colDetail": "Detail",
@@ -689,5 +1023,14 @@
     "toastAcknowledged": "Alert acknowledged",
     "toastResolved": "Alert resolved",
     "toastReopened": "Alert reopened"
+  },
+  "documents": {
+    "title": "My Documents",
+    "description": "Request and track your HR documents.",
+    "workCertificateTitle": "Work Certificate",
+    "workCertificateDescription": "Request an automatically generated work certificate.",
+    "requestWorkCertificate": "Request certificate",
+    "requestSuccess": "Your request has been submitted successfully.",
+    "forbidden": "You are not allowed to access this page."
   }
 }

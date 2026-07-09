@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { asLeaveStatus, asLeaveType } from "@/lib/leave";
 import type { LeaveRequestView } from "@/lib/hr";
 import { Badge } from "@/components/ui/badge";
+import { DecisionNoteSheet } from "@/components/team/decision-note-sheet";
 import {
   Table,
   TableBody,
@@ -67,8 +68,12 @@ export async function LeaveHistory({ rows }: { rows: LeaveRequestView[] }) {
               <TableCell className="max-w-[16rem] truncate text-muted-foreground">
                 {r.reason ?? tc("none")}
               </TableCell>
-              <TableCell className="max-w-[16rem] truncate text-muted-foreground">
-                {r.decisionNote ?? tc("none")}
+              <TableCell className="text-muted-foreground">
+                {r.decisionNote ? (
+                  <DecisionNoteSheet note={r.decisionNote} employeeName={r.employeeName} />
+                ) : (
+                  tc("none")
+                )}
               </TableCell>
             </TableRow>
           ))}
