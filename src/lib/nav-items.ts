@@ -4,6 +4,7 @@ import {
   Bot,
   Users,
   CalendarDays,
+  ClipboardCheck,
   BookOpen,
   BellRing,
   Gauge,
@@ -30,6 +31,7 @@ export type NavKey =
   | "analytics"
   | "teamAnalytics"
   | "timeOff"
+  | "onboarding"
   | "documents"
   | "knowledgeBase"
   | "alerts"
@@ -77,6 +79,7 @@ export const NAV_ITEMS: NavItem[] = [
     ],
   },
   { href: "/time-off", key: "timeOff", icon: CalendarDays },
+  { href: "/onboarding", key: "onboarding", icon: ClipboardCheck },
   { href: "/documents", key: "documents", icon: FileText, permission: "documents:request" },
   { href: "/kb", key: "knowledgeBase", icon: BookOpen },
   { href: "/alerts", key: "alerts", icon: BellRing, permission: "alerts:read" },
