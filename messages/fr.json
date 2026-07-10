@@ -23,6 +23,7 @@
     "predictions": "Prédictions",
     "timeOff": "Congés",
     "onboarding": "Intégration",
+    "offboarding": "Départ",
     "settings": "Paramètres",
     "signOut": "Se déconnecter",
     "openNavigation": "Ouvrir la navigation",
@@ -372,6 +373,50 @@
       "handbookReview": "Lire le manuel de l'employé",
       "teamIntro": "Rencontrer votre équipe",
       "managerMeeting": "Premier entretien avec votre manager"
+    }
+  },
+  "offboarding": {
+    "title": "Départ",
+    "description": "Déroulez la checklist de départ d'un employé, puis archivez son dossier.",
+    "initiate": "Démarrer un départ",
+    "noCandidates": "Aucun employé actif disponible pour un départ.",
+    "employee": "Employé",
+    "reason": "Motif",
+    "lastDay": "Dernier jour",
+    "startProcess": "Démarrer",
+    "inProgress": "En cours",
+    "noneInProgress": "Aucun départ en cours.",
+    "progress": "Progression",
+    "progressCount": "{done} / {total} terminées",
+    "completeAndArchive": "Terminer et archiver",
+    "archived": "Archivés",
+    "archivedOn": "Archivé le",
+    "reasons": {
+      "RESIGNATION": "Démission",
+      "TERMINATION": "Licenciement",
+      "END_OF_CONTRACT": "Fin de contrat",
+      "RETIREMENT": "Départ à la retraite",
+      "OTHER": "Autre"
+    },
+    "categories": {
+      "ACCESS": "Accès",
+      "EQUIPMENT": "Équipement",
+      "PAYROLL": "Paie",
+      "KNOWLEDGE": "Connaissances",
+      "EXIT": "Sortie"
+    },
+    "steps": {
+      "revokeAccounts": "Révoquer les comptes et l'accès SSO",
+      "disableEmail": "Désactiver l'e-mail et la boîte mail",
+      "collectBadge": "Récupérer le badge d'accès aux locaux",
+      "returnLaptop": "Récupérer l'ordinateur portable",
+      "returnDevices": "Récupérer le téléphone et les autres appareils",
+      "finalPay": "Traiter le solde de tout compte",
+      "benefitsTermination": "Résilier les avantages et l'assurance",
+      "knowledgeHandover": "Réaliser la passation des connaissances",
+      "documentation": "Archiver la documentation et les fichiers",
+      "exitInterview": "Mener l'entretien de départ",
+      "offboardingLetter": "Émettre la lettre de départ"
     }
   },
   "settings": {

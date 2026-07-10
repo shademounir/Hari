@@ -97,8 +97,9 @@ model Employee {
   payrollSnapshots  PayrollSnapshot[]
   reviewsReceived   PerformanceReview[]     @relation("ReviewSubject")
   reviewsGiven      PerformanceReview[]     @relation("Reviewer")
-  // SCRUM-095 (onboarding)
+  // SCRUM-095 / SCRUM-096 (onboarding / offboarding)
   onboardingTasks   OnboardingTask[]
+  offboarding       Offboarding?
 }
 
 model LeaveBalance {
@@ -400,6 +401,10 @@ enum AuditAction {
   ALERT_RESOLVED
   ALERT_REOPENED
   ALERTS_CONSOLE_VIEWED
+  // SCRUM-096: offboarding lifecycle (compliance trail).
+  OFFBOARDING_INITIATED
+  OFFBOARDING_STEP_COMPLETED
+  EMPLOYEE_OFFBOARDED
 }
 
 /// SCRUM-064: a minimal audit trail of sensitive admin/security actions (alert
@@ -423,6 +428,103 @@ model AuditLog {
   @@index([createdAt])
   @@index([action])
   @@index([actorId])
+}
+
+/// SCRUM-095: category of an onboarding step, for grouping + iconography.
+enum OnboardingCategory {
+  PAPERWORK
+  EQUIPMENT
+  ACCESS
+  TRAINING
+  ORIENTATION
+}
+
+enum OnboardingStatus {
+  PENDING
+  DONE
+}
+
+/// SCRUM-095: one step of a new hire's personalized onboarding checklist. The
+/// step label is a stable i18n `key` (onboarding.steps.<key>) — not free text —
+/// so the checklist is fully localized, consistent with the mandatory-i18n rule.
+model OnboardingTask {
+  id          String             @id @default(cuid())
+  employee    Employee           @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId  String
+  key         String // i18n step key → onboarding.steps.<key>
+  category    OnboardingCategory
+  order       Int                @default(0)
+  status      OnboardingStatus   @default(PENDING)
+  completedAt DateTime?
+  createdAt   DateTime           @default(now())
+
+  @@index([employeeId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// SCRUM-096: offboarding — the compliant exit workflow. When someone leaves, HR
+// runs a checklist of exit steps (revoke access, recover equipment, final pay,
+// handover, exit interview) and then ARCHIVES the employee (status → TERMINATED)
+// rather than deleting them, so records are retained for conformité. Every
+// significant step is written to the AuditLog (SCRUM-064) — metadata only.
+// ─────────────────────────────────────────────────────────────────────────
+
+/// Why the employee is leaving. A code, never free text — no PII.
+enum OffboardingReason {
+  RESIGNATION
+  TERMINATION
+  END_OF_CONTRACT
+  RETIREMENT
+  OTHER
+}
+
+enum OffboardingState {
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum OffboardingTaskStatus {
+  PENDING
+  DONE
+}
+
+/// Category of an exit step, for grouping + iconography.
+enum OffboardingCategory {
+  ACCESS
+  EQUIPMENT
+  PAYROLL
+  KNOWLEDGE
+  EXIT
+}
+
+/// One offboarding process per employee (`employeeId @unique`). Completing it
+/// archives the employee; the row itself is kept for the compliance trail.
+model Offboarding {
+  id            String            @id @default(cuid())
+  employee      Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId    String            @unique
+  reason        OffboardingReason
+  state         OffboardingState  @default(IN_PROGRESS)
+  lastDay       DateTime
+  initiatedById String? // soft id of the HR actor — survives user deletion
+  createdAt     DateTime          @default(now())
+  completedAt   DateTime?
+  tasks         OffboardingTask[]
+
+  @@index([state])
+}
+
+model OffboardingTask {
+  id            String                @id @default(cuid())
+  offboarding   Offboarding           @relation(fields: [offboardingId], references: [id], onDelete: Cascade)
+  offboardingId String
+  key           String // i18n step key → offboarding.steps.<key>
+  category      OffboardingCategory
+  order         Int                   @default(0)
+  status        OffboardingTaskStatus @default(PENDING)
+  completedAt   DateTime?
+
+  @@index([offboardingId])
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -557,35 +659,4 @@ model GeneratedDocument {
   @@index([status])
   @@index([type])
   @@index([createdAt])
-}
-
-/// SCRUM-095: category of an onboarding step, for grouping + iconography.
-enum OnboardingCategory {
-  PAPERWORK
-  EQUIPMENT
-  ACCESS
-  TRAINING
-  ORIENTATION
-}
-
-enum OnboardingStatus {
-  PENDING
-  DONE
-}
-
-/// SCRUM-095: one step of a new hire's personalized onboarding checklist. The
-/// step label is a stable i18n `key` (onboarding.steps.<key>) — not free text —
-/// so the checklist is fully localized, consistent with the mandatory-i18n rule.
-model OnboardingTask {
-  id          String             @id @default(cuid())
-  employee    Employee           @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  employeeId  String
-  key         String // i18n step key → onboarding.steps.<key>
-  category    OnboardingCategory
-  order       Int                @default(0)
-  status      OnboardingStatus   @default(PENDING)
-  completedAt DateTime?
-  createdAt   DateTime           @default(now())
-
-  @@index([employeeId])
 }
