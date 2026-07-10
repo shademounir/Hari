@@ -39,7 +39,8 @@
     "alerts": "Alerts",
     "analytics": "HR Analytics",
     "teamAnalytics": "Team Analytics",
-    "documents": "Documents"
+    "documents": "Documents",
+    "edit": "Edit"
   },
   "roles": {
     "EMPLOYEE": "Employee",
@@ -441,7 +442,7 @@
     "net": "Net",
     "period": "Most recent month"
   },
-  "predictions":   {
+  "predictions": {
     "title": "Predictive Workforce Analytics",
     "description": "Early signals of disengagement, 12-month departure projections, and succession readiness.",
     "band": {
@@ -833,7 +834,11 @@
     "tagRemove": "Remove {tag}",
     "articleSettings": "Article settings",
     "slugPlaceholder": "Auto from the title",
-    "resizePanels": "Resize panels"
+    "resizePanels": "Resize panels",
+    "emptyCollection": "This collection has no articles yet.",
+    "searching": "Searching…",
+    "searchResults": "{count, plural, one {# result} other {# results}}",
+    "resizePanelsValue": "Settings panel {width} pixels wide"
   },
   "kbStatus": {
     "DRAFT": "Draft",

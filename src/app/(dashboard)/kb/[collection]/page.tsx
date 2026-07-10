@@ -61,6 +61,12 @@ export default async function CollectionPage({ params }: Props) {
           {t("articleCount", { count: col.articles.length })}
         </p>
 
+        {col.articles.length === 0 && (
+          <p className="rounded-xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">
+            {t("emptyCollection")}
+          </p>
+        )}
+
         <ul className="grid gap-3 sm:grid-cols-2">
           {col.articles.map((a) => (
             <li key={a.id}>

@@ -39,7 +39,8 @@
     "alerts": "Alertes",
     "analytics": "Analytique RH",
     "teamAnalytics": "Analytique équipe",
-    "documents": "Documents"
+    "documents": "Documents",
+    "edit": "Modifier"
   },
   "roles": {
     "EMPLOYEE": "Collaborateur",
@@ -441,7 +442,7 @@
     "net": "Net",
     "period": "Mois le plus récent"
   },
-  "predictions":   {
+  "predictions": {
     "title": "Analyse prédictive des effectifs",
     "description": "Signaux faibles de désengagement, projections de départs à 12 mois et préparation de la relève.",
     "band": {
@@ -833,7 +834,11 @@
     "tagRemove": "Supprimer {tag}",
     "articleSettings": "Paramètres de l’article",
     "slugPlaceholder": "Auto depuis le titre",
-    "resizePanels": "Redimensionner les panneaux"
+    "resizePanels": "Redimensionner les panneaux",
+    "emptyCollection": "Cette collection ne contient pas encore d'articles.",
+    "searching": "Recherche…",
+    "searchResults": "{count, plural, one {# résultat} other {# résultats}}",
+    "resizePanelsValue": "Panneau de réglages : {width} pixels de large"
   },
   "kbStatus": {
     "DRAFT": "Brouillon",
