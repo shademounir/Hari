@@ -11,6 +11,7 @@ export async function GET() {
   if (!session?.user) return new Response("Unauthorized", { status: 401 });
 
   const items = await buildNotifications({
+    userId: session.user.id,
     role: session.user.role,
     employeeId: session.user.employeeId ?? null,
   });

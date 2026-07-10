@@ -67,6 +67,25 @@ describe("RBAC matrix", () => {
     expect(can("SUPER_ADMIN", "predictions:manage")).toBe(true);
   });
 
+  it("only super admin holds audit:read — stricter than alerts:read (SCRUM-064)", () => {
+    expect(can("EMPLOYEE", "audit:read")).toBe(false);
+    expect(can("MANAGER", "audit:read")).toBe(false);
+    expect(can("HR_ADMIN", "audit:read")).toBe(false);
+    expect(can("SUPER_ADMIN", "audit:read")).toBe(true);
+  });
+
+  it("managers and up can request a document for a report and validate pending requests (SCRUM-094)", () => {
+    expect(can("EMPLOYEE", "documents:request:team")).toBe(false);
+    expect(can("MANAGER", "documents:request:team")).toBe(true);
+    expect(can("HR_ADMIN", "documents:request:team")).toBe(true);
+    expect(can("SUPER_ADMIN", "documents:request:team")).toBe(true);
+
+    expect(can("EMPLOYEE", "documents:validate")).toBe(false);
+    expect(can("MANAGER", "documents:validate")).toBe(true);
+    expect(can("HR_ADMIN", "documents:validate")).toBe(true);
+    expect(can("SUPER_ADMIN", "documents:validate")).toBe(true);
+  });
+
   it("KB document visibility tiers are nested by role (HARI-59)", () => {
     expect(visibleDocTiers("EMPLOYEE")).toEqual(["ALL_EMPLOYEES"]);
     expect(visibleDocTiers("MANAGER")).toEqual(["ALL_EMPLOYEES", "MANAGERS"]);

@@ -24,6 +24,7 @@ export function Notifications() {
   const t = useTranslations("topbar");
   const tLeave = useTranslations("leaveType");
   const tAlert = useTranslations("alerts");
+  const tDocument = useTranslations("documents");
   const format = useFormatter();
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [error, setError] = useState(false);
@@ -62,6 +63,9 @@ export function Notifications() {
 
   function titleFor(n: NotificationItem): string {
     if (n.kind === "alert") return tAlert(`kind.${n.alertKind}.title`);
+    if (n.kind === "documentReady" || n.kind === "documentPending") {
+      return tDocument(`notification.${n.kind}`, { type: tDocument(`type.${n.documentType}`) });
+    }
     const type = tLeave(n.leaveType);
     return n.kind === "approval"
       ? t("approvalItem", { name: n.employeeName ?? "", type })
@@ -72,6 +76,9 @@ export function Notifications() {
     if (n.kind === "alert") {
       const sev = tAlert(`severity.${n.severity}`);
       return n.detail ? `${sev} · ${n.detail}` : sev;
+    }
+    if (n.kind === "documentReady" || n.kind === "documentPending") {
+      return tDocument(`type.${n.documentType}`);
     }
     return `${fmt(n.startDate)} → ${fmt(n.endDate)}`;
   }

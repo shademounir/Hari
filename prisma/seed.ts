@@ -57,13 +57,14 @@ type Seed = {
   employmentType?: "FULL_TIME" | "PART_TIME" | "CONTRACTOR";
   // Generated-workforce extras (SCRUM-098). Optional so the hand-written demo
   // accounts above are unaffected; the predictive pass fills in the rest.
-  startDate?: Date;
+  // Date (generated workforce, via monthsAgo()) or ISO string (fixed demo /
+  // profile entries) — both are normalized to a Date at create time below.
+  startDate?: Date | string; // defaults to 2023-01-15
   leftAt?: Date; // set for TERMINATED so department turnover has real data
   vacationUsed?: number;
   sickUsed?: number;
   // HR-analytics dimensions (HARI-122). Optional so demo accounts can omit them
   // and fall back to sensible defaults.
-  startDate?: string; // ISO date; defaults to 2023-01-15
   birthDate?: string; // ISO date → age pyramid
   gender?: "FEMALE" | "MALE" | "OTHER";
   contractType?: "CDI" | "CDD" | "ALTERNANCE" | "STAGE";
@@ -510,9 +511,8 @@ async function seedPeople() {
             department: p.department,
             location: p.location,
             salary: p.salary,
-            startDate: p.startDate ?? new Date("2023-01-15"),
-            leftAt: p.leftAt ?? null,
             startDate: new Date(p.startDate ?? "2023-01-15"),
+            leftAt: p.leftAt ?? null,
             status: (p.status as EmploymentStatus) ?? EmploymentStatus.ACTIVE,
             employmentType: (p.employmentType as EmploymentType) ?? EmploymentType.FULL_TIME,
             birthDate: p.birthDate ? new Date(p.birthDate) : null,
@@ -749,7 +749,7 @@ async function seedPredictiveData() {
     return !!(m && m.leftAt && m.leftAt >= sixMonthsAgo);
   };
 
-  const reviews: Prisma.PerformanceReviewCreateManyInput[] = [];
+  const reviews: Prisma.ReviewScoreCreateManyInput[] = [];
   const salaries: Prisma.SalaryChangeCreateManyInput[] = [];
   const surveys: Prisma.EngagementSurveyCreateManyInput[] = [];
   const snapshots: Prisma.DepartureRiskSnapshotCreateManyInput[] = [];
@@ -818,7 +818,7 @@ async function seedPredictiveData() {
     }
   }
 
-  await prisma.performanceReview.createMany({ data: reviews });
+  await prisma.reviewScore.createMany({ data: reviews });
   await prisma.salaryChange.createMany({ data: salaries });
   if (surveys.length) await prisma.engagementSurvey.createMany({ data: surveys });
   await prisma.departureRiskSnapshot.createMany({ data: snapshots });

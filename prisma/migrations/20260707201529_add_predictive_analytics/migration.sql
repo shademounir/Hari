@@ -18,7 +18,9 @@ ALTER TABLE "Employee"
     ADD COLUMN "leftAt" TIMESTAMP(3);
 
 -- CreateTable
-CREATE TABLE "PerformanceReview" (
+-- Named ReviewScore (not PerformanceReview) to avoid colliding with the
+-- unrelated PerformanceReview table created by 20260707124509_scrum097_analytics_dimensions.
+CREATE TABLE "ReviewScore" (
     "id" TEXT NOT NULL,
     "employeeId" TEXT NOT NULL,
     "reviewDate" TIMESTAMP(3) NOT NULL,
@@ -26,7 +28,7 @@ CREATE TABLE "PerformanceReview" (
     "reviewerId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "PerformanceReview_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "ReviewScore_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -81,7 +83,7 @@ CREATE TABLE "DepartureRiskSnapshot" (
 );
 
 -- CreateIndex
-CREATE INDEX "PerformanceReview_employeeId_reviewDate_idx" ON "PerformanceReview"("employeeId", "reviewDate");
+CREATE INDEX "ReviewScore_employeeId_reviewDate_idx" ON "ReviewScore"("employeeId", "reviewDate");
 
 -- CreateIndex
 CREATE INDEX "SalaryChange_employeeId_effectiveDate_idx" ON "SalaryChange"("employeeId", "effectiveDate");
@@ -102,7 +104,7 @@ CREATE INDEX "DepartureRiskSnapshot_employeeId_computedAt_idx" ON "DepartureRisk
 CREATE INDEX "DepartureRiskSnapshot_band_idx" ON "DepartureRiskSnapshot"("band");
 
 -- AddForeignKey
-ALTER TABLE "PerformanceReview" ADD CONSTRAINT "PerformanceReview_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "ReviewScore" ADD CONSTRAINT "ReviewScore_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "SalaryChange" ADD CONSTRAINT "SalaryChange_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee"("id") ON DELETE CASCADE ON UPDATE CASCADE;

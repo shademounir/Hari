@@ -67,13 +67,12 @@
     "kb:manage": "Manage the knowledge base",
     "alerts:read": "View AI alerts",
     "documents:download:any": "Download any generated HR document",
-    "documents:request": "Request own HR documents"
-
+    "documents:request": "Request own HR documents",
+    "documents:request:team": "Request an HR document for a direct report",
+    "documents:validate": "Validate / reject a pending HR document request",
     "predictions:read": "View departure-risk predictions",
-    "predictions:manage": "Recalibrate the predictive model"
-
-    "documents:download:any": "Download any generated HR document"
-
+    "predictions:manage": "Recalibrate the predictive model",
+    "audit:read": "View the sensitive-action audit trail"
   },
   "leaveType": {
     "VACATION": "Vacation",
@@ -928,7 +927,67 @@
     "workCertificateTitle": "Work Certificate",
     "workCertificateDescription": "Request an automatically generated work certificate.",
     "requestWorkCertificate": "Request certificate",
+    "leaveConfirmationTitle": "Leave Confirmation",
+    "leaveConfirmationDescription": "Get a confirmation letter for one of your approved leave requests.",
+    "requestLeaveConfirmation": "Request confirmation",
+    "selectLeave": "Select an approved leave",
+    "noApprovedLeaves": "You have no approved leave request to confirm yet.",
+    "recommendationLetterTitle": "Recommendation Letter",
+    "recommendationLetterDescription": "Request an employer reference letter, validated by HR.",
+    "requestRecommendationLetter": "Request letter",
+    "hrSummaryTitle": "HR Profile Summary",
+    "hrSummaryDescription": "Get an AI-generated summary of your HR profile.",
+    "requestHrSummary": "Generate summary",
+    "mutationLetterTitle": "Mutation Letter",
+    "mutationLetterDescription": "Request an internal transfer letter for a direct report.",
+    "requestMutationLetter": "Request letter",
+    "selectTeamMember": "Select a team member",
+    "noTeamMembers": "You have no direct reports.",
     "requestSuccess": "Your request has been submitted successfully.",
-    "forbidden": "You are not allowed to access this page."
+    "forbidden": "You are not allowed to access this page.",
+    "tabs": {
+      "mine": "My requests",
+      "review": "To validate"
+    },
+    "history": "History",
+    "noDocuments": "No document requested yet.",
+    "colType": "Type",
+    "colSubject": "About",
+    "colStatus": "Status",
+    "colDate": "Requested",
+    "download": "Download",
+    "noPending": "No request awaiting validation.",
+    "approve": "Approve",
+    "reject": "Reject",
+    "rejectTitle": "Reject this request",
+    "rejectDescription": "Please explain why this request is rejected — the requester will see this note.",
+    "rejectNotePlaceholder": "Reason for rejection…",
+    "cancel": "Cancel",
+    "confirmReject": "Confirm rejection",
+    "status": {
+      "REQUESTED": "Pending",
+      "VALIDATED": "Validated",
+      "GENERATED": "Ready",
+      "DOWNLOADED": "Downloaded",
+      "REJECTED": "Rejected"
+    },
+    "type": {
+      "WORK_CERTIFICATE": "Work Certificate",
+      "LEAVE_CONFIRMATION": "Leave Confirmation",
+      "MUTATION_LETTER": "Mutation Letter",
+      "RECOMMENDATION_LETTER": "Recommendation Letter",
+      "HR_SUMMARY": "HR Profile Summary"
+    },
+    "notification": {
+      "documentReady": "Your {type} is ready",
+      "documentPending": "A {type} awaits your validation"
+    },
+    "errors": {
+      "forbidden": "You are not allowed to perform this action.",
+      "not_found": "This document or request could not be found.",
+      "invalid": "This request is invalid or already handled.",
+      "generation_failed": "The document could not be generated. Please try again.",
+      "generic": "Something went wrong. Please try again."
+    }
   }
 }

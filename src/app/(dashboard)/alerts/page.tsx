@@ -4,6 +4,7 @@ import type { AlertStatus } from "@prisma/client";
 import { requireUser } from "@/lib/session";
 import { can } from "@/lib/rbac";
 import { getAlerts, getAlertStatusCounts, alertDetail } from "@/lib/alerts";
+import { recordAuditLog } from "@/lib/audit";
 import { PageHeader } from "@/components/layout/page-header";
 import { ButtonLink } from "@/components/ui/button-link";
 import { AlertsTable, type AlertRow } from "@/components/alerts/alerts-table";
@@ -21,6 +22,15 @@ export default async function AlertsPage({
 }) {
   const user = await requireUser();
   if (!can(user.role, "alerts:read")) notFound();
+
+  // SCRUM-064: opening the console is one of the three sensitive actions the
+  // audit trail must cover. Fire-and-forget — never delays the render.
+  void recordAuditLog({
+    action: "ADMIN_ALERTS_ACCESS",
+    actorId: user.id,
+    actorRole: user.role,
+    targetType: "AlertsConsole",
+  });
 
   const { status: raw } = await searchParams;
   const status = isStatus(raw) ? raw : undefined; // undefined = "all"

@@ -34,7 +34,10 @@ export const PERMISSIONS = [
   "kb:manage", // create/edit/publish/archive KB documents & collections
   "employee:manage", // create/edit employees
   "alerts:read", // view + triage AI observability alerts (Admin/HR)
+  "audit:read", // view the sensitive-action audit trail (RSSI/Super Admin only)
   "documents:request", // request own generated HR documents
+  "documents:request:team", // request a generated HR document on behalf of a direct report (e.g. mutation letter)
+  "documents:validate", // validate/reject a pending document request (scope enforced in the data layer)
   "predictions:read", // view departure-risk predictions (managers: own team, anonymized; HR: full)
   "predictions:manage", // recalibrate model weights / thresholds (HR/Admin)
   "documents:download:any", // download any generated document (HR/Admin); employees download their own implicitly
@@ -60,7 +63,10 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   "kb:manage": "Manage the knowledge base",
   "employee:manage": "Manage employee records",
   "alerts:read": "View AI alerts",
+  "audit:read": "View the sensitive-action audit trail",
   "documents:request": "Request own HR documents",
+  "documents:request:team": "Request an HR document for a direct report",
+  "documents:validate": "Validate / reject a pending HR document request",
   "predictions:read": "View departure-risk predictions",
   "predictions:manage": "Recalibrate the predictive model",
   "documents:download:any": "Download any generated HR document",
@@ -83,6 +89,8 @@ const MANAGER: Permission[] = [
   "dashboard:read:team",
   "predictions:read", // own team only, anonymized (enforced in the data/tool layer)
   "analytics:team",
+  "documents:request:team", // e.g. a mutation letter for a direct report
+  "documents:validate", // scoped to own reports in the data layer; HR_ADMIN+ is unrestricted
 ];
 
 const HR_ADMIN: Permission[] = [
@@ -102,6 +110,7 @@ const HR_ADMIN: Permission[] = [
 const SUPER_ADMIN: Permission[] = [
   ...HR_ADMIN,
   "admin:settings",
+  "audit:read",
 ];
 
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {

@@ -67,10 +67,12 @@
     "kb:manage": "Gérer la base de connaissances",
     "alerts:read": "Voir les alertes IA",
     "documents:download:any": "Télécharger tout document RH généré",
-    "documents:request": "Demander ses propres documents RH"
+    "documents:request": "Demander ses propres documents RH",
+    "documents:request:team": "Demander un document RH pour un collaborateur direct",
+    "documents:validate": "Valider / rejeter une demande de document RH",
     "predictions:read": "Voir les prédictions de risque de départ",
-    "predictions:manage": "Recalibrer le modèle prédictif"
-    "documents:download:any": "Télécharger tout document RH généré"
+    "predictions:manage": "Recalibrer le modèle prédictif",
+    "audit:read": "Voir le journal d'audit des actions sensibles"
   },
   "leaveType": {
     "VACATION": "Congés",
@@ -925,7 +927,67 @@
     "workCertificateTitle": "Attestation de travail",
     "workCertificateDescription": "Demandez une attestation de travail générée automatiquement par les RH.",
     "requestWorkCertificate": "Demander une attestation",
+    "leaveConfirmationTitle": "Confirmation de congé",
+    "leaveConfirmationDescription": "Obtenez une lettre confirmant l'un de vos congés déjà approuvés.",
+    "requestLeaveConfirmation": "Demander la confirmation",
+    "selectLeave": "Sélectionner un congé approuvé",
+    "noApprovedLeaves": "Vous n'avez encore aucun congé approuvé à confirmer.",
+    "recommendationLetterTitle": "Lettre de recommandation",
+    "recommendationLetterDescription": "Demandez une lettre de recommandation employeur, validée par les RH.",
+    "requestRecommendationLetter": "Demander la lettre",
+    "hrSummaryTitle": "Synthèse de profil RH",
+    "hrSummaryDescription": "Obtenez une synthèse de votre profil RH générée par l'IA.",
+    "requestHrSummary": "Générer la synthèse",
+    "mutationLetterTitle": "Courrier de mutation",
+    "mutationLetterDescription": "Demandez un courrier de mutation interne pour un collaborateur direct.",
+    "requestMutationLetter": "Demander le courrier",
+    "selectTeamMember": "Sélectionner un collaborateur",
+    "noTeamMembers": "Vous n'avez aucun collaborateur direct.",
     "requestSuccess": "Votre demande a bien été enregistrée.",
-    "forbidden": "Vous n'êtes pas autorisé à accéder à cette page."
+    "forbidden": "Vous n'êtes pas autorisé à accéder à cette page.",
+    "tabs": {
+      "mine": "Mes demandes",
+      "review": "À valider"
+    },
+    "history": "Historique",
+    "noDocuments": "Aucun document demandé pour le moment.",
+    "colType": "Type",
+    "colSubject": "Concerne",
+    "colStatus": "Statut",
+    "colDate": "Demandé le",
+    "download": "Télécharger",
+    "noPending": "Aucune demande en attente de validation.",
+    "approve": "Valider",
+    "reject": "Rejeter",
+    "rejectTitle": "Rejeter cette demande",
+    "rejectDescription": "Merci d'expliquer pourquoi cette demande est rejetée — le demandeur verra cette note.",
+    "rejectNotePlaceholder": "Motif du rejet…",
+    "cancel": "Annuler",
+    "confirmReject": "Confirmer le rejet",
+    "status": {
+      "REQUESTED": "En attente",
+      "VALIDATED": "Validé",
+      "GENERATED": "Prêt",
+      "DOWNLOADED": "Téléchargé",
+      "REJECTED": "Rejeté"
+    },
+    "type": {
+      "WORK_CERTIFICATE": "Attestation de travail",
+      "LEAVE_CONFIRMATION": "Confirmation de congé",
+      "MUTATION_LETTER": "Courrier de mutation",
+      "RECOMMENDATION_LETTER": "Lettre de recommandation",
+      "HR_SUMMARY": "Synthèse de profil RH"
+    },
+    "notification": {
+      "documentReady": "Votre document « {type} » est prêt",
+      "documentPending": "Un document « {type} » attend votre validation"
+    },
+    "errors": {
+      "forbidden": "Vous n'êtes pas autorisé à effectuer cette action.",
+      "not_found": "Ce document ou cette demande est introuvable.",
+      "invalid": "Cette demande est invalide ou déjà traitée.",
+      "generation_failed": "Le document n'a pas pu être généré. Merci de réessayer.",
+      "generic": "Une erreur est survenue. Merci de réessayer."
+    }
   }
 }

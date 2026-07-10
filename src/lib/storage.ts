@@ -113,6 +113,20 @@ export async function putCover(
   return key;
 }
 
+/**
+ * Upload a generated document PDF at a deterministic key (`documents/<id>.pdf`)
+ * — unlike `putCover`, the caller controls the key so `GeneratedDocument.pdfUrl`
+ * can be derived from the document's own id. Returns the object key.
+ */
+export async function putDocumentPdf(id: string, bytes: Uint8Array | Buffer): Promise<string> {
+  await ensureBucket();
+  const key = `documents/${id}.pdf`;
+  await s3.send(
+    new PutObjectCommand({ Bucket: BUCKET, Key: key, Body: bytes, ContentType: "application/pdf" }),
+  );
+  return key;
+}
+
 /** Stream an object (body + content type), or null if it doesn't exist. */
 export async function getObject(
   key: string,

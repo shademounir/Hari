@@ -16,7 +16,7 @@ export async function GET(
   const { id } = await params;
 
   const result = await authorizeDocumentDownload(
-    { userId: session.user.id, role: session.user.role },
+    { userId: session.user.id, role: session.user.role, employeeId: session.user.employeeId },
     id,
   );
 

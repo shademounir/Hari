@@ -1,7 +1,8 @@
 import { getPendingApprovals, getMyLeaveRequests } from "@/lib/hr";
 import { getOpenAlerts, alertDetail } from "@/lib/alerts";
+import { listMyReadyDocuments, listPendingValidations } from "@/lib/documents";
 import { can, type Role } from "@/lib/rbac";
-import type { AlertKind, AlertSeverity } from "@prisma/client";
+import type { AlertKind, AlertSeverity, GeneratedDocumentType } from "@prisma/client";
 
 // Structured bell items — role-scoped, deduped, NOT localized. The client
 // (components/layout/notifications.tsx) formats the title/description with the
@@ -32,19 +33,36 @@ export type NotificationItem =
       severity: AlertSeverity;
       detail: string | null; // a code/count — never PII
       href: string;
+    }
+  | {
+      id: string;
+      kind: "documentReady"; // the caller's own document finished generating
+      documentType: GeneratedDocumentType;
+      href: string;
+    }
+  | {
+      id: string;
+      kind: "documentPending"; // a document request awaits this caller's validation
+      documentType: GeneratedDocumentType;
+      href: string;
     };
 
 export async function buildNotifications(caller: {
+  userId: string;
   role: Role;
   employeeId: string | null;
 }): Promise<NotificationItem[]> {
-  const [approvals, myRequests, alerts] = await Promise.all([
+  const [approvals, myRequests, alerts, myDocuments, pendingDocuments] = await Promise.all([
     getPendingApprovals(caller),
     caller.employeeId ? getMyLeaveRequests(caller.employeeId) : Promise.resolve([]),
     // getOpenAlerts already returns [] for roles without `alerts:read`; guard here
     // too so we skip the query entirely for the common non-admin case.
     can(caller.role, "alerts:read")
       ? getOpenAlerts({ role: caller.role })
+      : Promise.resolve([]),
+    listMyReadyDocuments(caller),
+    can(caller.role, "documents:validate")
+      ? listPendingValidations(caller)
       : Promise.resolve([]),
   ]);
 
@@ -83,6 +101,18 @@ export async function buildNotifications(caller: {
       startDate: r.startDate,
       endDate: r.endDate,
       href: "/time-off",
+    })),
+    ...pendingDocuments.map((d): NotificationItem => ({
+      id: `doc-pending-${d.id}`,
+      kind: "documentPending",
+      documentType: d.type,
+      href: "/documents",
+    })),
+    ...myDocuments.map((d): NotificationItem => ({
+      id: `doc-ready-${d.id}`,
+      kind: "documentReady",
+      documentType: d.type,
+      href: "/documents",
     })),
   ];
 }

@@ -4,29 +4,71 @@
 // We verify that the authorization helper (authorizeDocumentDownload) correctly
 // enforces the ownership + role rules and mutates the document status only on
 // the owner's first download.
-import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeAll, afterAll, beforeEach, afterEach } from "vitest";
 import { prisma } from "@/lib/prisma";
 import { can } from "@/lib/rbac";
-import { authorizeDocumentDownload, type DocumentActor } from "@/lib/documents";
+import {
+  authorizeDocumentDownload,
+  requestDocument,
+  validateDocument,
+  rejectDocument,
+  type DocumentActor,
+} from "@/lib/documents";
+
+// HR_SUMMARY generation calls the live model (lib/documents/ai-summary.ts) —
+// mocked here so the deterministic suite never needs OPENROUTER_API_KEY or
+// network, per AGENTS.md's `npm test` contract.
+vi.mock("ai", () => ({
+  generateText: vi.fn().mockResolvedValue({
+    text: "Mocked HR summary, first paragraph.\n\nMocked second paragraph.",
+  }),
+}));
 
 // ── actors ────────────────────────────────────────────────────────────────────
 // "owner" = the employee who requested the document
 // "stranger" = another employee (we reuse the manager's userId — no role check there)
 // "hr" = HR_ADMIN who can download anything
 const actors: Record<"owner" | "stranger" | "hr", DocumentActor> = {
-  owner:    { userId: "", role: "EMPLOYEE" },
-  stranger: { userId: "stranger-user-id",  role: "EMPLOYEE" },
-  hr:       { userId: "", role: "HR_ADMIN" },
+  owner:    { userId: "", role: "EMPLOYEE", employeeId: null },
+  stranger: { userId: "stranger-user-id",  role: "EMPLOYEE", employeeId: null },
+  hr:       { userId: "", role: "HR_ADMIN", employeeId: null },
+};
+
+// SCRUM-094 workflow actors: manager@hari.ma manages collaborateur@hari.ma in
+// the seed data — a real (manager, report) pair for the MUTATION_LETTER tests.
+const workflow: {
+  manager: DocumentActor;
+  collaborateur: DocumentActor;
+  collaborateurUserId: string;
+  hr: DocumentActor;
+} = {
+  manager: { userId: "", role: "MANAGER", employeeId: null },
+  collaborateur: { userId: "", role: "EMPLOYEE", employeeId: null },
+  collaborateurUserId: "",
+  hr: { userId: "", role: "HR_ADMIN", employeeId: null },
 };
 
 beforeAll(async () => {
   const users = await prisma.user.findMany({
-    where: { email: { in: ["collaborateur@hari.ma", "rh@hari.ma"] } },
-    select: { id: true, email: true },
+    where: { email: { in: ["collaborateur@hari.ma", "rh@hari.ma", "manager@hari.ma"] } },
+    select: { id: true, email: true, employee: { select: { id: true } } },
   });
   for (const u of users) {
-    if (u.email === "collaborateur@hari.ma") actors.owner.userId = u.id;
-    if (u.email === "rh@hari.ma")            actors.hr.userId    = u.id;
+    if (u.email === "collaborateur@hari.ma") {
+      actors.owner.userId = u.id;
+      workflow.collaborateur.userId = u.id;
+      workflow.collaborateur.employeeId = u.employee?.id ?? null;
+      workflow.collaborateurUserId = u.id;
+    }
+    if (u.email === "rh@hari.ma") {
+      actors.hr.userId = u.id;
+      workflow.hr.userId = u.id;
+      workflow.hr.employeeId = u.employee?.id ?? null;
+    }
+    if (u.email === "manager@hari.ma") {
+      workflow.manager.userId = u.id;
+      workflow.manager.employeeId = u.employee?.id ?? null;
+    }
   }
 });
 
@@ -145,5 +187,202 @@ describe("authorizeDocumentDownload — real DB", () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.reason).toBe("not_ready");
+  });
+});
+
+// ── SCRUM-094: full request/validate/reject workflow — real DB (+ MinIO for
+// PDF upload; the generation step calls putDocumentPdf) ────────────────────
+describe("requestDocument / validateDocument / rejectDocument — real DB", () => {
+  const createdIds: string[] = [];
+
+  afterEach(async () => {
+    if (createdIds.length) {
+      await prisma.generatedDocument.deleteMany({ where: { id: { in: createdIds } } });
+      createdIds.length = 0;
+    }
+  });
+
+  it("EMPLOYEE can request WORK_CERTIFICATE for themselves — stays REQUESTED", async () => {
+    const result = await requestDocument(workflow.collaborateur, { type: "WORK_CERTIFICATE" });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    createdIds.push(result.id);
+
+    const row = await prisma.generatedDocument.findUniqueOrThrow({ where: { id: result.id } });
+    expect(row.status).toBe("REQUESTED");
+  });
+
+  it("EMPLOYEE cannot request MUTATION_LETTER — forbidden", async () => {
+    const result = await requestDocument(workflow.collaborateur, {
+      type: "MUTATION_LETTER",
+      targetUserId: workflow.collaborateurUserId,
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toBe("forbidden");
+  });
+
+  it("MANAGER can request MUTATION_LETTER for their own report", async () => {
+    const result = await requestDocument(workflow.manager, {
+      type: "MUTATION_LETTER",
+      targetUserId: workflow.collaborateurUserId,
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    createdIds.push(result.id);
+
+    const row = await prisma.generatedDocument.findUniqueOrThrow({ where: { id: result.id } });
+    expect(row.status).toBe("REQUESTED");
+    expect(row.subjectId).toBe(workflow.collaborateurUserId);
+    expect(row.requestedById).toBe(workflow.manager.userId);
+  });
+
+  it("MANAGER cannot request MUTATION_LETTER for someone who isn't their report", async () => {
+    const result = await requestDocument(workflow.manager, {
+      type: "MUTATION_LETTER",
+      targetUserId: workflow.hr.userId,
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toBe("forbidden");
+  });
+
+  it("LEAVE_CONFIRMATION without a leaveRequestId is invalid", async () => {
+    const result = await requestDocument(workflow.collaborateur, { type: "LEAVE_CONFIRMATION" });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toBe("invalid");
+  });
+
+  it("LEAVE_CONFIRMATION for an APPROVED leave auto-generates immediately", async () => {
+    if (!workflow.collaborateur.employeeId) throw new Error("collaborateur has no Employee row");
+    const leave = await prisma.leaveRequest.create({
+      data: {
+        employeeId: workflow.collaborateur.employeeId,
+        type: "VACATION",
+        startDate: new Date("2026-08-01"),
+        endDate: new Date("2026-08-05"),
+        days: 5,
+        status: "APPROVED",
+      },
+      select: { id: true },
+    });
+
+    try {
+      const result = await requestDocument(workflow.collaborateur, {
+        type: "LEAVE_CONFIRMATION",
+        leaveRequestId: leave.id,
+      });
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      createdIds.push(result.id);
+
+      const row = await prisma.generatedDocument.findUniqueOrThrow({ where: { id: result.id } });
+      expect(row.status).toBe("GENERATED");
+      expect(row.pdfUrl).toBe(`documents/${result.id}.pdf`);
+    } finally {
+      await prisma.leaveRequest.delete({ where: { id: leave.id } }).catch(() => {});
+    }
+  });
+
+  it("LEAVE_CONFIRMATION for a PENDING (not yet approved) leave is invalid", async () => {
+    if (!workflow.collaborateur.employeeId) throw new Error("collaborateur has no Employee row");
+    const leave = await prisma.leaveRequest.create({
+      data: {
+        employeeId: workflow.collaborateur.employeeId,
+        type: "SICK",
+        startDate: new Date("2026-08-01"),
+        endDate: new Date("2026-08-02"),
+        days: 1,
+        status: "PENDING",
+      },
+      select: { id: true },
+    });
+
+    try {
+      const result = await requestDocument(workflow.collaborateur, {
+        type: "LEAVE_CONFIRMATION",
+        leaveRequestId: leave.id,
+      });
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.reason).toBe("invalid");
+    } finally {
+      await prisma.leaveRequest.delete({ where: { id: leave.id } }).catch(() => {});
+    }
+  });
+
+  it("HR_SUMMARY auto-generates via the (mocked) AI call — no validation step", async () => {
+    const result = await requestDocument(workflow.collaborateur, { type: "HR_SUMMARY" });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    createdIds.push(result.id);
+
+    const row = await prisma.generatedDocument.findUniqueOrThrow({ where: { id: result.id } });
+    expect(row.status).toBe("GENERATED");
+    expect(row.validatedById).toBeNull(); // never went through validateDocument
+  });
+
+  it("MANAGER can validate MUTATION_LETTER for their own report — generates the PDF", async () => {
+    const requested = await requestDocument(workflow.manager, {
+      type: "MUTATION_LETTER",
+      targetUserId: workflow.collaborateurUserId,
+    });
+    if (!requested.ok) throw new Error("setup: request failed");
+    createdIds.push(requested.id);
+
+    const result = await validateDocument(workflow.manager, requested.id);
+    expect(result.ok).toBe(true);
+
+    const row = await prisma.generatedDocument.findUniqueOrThrow({ where: { id: requested.id } });
+    expect(row.status).toBe("GENERATED");
+    expect(row.validatedById).toBe(workflow.manager.userId);
+  });
+
+  it("MANAGER cannot validate a WORK_CERTIFICATE, even for their own report", async () => {
+    const requested = await requestDocument(workflow.collaborateur, { type: "WORK_CERTIFICATE" });
+    if (!requested.ok) throw new Error("setup: request failed");
+    createdIds.push(requested.id);
+
+    const result = await validateDocument(workflow.manager, requested.id);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toBe("forbidden");
+  });
+
+  it("HR_ADMIN can validate a WORK_CERTIFICATE", async () => {
+    const requested = await requestDocument(workflow.collaborateur, { type: "WORK_CERTIFICATE" });
+    if (!requested.ok) throw new Error("setup: request failed");
+    createdIds.push(requested.id);
+
+    const result = await validateDocument(workflow.hr, requested.id);
+    expect(result.ok).toBe(true);
+
+    const row = await prisma.generatedDocument.findUniqueOrThrow({ where: { id: requested.id } });
+    expect(row.status).toBe("GENERATED");
+  });
+
+  it("rejectDocument requires a non-empty note", async () => {
+    const requested = await requestDocument(workflow.collaborateur, { type: "WORK_CERTIFICATE" });
+    if (!requested.ok) throw new Error("setup: request failed");
+    createdIds.push(requested.id);
+
+    const result = await rejectDocument(workflow.hr, requested.id, "   ");
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toBe("invalid");
+  });
+
+  it("HR_ADMIN can reject a request with a note — status REJECTED, note stored", async () => {
+    const requested = await requestDocument(workflow.collaborateur, { type: "WORK_CERTIFICATE" });
+    if (!requested.ok) throw new Error("setup: request failed");
+    createdIds.push(requested.id);
+
+    const result = await rejectDocument(workflow.hr, requested.id, "Missing manager sign-off");
+    expect(result.ok).toBe(true);
+
+    const row = await prisma.generatedDocument.findUniqueOrThrow({ where: { id: requested.id } });
+    expect(row.status).toBe("REJECTED");
+    expect(row.rejectionNote).toBe("Missing manager sign-off");
   });
 });

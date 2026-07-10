@@ -47,10 +47,12 @@ model User {
   alertsRaised   Alert[]      @relation("AlertSubject")
   alertsAcked    Alert[]      @relation("AlertAck")
   alertsResolved Alert[]      @relation("AlertResolved")
+  auditLogs      AuditLog[]
 
-  // HARI-88: document generation back-relations.
+  // HARI-88 / SCRUM-094: document generation back-relations.
   documentsRequested GeneratedDocument[] @relation("DocumentRequester")
   documentsValidated GeneratedDocument[] @relation("DocumentValidator")
+  documentsAbout     GeneratedDocument[] @relation("DocumentSubject")
 }
 
 /// HR profile / org data.
@@ -88,16 +90,13 @@ model Employee {
   leaveBalances     LeaveBalance[]
   leaveRequests     LeaveRequest[]          @relation("Requester")
   approvals         LeaveRequest[]          @relation("Approver")
-  reviews           PerformanceReview[]
+  reviewScores      ReviewScore[]
   salaryChanges     SalaryChange[]
   engagementSurveys EngagementSurvey[]
   riskSnapshots     DepartureRiskSnapshot[]
-  leaveBalances    LeaveBalance[]
-  leaveRequests    LeaveRequest[]      @relation("Requester")
-  approvals        LeaveRequest[]      @relation("Approver")
-  payrollSnapshots PayrollSnapshot[]
-  reviewsReceived  PerformanceReview[] @relation("ReviewSubject")
-  reviewsGiven     PerformanceReview[] @relation("Reviewer")
+  payrollSnapshots  PayrollSnapshot[]
+  reviewsReceived   PerformanceReview[]     @relation("ReviewSubject")
+  reviewsGiven      PerformanceReview[]     @relation("Reviewer")
 }
 
 model LeaveBalance {
@@ -125,6 +124,8 @@ model LeaveRequest {
   approver     Employee?   @relation("Approver", fields: [approverId], references: [id])
   approverId   String?
   createdAt    DateTime    @default(now())
+
+  generatedDocuments GeneratedDocument[]
 }
 
 /// Org-wide settings, a single row (id = "singleton"). Editable by a super admin
@@ -336,6 +337,7 @@ model AiEvent {
   reasonCode     String? // endConversation reason (CONVERSATION_CLOSED)
   meta           Json? // small structured extras — no PII
   alerts         Alert[]
+  auditLogs      AuditLog[]
 
   @@index([conversationId])
   @@index([createdAt])
@@ -392,34 +394,36 @@ model Alert {
   @@index([kind])
 }
 
-/// SCRUM-064: the sensitive actions worth recording for after-the-fact review.
+/// A sensitive action worth an audit trail entry. Deliberately short — this is
+/// NOT a general-purpose activity log, only the actions the Sprint 3 security
+/// scope calls out: a controlled AI refusal, an alert's status changing, and
+/// an Admin opening the alerts console.
 enum AuditAction {
-  ALERT_ACKNOWLEDGED
-  ALERT_RESOLVED
-  ALERT_REOPENED
-  ALERTS_CONSOLE_VIEWED
+  AI_REFUSAL // the assistant declined a sensitive/out-of-scope request (guard block or tool refusal)
+  ALERT_STATUS_CHANGE // an alert moved OPEN → ACKNOWLEDGED / RESOLVED / reopened
+  ADMIN_ALERTS_ACCESS // an Admin/HR user opened the alerts console
 }
 
-/// SCRUM-064: a minimal audit trail of sensitive admin/security actions (alert
-/// triage + alerts-console access). Metadata only — never full confidential
-/// content — mirroring the AiEvent/Alert no-PII contract. The actor and target
-/// are stored as raw ids with a denormalized role, so the trail deliberately
-/// SURVIVES user/target deletion (an audit record must persist); it soft-links
-/// to an Alert / AiEvent by id when relevant.
+/// SCRUM-064: minimal audit trail for sensitive actions. Same no-PII contract
+/// as AiEvent/Alert — never the prompt/response text, never salary or other
+/// confidential values, only actor, action, target ids and small codes. This
+/// is what lets an Admin/RSSI verify after the fact that no confidential data
+/// leaked, without the log itself becoming a new source of leakage.
 model AuditLog {
   id         String      @id @default(cuid())
   createdAt  DateTime    @default(now())
-  actorId    String? // who performed it (raw id; kept even if the user is later deleted)
-  actorRole  Role // denormalized so the trail survives user deletion
   action     AuditAction
-  targetType String? // e.g. "Alert"
-  targetId   String? // opaque id of the target — never content
-  alertId    String? // linked alert (soft reference)
-  aiEventId  String? // linked AiEvent (soft reference)
-  meta       Json? // small structured extras — no PII
+  actor      User?       @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  actorId    String?
+  actorRole  Role // denormalized, survives user deletion
+  targetType String? // e.g. "Alert" — never the row's content
+  targetId   String? // id of the target row only
+  aiEvent    AiEvent?    @relation(fields: [aiEventId], references: [id], onDelete: SetNull)
+  aiEventId  String?
+  meta       Json? // small structured extras (e.g. { rule, from, to }) — no PII
 
-  @@index([createdAt])
   @@index([action])
+  @@index([createdAt])
   @@index([actorId])
 }
 
@@ -440,7 +444,10 @@ enum RiskBand {
 
 /// Performance-review history → the "time since last review" factor. The latest
 /// row is denormalized onto Employee.lastReviewDate for the hot path.
-model PerformanceReview {
+/// Named ReviewScore (not PerformanceReview) — that name is already taken by the
+/// unrelated annual-review-coverage model above (HARI-122/124); this is a
+/// distinct SCRUM-098 signal (rating + date) feeding the departure-risk score.
+model ReviewScore {
   id         String   @id @default(cuid())
   employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   employeeId String
@@ -512,12 +519,19 @@ model DepartureRiskSnapshot {
 
   @@index([employeeId, computedAt])
   @@index([band])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 // HR document generation (HARI-88 / SCRUM-078)
 // ─────────────────────────────────────────────────────────────────────────
 
-/// Document types that can be generated. Sprint 4 supports WORK_CERTIFICATE only.
+/// Document types that can be generated (SCRUM-078, extended by SCRUM-094).
 enum GeneratedDocumentType {
   WORK_CERTIFICATE
+  LEAVE_CONFIRMATION // confirms an already-APPROVED leave request — see leaveRequestId
+  MUTATION_LETTER // role/department transfer letter — requested by a manager about a report
+  RECOMMENDATION_LETTER // employer reference letter — HR_ADMIN validation only
+  HR_SUMMARY // AI-generated profile summary — auto-generated, no validation step
 }
 
 /// Lifecycle of a generated document request.
@@ -531,15 +545,27 @@ enum GeneratedDocumentStatus {
 
 /// HARI-88 / SCRUM-078: an HR document requested by an employee (e.g. work certificate).
 /// Drives the full generation workflow: request → HR validation → PDF generation → download.
-/// PDF generation (SCRUM-081) and MinIO storage are deferred; pdfUrl is reserved for that sprint.
 model GeneratedDocument {
   id     String                  @id @default(cuid())
   type   GeneratedDocumentType
   status GeneratedDocumentStatus @default(REQUESTED)
 
-  // Requester — SetNull so the record outlives account deletion.
+  // Requester — SetNull so the record outlives account deletion. Who SUBMITTED
+  // the request; may differ from the subject (e.g. a manager requesting a
+  // MUTATION_LETTER about a report — see `subject` below).
   requestedBy   User?   @relation("DocumentRequester", fields: [requestedById], references: [id], onDelete: SetNull)
   requestedById String?
+
+  // SCRUM-094: who the document is ABOUT. Null for self-service types (subject
+  // is implicitly the requester); set when a manager requests on behalf of a
+  // report (MUTATION_LETTER). Resolve with `subjectId ?? requestedById`.
+  subject   User?   @relation("DocumentSubject", fields: [subjectId], references: [id], onDelete: SetNull)
+  subjectId String?
+
+  // SCRUM-094: for LEAVE_CONFIRMATION, the specific already-decided leave
+  // request this document confirms — drives auto-approval when APPROVED.
+  leaveRequest   LeaveRequest? @relation(fields: [leaveRequestId], references: [id], onDelete: SetNull)
+  leaveRequestId String?
 
   // HR validator — null until HR acts on the request.
   validatedBy   User?   @relation("DocumentValidator", fields: [validatedById], references: [id], onDelete: SetNull)
@@ -548,7 +574,7 @@ model GeneratedDocument {
   // Required when status = REJECTED, null otherwise.
   rejectionNote String?
 
-  // Link to the generated PDF — populated by SCRUM-081, null until then.
+  // Link to the generated PDF (MinIO object key, e.g. "documents/<id>.pdf").
   pdfUrl String?
 
   // Workflow timestamps — one per lifecycle transition.

@@ -7,12 +7,13 @@ import {
   createUIMessageStreamResponse,
   type UIMessage,
 } from "ai";
-import { randomUUID } from "node:crypto";
+import { randomUUID, createHash } from "node:crypto";
 import { auth } from "@/lib/auth";
 import { getChatModel, getAvailableChatModels, type ChatErrorCode } from "@/lib/ai/providers";
 import { buildHrTools } from "@/lib/ai/tools";
 import { recordAiEvent, type RecordAiEventInput } from "@/lib/ai/events";
 import { createAlert } from "@/lib/alerts";
+import { recordAuditLog } from "@/lib/audit";
 import { inspectUserInput } from "@/lib/ai/guardrails";
 import { classifyRequest } from "@/lib/ai/classify";
 import { prisma } from "@/lib/prisma";
@@ -39,6 +40,19 @@ function lastUserText(messages: UIMessage[]): string {
       .join("\n");
   }
   return "";
+}
+
+// SCRUM-067: a one-way, truncated fingerprint of the user's message — never
+// the text itself. Lets ops correlate "same question asked again" (e.g. for
+// the repeated-refusal signal) purely from AiEvent.meta, with no way back to
+// the original content. NOT a confidentiality guarantee for short/guessable
+// inputs (a hash of a short phrase can be brute-forced against a dictionary),
+// so this is a correlation aid, not a substitute for keeping content out of
+// the log entirely — documented limitation for Sprint 3.
+function hashText(text: string): string | null {
+  const value = (text ?? "").trim();
+  if (!value) return null;
+  return createHash("sha256").update(value).digest("hex").slice(0, 16);
 }
 
 // Map an upstream/model failure to a stable code the client localizes
@@ -118,6 +132,16 @@ export async function POST(req: Request) {
       href: "/alerts",
       subjectId: userId,
       aiEventId: eventId,
+    });
+    // SCRUM-064: a guard block is a controlled AI refusal — audit it too.
+    await recordAuditLog({
+      action: "AI_REFUSAL",
+      actorId: userId,
+      actorRole: caller.role,
+      targetType: "AiEvent",
+      targetId: eventId,
+      aiEventId: eventId,
+      meta: { rule: guard.rule, stage: "guard" },
     });
     const stream = createUIMessageStream({
       execute: ({ writer }) => {
@@ -250,7 +274,29 @@ Guidelines:
     },
     onFinish: async (event) => {
       const usage = event.totalUsage;
-      const writes = toolEvents.map((e) => recordAiEvent(e));
+
+      // SCRUM-064: tool refusals are written individually (not batched) so we
+      // keep the created AiEvent id and can link the AuditLog entry to it.
+      // Non-refusal events are still batched — this only slows down the rare
+      // "refused" path, not the common one.
+      const refusalEvents = toolEvents.filter((e) => e.kind === "REFUSAL");
+      const otherEvents = toolEvents.filter((e) => e.kind !== "REFUSAL");
+
+      const writes: Promise<unknown>[] = otherEvents.map((e) => recordAiEvent(e));
+      writes.push(
+        ...refusalEvents.map(async (e) => {
+          const eventId = await recordAiEvent(e);
+          await recordAuditLog({
+            action: "AI_REFUSAL",
+            actorId: userId,
+            actorRole: caller.role,
+            targetType: "AiEvent",
+            targetId: eventId,
+            aiEventId: eventId,
+            meta: { toolName: e.toolName ?? null, stage: "tool" },
+          });
+        }),
+      );
       writes.push(
         recordAiEvent({
           ...eventBase,
@@ -262,7 +308,11 @@ Guidelines:
           latencyMs: Date.now() - t0,
           stepCount: event.steps.length,
           finishReason: event.finishReason,
-          meta: sensitivityMeta,
+          // SCRUM-067: chat interactions are logged via a hashed fingerprint of
+          // the question, its classification (guard verdict / refusal count)
+          // and the turn's outcome (finishReason) — never the question or
+          // answer text itself.
+          meta: { ...sensitivityMeta, messageHash: hashText(userText), refusalsThisTurn },
         }),
       );
       await Promise.all(writes);

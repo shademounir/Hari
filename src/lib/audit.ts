@@ -1,117 +1,104 @@
 // ─────────────────────────────────────────────────────────────────────────
-// SCRUM-064: a minimal audit trail of SENSITIVE admin/security actions, so an
-// Admin/HR can verify after the fact that no confidential data was mishandled.
+// Sensitive-action audit trail (SCRUM-064). The single write path for
+// AuditLog — a metadata-only record of the three sensitive actions in scope
+// for Sprint 3: a controlled AI refusal, an alert's status changing, and an
+// Admin opening the alerts console.
 //
-// The sensitive actions worth recording here are the admin ones that AiEvent
-// (SCRUM-062) does NOT already cover: alert triage (acknowledge / resolve /
-// reopen) and access to the alerts console. AI interactions themselves — turns,
-// tool calls, refusals, guard blocks — are already traced by `recordAiEvent`.
+// Same no-PII contract as AiEvent (SCRUM-062) / Alert (SCRUM-063): never pass
+// prompt/response text, employee names, or salary here — only actor, action,
+// target ids, and small structured codes, so the audit trail itself can never
+// become a new source of leakage.
 //
-// The no-PII contract is the same as AiEvent/Alert: store only ids, the actor's
-// role, the action, and small structured `meta` (codes/counts) — NEVER names,
-// message content, or salary. `recordAudit` is best-effort and never throws into
-// its caller, so a failed audit write can't break the action it was recording.
-// Reads are permission-checked server-side (`alerts:read` → Admin/HR).
+// Recording is best-effort, same as recordAiEvent/createAlert: it must never
+// throw into the caller's request/response path, so every write is wrapped
+// and failures are logged, not propagated.
 // ─────────────────────────────────────────────────────────────────────────
 import type { AuditAction, Prisma, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { can } from "@/lib/rbac";
 
-/** The signed-in user performing the action being recorded. */
-export type AuditActor = { userId: string; role: Role };
-
-export type RecordAuditInput = {
+export type RecordAuditLogInput = {
   action: AuditAction;
-  /** The kind of thing acted on, e.g. "Alert". Never content. */
+  actorId?: string | null;
+  actorRole: Role;
   targetType?: string | null;
-  /** The opaque id of the target (e.g. an alert id). Never content. */
   targetId?: string | null;
-  /** Soft references to the related Alert / AiEvent, by id. */
-  alertId?: string | null;
   aiEventId?: string | null;
-  /** Small structured extras (codes/counts) — NO PII. */
   meta?: Prisma.InputJsonValue | null;
 };
 
 /**
- * Record a sensitive action. Best-effort: it swallows and logs any error and
- * returns the new id (or null), so callers can fire-and-forget without risk of
- * an audit failure breaking the action itself.
+ * Persist one audit trail entry. Returns the created row's id or null if the
+ * write failed — callers must tolerate null and never let this block the
+ * response (chat stream, server action, page render).
  */
-export async function recordAudit(
-  actor: AuditActor,
-  input: RecordAuditInput,
-): Promise<string | null> {
+export async function recordAuditLog(input: RecordAuditLogInput): Promise<string | null> {
   try {
+    const { meta, ...rest } = input;
     const row = await prisma.auditLog.create({
       data: {
-        actorId: actor.userId,
-        actorRole: actor.role,
-        action: input.action,
-        targetType: input.targetType ?? undefined,
-        targetId: input.targetId ?? undefined,
-        alertId: input.alertId ?? undefined,
-        aiEventId: input.aiEventId ?? undefined,
-        meta: input.meta ?? undefined,
+        ...rest,
+        meta: meta ?? undefined,
       },
       select: { id: true },
     });
     return row.id;
   } catch (err) {
-    console.error("[audit] record failed:", err);
+    console.error("[auditLog] record failed:", err);
     return null;
   }
 }
 
-export type AuditEntry = {
+export type AuditLogView = {
   id: string;
   createdAt: Date;
-  actorId: string | null;
-  actorRole: Role;
   action: AuditAction;
+  actorRole: Role;
+  actorName: string | null;
   targetType: string | null;
   targetId: string | null;
-  alertId: string | null;
-  aiEventId: string | null;
   meta: Record<string, unknown> | null;
 };
 
-const toEntry = (
-  r: Prisma.AuditLogGetPayload<Record<string, never>>,
-): AuditEntry => ({
-  id: r.id,
-  createdAt: r.createdAt,
-  actorId: r.actorId,
-  actorRole: r.actorRole,
-  action: r.action,
-  targetType: r.targetType,
-  targetId: r.targetId,
-  alertId: r.alertId,
-  aiEventId: r.aiEventId,
-  meta:
-    r.meta && typeof r.meta === "object" && !Array.isArray(r.meta)
-      ? (r.meta as Record<string, unknown>)
-      : null,
-});
+const toMeta = (v: Prisma.JsonValue | null): Record<string, unknown> | null =>
+  v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : null;
 
 /**
- * Read the audit trail, newest first. Gated on `alerts:read` (Admin / HR), so a
- * non-privileged caller gets an empty list — never a leak. Optionally filter by
- * action or the acting user.
+ * Read the audit trail. Gated by `audit:read` (RSSI / Super Admin only) — this
+ * is a stricter perimeter than `alerts:read`, since the audit trail is what
+ * proves after the fact that no confidential data leaked, so it's kept out of
+ * reach of the day-to-day HR_ADMIN role. Returns [] for any other role, with
+ * no DB access, same defensive pattern as getOpenAlerts/getAlerts.
  */
-export async function getAuditLog(
+export async function getAuditLogs(
   actor: { role: Role },
-  filter?: { action?: AuditAction; actorId?: string },
+  filter?: { action?: AuditAction },
   limit = 100,
-): Promise<AuditEntry[]> {
-  if (!can(actor.role, "alerts:read")) return [];
+): Promise<AuditLogView[]> {
+  if (!can(actor.role, "audit:read")) return [];
   const rows = await prisma.auditLog.findMany({
-    where: {
-      ...(filter?.action ? { action: filter.action } : {}),
-      ...(filter?.actorId ? { actorId: filter.actorId } : {}),
-    },
+    where: filter?.action ? { action: filter.action } : undefined,
     orderBy: { createdAt: "desc" },
     take: limit,
+    select: {
+      id: true,
+      createdAt: true,
+      action: true,
+      actorRole: true,
+      actor: { select: { name: true } },
+      targetType: true,
+      targetId: true,
+      meta: true,
+    },
   });
-  return rows.map(toEntry);
+  return rows.map((r) => ({
+    id: r.id,
+    createdAt: r.createdAt,
+    action: r.action,
+    actorRole: r.actorRole,
+    actorName: r.actor?.name ?? null,
+    targetType: r.targetType,
+    targetId: r.targetId,
+    meta: toMeta(r.meta),
+  }));
 }
