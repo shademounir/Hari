@@ -38,6 +38,7 @@ export const PERMISSIONS = [
   "predictions:read", // view departure-risk predictions (managers: own team, anonymized; HR: full)
   "predictions:manage", // recalibrate model weights / thresholds (HR/Admin)
   "documents:download:any", // download any generated document (HR/Admin); employees download their own implicitly
+  "documents:validate", // approve/reject a pending document request (HR/Admin)
   "admin:settings", // platform settings
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
@@ -64,6 +65,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   "predictions:read": "View departure-risk predictions",
   "predictions:manage": "Recalibrate the predictive model",
   "documents:download:any": "Download any generated HR document",
+  "documents:validate": "Approve / reject a document request",
   "admin:settings": "Manage platform settings",
 };
 
@@ -97,6 +99,7 @@ const HR_ADMIN: Permission[] = [
   "predictions:manage", // recalibration; predictions:read inherited from MANAGER
   "analytics:full",
   "documents:download:any",
+  "documents:validate",
 ];
 
 const SUPER_ADMIN: Permission[] = [

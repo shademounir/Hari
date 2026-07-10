@@ -42,7 +42,8 @@
     "audit": "Audit Log",
     "analytics": "HR Analytics",
     "teamAnalytics": "Team Analytics",
-    "documents": "Documents"
+    "documents": "Documents",
+    "documentRequests": "Document Requests"
   },
   "roles": {
     "EMPLOYEE": "Employee",
@@ -71,6 +72,7 @@
     "alerts:read": "View AI alerts",
     "documents:download:any": "Download any generated HR document",
     "documents:request": "Request own HR documents",
+    "documents:validate": "Approve / reject a document request",
     "predictions:read": "View departure-risk predictions",
     "predictions:manage": "Recalibrate the predictive model"
   },
@@ -440,7 +442,9 @@
       "EMPLOYEE_OFFBOARDED": "Employee offboarded",
       "LEAVE_APPROVED": "Leave approved",
       "LEAVE_REJECTED": "Leave rejected",
-      "AUDIT_CONSOLE_VIEWED": "Audit console viewed"
+      "AUDIT_CONSOLE_VIEWED": "Audit console viewed",
+      "DOCUMENT_VALIDATED": "Document request validated",
+      "DOCUMENT_REJECTED": "Document request rejected"
     }
   },
   "settings": {
@@ -1031,6 +1035,38 @@
     "workCertificateDescription": "Request an automatically generated work certificate.",
     "requestWorkCertificate": "Request certificate",
     "requestSuccess": "Your request has been submitted successfully.",
-    "forbidden": "You are not allowed to access this page."
+    "forbidden": "You are not allowed to access this page.",
+    "type": {
+      "WORK_CERTIFICATE": "Work certificate"
+    },
+    "requests": {
+      "title": "Document Requests",
+      "description": "Review pending HR document requests and decide whether to approve or reject them.",
+      "employee": "Employee",
+      "type": "Type",
+      "requestedOn": "Requested on",
+      "actions": "Actions",
+      "approve": "Approve",
+      "reject": "Reject",
+      "noPending": "No pending requests.",
+      "rejectDialog": {
+        "title": "Reject request",
+        "description": "Explain why this request is being rejected. The employee will see this note.",
+        "placeholder": "Reason for rejection…"
+      },
+      "toast": {
+        "approved": "Request approved and PDF generated.",
+        "approvedPending": "Request approved — PDF generation is pending.",
+        "rejected": "Request rejected.",
+        "failed": "Something went wrong."
+      }
+    },
+    "certificate": {
+      "heading": "Work Certificate",
+      "issuedOn": "Issued on {date}",
+      "bodyActive": "This certifies that {name}, employed as {title} in the {department} department, has been a member of our staff since {startDate} and remains an active employee as of this certificate's issue date.",
+      "bodyTerminated": "This certifies that {name} was employed as {title} in the {department} department from {startDate} to {endDate}.",
+      "footer": "This document is generated automatically and is valid without a signature."
+    }
   }
 }

@@ -499,3 +499,68 @@ export async function bulkDecideLeaveRequests(
   });
   return res.count;
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// SCRUM-080: HR validation of a requested GeneratedDocument (HARI-88/HARI-90).
+// `documents:validate` is HR_ADMIN/SUPER_ADMIN only and — unlike leave approval —
+// isn't team-scoped: any HR holder may decide on any request, so no extra
+// directoryWhere-style predicate is needed beyond the permission check itself.
+// ─────────────────────────────────────────────────────────────────────────
+
+export type DocumentRequestView = {
+  id: string;
+  employeeName: string;
+  type: string;
+  requestedAt: string;
+};
+
+/** REQUESTED documents awaiting an HR decision. Empty unless the caller may validate. */
+export async function getPendingDocumentRequests(caller: Caller): Promise<DocumentRequestView[]> {
+  if (!can(caller.role, "documents:validate")) return [];
+
+  const rows = await prisma.generatedDocument.findMany({
+    where: { status: "REQUESTED" },
+    include: { requestedBy: { select: { name: true } } },
+    orderBy: { requestedAt: "asc" },
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    employeeName: r.requestedBy?.name ?? "—",
+    type: r.type,
+    requestedAt: r.requestedAt.toISOString().slice(0, 10),
+  }));
+}
+
+export type DocumentDecision = "VALIDATED" | "REJECTED";
+
+/**
+ * Approve or reject a REQUESTED document. Implemented as a scoped `updateMany`
+ * (status must still be REQUESTED) so a stale, already-decided, or nonexistent
+ * id matches zero rows and mutates nothing — same fail-quiet invariant as
+ * `decideLeaveRequest`. `validatorUserId` stamps `validatedById` (a User FK,
+ * unlike leave's Employee-scoped `approverId`) — resolved by the caller from the
+ * DB, not the JWT cache, mirroring `requestWorkCertificate`. A rejection requires
+ * a non-empty `note` (enforced by the caller, not here). Returns true iff the
+ * document transitioned.
+ */
+export async function decideDocumentRequest(
+  caller: Caller,
+  validatorUserId: string,
+  documentId: string,
+  decision: DocumentDecision,
+  note?: string | null,
+): Promise<boolean> {
+  if (!can(caller.role, "documents:validate")) return false;
+
+  const res = await prisma.generatedDocument.updateMany({
+    where: { id: documentId, status: "REQUESTED" },
+    data: {
+      status: decision,
+      validatedById: validatorUserId,
+      validatedAt: decision === "VALIDATED" ? new Date() : undefined,
+      rejectedAt: decision === "REJECTED" ? new Date() : undefined,
+      rejectionNote: decision === "REJECTED" ? (note?.trim() ? note.trim() : null) : null,
+    },
+  });
+  return res.count > 0;
+}

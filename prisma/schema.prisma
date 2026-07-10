@@ -409,6 +409,9 @@ enum AuditAction {
   LEAVE_APPROVED
   LEAVE_REJECTED
   AUDIT_CONSOLE_VIEWED
+  // SCRUM-080: HR decision on a generated-document request.
+  DOCUMENT_VALIDATED
+  DOCUMENT_REJECTED
 }
 
 /// SCRUM-064: a minimal audit trail of sensitive admin/security actions (alert

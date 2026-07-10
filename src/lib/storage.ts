@@ -8,9 +8,11 @@ import {
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 
-// S3-compatible object storage (MinIO in dev) for Knowledge Base cover images.
-// The bucket is PRIVATE — images are only ever served through the same-origin
-// proxy route (src/app/api/kb/images/[...key]/route.ts), never exposed directly.
+// S3-compatible object storage (MinIO in dev) for Knowledge Base cover images
+// and (SCRUM-081) generated HR document PDFs. The bucket is PRIVATE — objects
+// are only ever served through a same-origin proxy route (KB covers:
+// src/app/api/kb/images/[...key]/route.ts; documents:
+// src/app/api/documents/[id]/download/route.ts), never exposed directly.
 // Server-only: reads S3_* secrets and uses the AWS SDK, so it must not be
 // imported into any client component.
 
@@ -109,6 +111,16 @@ export async function putCover(
   const key = `covers/${randomUUID()}.${extFor(contentType)}`;
   await s3.send(
     new PutObjectCommand({ Bucket: BUCKET, Key: key, Body: bytes, ContentType: contentType }),
+  );
+  return key;
+}
+
+/** Upload a generated document PDF; returns the object key (`documents/<uuid>.pdf`). */
+export async function putDocument(bytes: Uint8Array | Buffer): Promise<string> {
+  await ensureBucket();
+  const key = `documents/${randomUUID()}.pdf`;
+  await s3.send(
+    new PutObjectCommand({ Bucket: BUCKET, Key: key, Body: bytes, ContentType: "application/pdf" }),
   );
   return key;
 }

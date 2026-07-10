@@ -42,7 +42,8 @@
     "audit": "Journal d'audit",
     "analytics": "Analytique RH",
     "teamAnalytics": "Analytique équipe",
-    "documents": "Documents"
+    "documents": "Documents",
+    "documentRequests": "Demandes de documents"
   },
   "roles": {
     "EMPLOYEE": "Collaborateur",
@@ -71,6 +72,7 @@
     "alerts:read": "Voir les alertes IA",
     "documents:download:any": "Télécharger tout document RH généré",
     "documents:request": "Demander ses propres documents RH",
+    "documents:validate": "Approuver / refuser une demande de document",
     "predictions:read": "Voir les prédictions de risque de départ",
     "predictions:manage": "Recalibrer le modèle prédictif"
   },
@@ -440,7 +442,9 @@
       "EMPLOYEE_OFFBOARDED": "Employé archivé",
       "LEAVE_APPROVED": "Congé approuvé",
       "LEAVE_REJECTED": "Congé refusé",
-      "AUDIT_CONSOLE_VIEWED": "Journal d'audit consulté"
+      "AUDIT_CONSOLE_VIEWED": "Journal d'audit consulté",
+      "DOCUMENT_VALIDATED": "Demande de document validée",
+      "DOCUMENT_REJECTED": "Demande de document refusée"
     }
   },
   "settings": {
@@ -1031,6 +1035,38 @@
     "workCertificateDescription": "Demandez une attestation de travail générée automatiquement par les RH.",
     "requestWorkCertificate": "Demander une attestation",
     "requestSuccess": "Votre demande a bien été enregistrée.",
-    "forbidden": "Vous n'êtes pas autorisé à accéder à cette page."
+    "forbidden": "Vous n'êtes pas autorisé à accéder à cette page.",
+    "type": {
+      "WORK_CERTIFICATE": "Attestation de travail"
+    },
+    "requests": {
+      "title": "Demandes de documents",
+      "description": "Consultez les demandes de documents RH en attente et décidez de les approuver ou de les refuser.",
+      "employee": "Collaborateur",
+      "type": "Type",
+      "requestedOn": "Demandé le",
+      "actions": "Actions",
+      "approve": "Approuver",
+      "reject": "Refuser",
+      "noPending": "Aucune demande en attente.",
+      "rejectDialog": {
+        "title": "Refuser la demande",
+        "description": "Expliquez pourquoi cette demande est refusée. Le collaborateur verra cette note.",
+        "placeholder": "Motif du refus…"
+      },
+      "toast": {
+        "approved": "Demande approuvée et PDF généré.",
+        "approvedPending": "Demande approuvée — génération du PDF en attente.",
+        "rejected": "Demande refusée.",
+        "failed": "Une erreur est survenue."
+      }
+    },
+    "certificate": {
+      "heading": "Attestation de travail",
+      "issuedOn": "Délivrée le {date}",
+      "bodyActive": "Nous certifions que {name}, occupant le poste de {title} au sein du département {department}, est employé(e) par notre entreprise depuis le {startDate} et demeure un collaborateur actif à la date de délivrance de la présente attestation.",
+      "bodyTerminated": "Nous certifions que {name} a occupé le poste de {title} au sein du département {department} du {startDate} au {endDate}.",
+      "footer": "Ce document est généré automatiquement et est valable sans signature."
+    }
   }
 }

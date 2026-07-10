@@ -15,6 +15,8 @@
 import { prisma } from "@/lib/prisma";
 import { can } from "@/lib/rbac";
 import type { Role } from "@/lib/rbac";
+import { renderWorkCertificatePdf } from "@/lib/pdf/work-certificate";
+import { putDocument } from "@/lib/storage";
 
 export type DocumentActor = { userId: string; role: Role };
 
@@ -71,4 +73,64 @@ export async function authorizeDocumentDownload(
   }
 
   return { ok: true, pdfUrl: doc.pdfUrl, isFirstDownload };
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// SCRUM-081: server-side PDF generation, triggered right after HR validation
+// (SCRUM-080). Only WORK_CERTIFICATE is supported in Sprint 4. Never throws —
+// a generation failure leaves the document VALIDATED (so HR can see it's still
+// pending and retry) and logs server-side only, never surfacing internals to
+// the requester or the caller, matching "no sensitive technical detail" (AC).
+// ─────────────────────────────────────────────────────────────────────────
+export type GenerationResult = { ok: boolean };
+
+/**
+ * Render + store the PDF for a VALIDATED document, then flip it to GENERATED.
+ * Fetches the requester's employee record itself (not passed in) so the source
+ * of truth for name/title/department/dates is always the current DB row, not
+ * whatever the caller happened to have in hand.
+ */
+export async function generateAndStoreWorkCertificate(documentId: string): Promise<GenerationResult> {
+  const doc = await prisma.generatedDocument.findUnique({
+    where: { id: documentId },
+    select: {
+      id: true,
+      type: true,
+      status: true,
+      requestedBy: {
+        select: {
+          name: true,
+          employee: {
+            select: { title: true, department: true, startDate: true, terminationDate: true },
+          },
+        },
+      },
+    },
+  });
+
+  if (!doc || doc.status !== "VALIDATED" || doc.type !== "WORK_CERTIFICATE") {
+    return { ok: false };
+  }
+  const employee = doc.requestedBy?.employee;
+  if (!doc.requestedBy || !employee) return { ok: false };
+
+  try {
+    const pdf = await renderWorkCertificatePdf({
+      employeeName: doc.requestedBy.name,
+      title: employee.title,
+      department: employee.department,
+      startDate: employee.startDate,
+      terminationDate: employee.terminationDate,
+    });
+    const key = await putDocument(pdf);
+
+    const res = await prisma.generatedDocument.updateMany({
+      where: { id: documentId, status: "VALIDATED" },
+      data: { status: "GENERATED", pdfUrl: key, generatedAt: new Date() },
+    });
+    return { ok: res.count > 0 };
+  } catch (err) {
+    console.error("[documents] PDF generation failed:", err);
+    return { ok: false };
+  }
 }
