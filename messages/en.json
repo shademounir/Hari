@@ -39,6 +39,7 @@
     "breadcrumb": "Breadcrumb",
     "userMenu": "Account menu",
     "alerts": "Alerts",
+    "audit": "Audit Log",
     "analytics": "HR Analytics",
     "teamAnalytics": "Team Analytics",
     "documents": "Documents"
@@ -417,6 +418,29 @@
       "documentation": "Archive documentation and files",
       "exitInterview": "Conduct exit interview",
       "offboardingLetter": "Issue offboarding letter"
+    }
+  },
+  "audit": {
+    "title": "Audit Log",
+    "description": "The compliance trail of sensitive actions — metadata only, never content.",
+    "filterLabel": "Filter by action",
+    "filterAll": "All",
+    "empty": "No audit entries to show.",
+    "colTime": "Time (UTC)",
+    "colActor": "Actor",
+    "colAction": "Action",
+    "colTarget": "Target",
+    "actions": {
+      "ALERT_ACKNOWLEDGED": "Alert acknowledged",
+      "ALERT_RESOLVED": "Alert resolved",
+      "ALERT_REOPENED": "Alert reopened",
+      "ALERTS_CONSOLE_VIEWED": "Alerts console viewed",
+      "OFFBOARDING_INITIATED": "Offboarding started",
+      "OFFBOARDING_STEP_COMPLETED": "Offboarding step completed",
+      "EMPLOYEE_OFFBOARDED": "Employee offboarded",
+      "LEAVE_APPROVED": "Leave approved",
+      "LEAVE_REJECTED": "Leave rejected",
+      "AUDIT_CONSOLE_VIEWED": "Audit console viewed"
     }
   },
   "settings": {

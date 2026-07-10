@@ -405,6 +405,10 @@ enum AuditAction {
   OFFBOARDING_INITIATED
   OFFBOARDING_STEP_COMPLETED
   EMPLOYEE_OFFBOARDED
+  // SCRUM-100: further significant actions + access to the audit console itself.
+  LEAVE_APPROVED
+  LEAVE_REJECTED
+  AUDIT_CONSOLE_VIEWED
 }
 
 /// SCRUM-064: a minimal audit trail of sensitive admin/security actions (alert

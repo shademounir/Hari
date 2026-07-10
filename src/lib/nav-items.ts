@@ -8,6 +8,7 @@ import {
   UserMinus,
   BookOpen,
   BellRing,
+  ScrollText,
   Gauge,
   Activity,
   BarChart3,
@@ -37,6 +38,7 @@ export type NavKey =
   | "documents"
   | "knowledgeBase"
   | "alerts"
+  | "audit"
   | "settings";
 
 type SettingsKey = (typeof SETTINGS_SECTIONS)[number]["key"];
@@ -86,6 +88,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/documents", key: "documents", icon: FileText, permission: "documents:request" },
   { href: "/kb", key: "knowledgeBase", icon: BookOpen },
   { href: "/alerts", key: "alerts", icon: BellRing, permission: "alerts:read" },
+  { href: "/audit", key: "audit", icon: ScrollText, permission: "alerts:read" },
   {
     href: "/settings",
     key: "settings",
