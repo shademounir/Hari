@@ -1039,6 +1039,22 @@
     "type": {
       "WORK_CERTIFICATE": "Attestation de travail"
     },
+    "status": {
+      "REQUESTED": "Demandée",
+      "VALIDATED": "Validée",
+      "GENERATED": "Générée",
+      "DOWNLOADED": "Téléchargée",
+      "REJECTED": "Refusée"
+    },
+    "myRequests": {
+      "title": "Mes demandes",
+      "type": "Type",
+      "requestedOn": "Demandé le",
+      "status": "Statut",
+      "actions": "Actions",
+      "download": "Télécharger",
+      "rejectionReason": "Motif : {note}"
+    },
     "requests": {
       "title": "Demandes de documents",
       "description": "Consultez les demandes de documents RH en attente et décidez de les approuver ou de les refuser.",

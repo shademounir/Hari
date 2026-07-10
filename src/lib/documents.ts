@@ -17,6 +17,12 @@ import { can } from "@/lib/rbac";
 import type { Role } from "@/lib/rbac";
 import { renderWorkCertificatePdf } from "@/lib/pdf/work-certificate";
 import { putDocument } from "@/lib/storage";
+import { locales, defaultLocale, type Locale } from "@/i18n/routing";
+
+/** Narrow a stored (untrusted-by-type, since it's a plain DB string) locale. */
+function asLocale(value: string): Locale {
+  return (locales as readonly string[]).includes(value) ? (value as Locale) : defaultLocale;
+}
 
 export type DocumentActor = { userId: string; role: Role };
 
@@ -97,6 +103,7 @@ export async function generateAndStoreWorkCertificate(documentId: string): Promi
       id: true,
       type: true,
       status: true,
+      locale: true,
       requestedBy: {
         select: {
           name: true,
@@ -121,6 +128,7 @@ export async function generateAndStoreWorkCertificate(documentId: string): Promi
       department: employee.department,
       startDate: employee.startDate,
       terminationDate: employee.terminationDate,
+      locale: asLocale(doc.locale),
     });
     const key = await putDocument(pdf);
 
@@ -133,4 +141,33 @@ export async function generateAndStoreWorkCertificate(documentId: string): Promi
     console.error("[documents] PDF generation failed:", err);
     return { ok: false };
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// The requester's own view of their document requests (status, rejection
+// note, download once ready). Scoped by ownership alone — every employee may
+// see their own requests regardless of role, mirroring `documents:request`.
+// ─────────────────────────────────────────────────────────────────────────
+export type MyDocumentView = {
+  id: string;
+  type: string;
+  status: string;
+  requestedAt: string;
+  rejectionNote: string | null;
+};
+
+/** The caller's own document requests, newest first. */
+export async function getMyDocumentRequests(userId: string): Promise<MyDocumentView[]> {
+  const rows = await prisma.generatedDocument.findMany({
+    where: { requestedById: userId },
+    orderBy: { requestedAt: "desc" },
+    select: { id: true, type: true, status: true, requestedAt: true, rejectionNote: true },
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    type: r.type,
+    status: r.status,
+    requestedAt: r.requestedAt.toISOString().slice(0, 10),
+    rejectionNote: r.rejectionNote,
+  }));
 }

@@ -2,12 +2,16 @@
 // SCRUM-081: server-side rendering of the work-certificate PDF (the only
 // GeneratedDocumentType Sprint 4 supports). Pure w.r.t. its input — no Prisma,
 // no storage — so the caller (lib/documents.ts) owns fetching + persisting.
-// Localized via next-intl (cookie-based locale, no URL prefix), consistent with
-// the app's mandatory-i18n rule: every user-facing string is a message key
-// under `documents.certificate` (messages/{en,fr}.json), never a literal here.
+// Localized via next-intl, consistent with the app's mandatory-i18n rule: every
+// user-facing string is a message key under `documents.certificate`
+// (messages/{en,fr}.json), never a literal here. `locale` is passed in
+// explicitly (the requester's, captured at request time) rather than read via
+// `getLocale()` — the current request's cookie would instead reflect whoever
+// happens to be validating the request (an HR admin), not the requester.
 // ─────────────────────────────────────────────────────────────────────────
 import PDFDocument from "pdfkit";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+import type { Locale } from "@/i18n/routing";
 
 export type WorkCertificateInput = {
   employeeName: string;
@@ -16,6 +20,7 @@ export type WorkCertificateInput = {
   startDate: Date;
   /** Set only for a former employee (Employee.status === "TERMINATED"). */
   terminationDate: Date | null;
+  locale: Locale;
 };
 
 function formatDate(date: Date, locale: string): string {
@@ -24,9 +29,9 @@ function formatDate(date: Date, locale: string): string {
   );
 }
 
-/** Render a work certificate as PDF bytes. */
+/** Render a work certificate as PDF bytes, in `input.locale`. */
 export async function renderWorkCertificatePdf(input: WorkCertificateInput): Promise<Buffer> {
-  const locale = await getLocale();
+  const { locale } = input;
   const t = await getTranslations({ locale, namespace: "documents.certificate" });
 
   const body = input.terminationDate

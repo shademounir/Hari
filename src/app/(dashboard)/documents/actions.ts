@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { can } from "@/lib/rbac";
 import { requireUser } from "@/lib/session";
+import { getUserLocale } from "@/i18n/locale";
 
 export async function requestWorkCertificate() {
   const user = await requireUser();
@@ -24,11 +25,17 @@ export async function requestWorkCertificate() {
   });
   if (!dbUser) redirect("/login");
 
+  // Captured now so the eventual certificate (SCRUM-081) renders in the
+  // requester's own language, not whichever HR admin later clicks Approve —
+  // the app only has a per-browser locale cookie, no per-account preference.
+  const locale = await getUserLocale();
+
   await prisma.generatedDocument.create({
     data: {
       type: "WORK_CERTIFICATE",
       status: "REQUESTED",
       requestedById: dbUser.id,
+      locale,
     },
   });
 

@@ -648,6 +648,12 @@ model GeneratedDocument {
   // Required when status = REJECTED, null otherwise.
   rejectionNote String?
 
+  // SCRUM-081: the requester's locale at request time (not whoever happens to
+  // validate) — the app only has a per-browser cookie, no per-account locale,
+  // so this is captured once and used to render the certificate in the
+  // requester's own language regardless of who approves it.
+  locale String @default("en")
+
   // Link to the generated PDF — populated by SCRUM-081, null until then.
   pdfUrl String?
 

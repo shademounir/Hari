@@ -4,7 +4,6 @@
 import { describe, it, expect, vi } from "vitest";
 
 vi.mock("next-intl/server", () => ({
-  getLocale: vi.fn(async () => "en"),
   getTranslations: vi.fn(async () => {
     const dict: Record<string, string> = {
       heading: "Work Certificate",
@@ -33,6 +32,7 @@ describe("renderWorkCertificatePdf", () => {
       department: "Engineering",
       startDate: new Date("2020-01-01"),
       terminationDate: null,
+      locale: "en",
     });
     expect(Buffer.isBuffer(buf)).toBe(true);
     expect(buf.length).toBeGreaterThan(0);
@@ -46,6 +46,7 @@ describe("renderWorkCertificatePdf", () => {
       department: "Finance",
       startDate: new Date("2018-06-01"),
       terminationDate: new Date("2023-09-30"),
+      locale: "fr",
     });
     expect(buf.subarray(0, 5).toString("latin1")).toBe("%PDF-");
   });

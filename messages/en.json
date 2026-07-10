@@ -1039,6 +1039,22 @@
     "type": {
       "WORK_CERTIFICATE": "Work certificate"
     },
+    "status": {
+      "REQUESTED": "Requested",
+      "VALIDATED": "Validated",
+      "GENERATED": "Generated",
+      "DOWNLOADED": "Downloaded",
+      "REJECTED": "Rejected"
+    },
+    "myRequests": {
+      "title": "My requests",
+      "type": "Type",
+      "requestedOn": "Requested on",
+      "status": "Status",
+      "actions": "Actions",
+      "download": "Download",
+      "rejectionReason": "Reason: {note}"
+    },
     "requests": {
       "title": "Document Requests",
       "description": "Review pending HR document requests and decide whether to approve or reject them.",
