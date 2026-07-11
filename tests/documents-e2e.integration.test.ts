@@ -5,9 +5,9 @@
 // stay fast), this exercises the REAL pipeline — actual pdf-lib rendering +
 // actual MinIO upload — against the same Postgres + MinIO CI already spins up
 // for the KB-cover seed (see .github/workflows/test.yml), so it catches
-// integration bugs the mocked unit tests can't (this is exactly how the
-// requester-locale bug was confirmed: by reading the generated PDF's actual
-// bytes back out of MinIO).
+// integration bugs the mocked unit tests can't: the generated object is read
+// back out of MinIO to prove the upload actually landed with the right
+// content-type and a valid `%PDF-` header (a wiring/storage bug a mock hides).
 //
 // next-intl/server is still mocked: `getTranslations` refuses to run outside
 // an actual Next.js server-component request under Vitest's module
