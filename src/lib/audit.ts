@@ -13,9 +13,18 @@
 // its caller, so a failed audit write can't break the action it was recording.
 // Reads are permission-checked server-side (`alerts:read` → Admin/HR).
 // ─────────────────────────────────────────────────────────────────────────
-import type { AuditAction, Prisma, Role } from "@prisma/client";
+import { AuditAction } from "@prisma/client";
+import type { Prisma, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { can } from "@/lib/rbac";
+
+/** All audit actions, for the console's filter UI. Runtime enum values. */
+export const AUDIT_ACTIONS = Object.values(AuditAction) as AuditAction[];
+
+/** Narrow an untrusted string (e.g. a search param) to a known AuditAction. */
+export function asAuditAction(v: string | null | undefined): AuditAction | undefined {
+  return v && (AUDIT_ACTIONS as string[]).includes(v) ? (v as AuditAction) : undefined;
+}
 
 /** The signed-in user performing the action being recorded. */
 export type AuditActor = { userId: string; role: Role };

@@ -4,8 +4,11 @@ import {
   Bot,
   Users,
   CalendarDays,
+  ClipboardCheck,
+  UserMinus,
   BookOpen,
   BellRing,
+  ScrollText,
   Gauge,
   Activity,
   BarChart3,
@@ -30,10 +33,14 @@ export type NavKey =
   | "predictions"
   | "analytics"
   | "teamAnalytics"
+  | "engagement"
   | "timeOff"
+  | "onboarding"
+  | "offboarding"
   | "documents"
   | "knowledgeBase"
   | "alerts"
+  | "audit"
   | "settings";
 
 type SettingsKey = (typeof SETTINGS_SECTIONS)[number]["key"];
@@ -70,6 +77,7 @@ export const NAV_ITEMS: NavItem[] = [
       // Manager-scoped, anonymized departure-risk. HR holds predictions:read too but
       // is redirected to the full board by the page, so this reads as the manager surface.
       { href: "/team/predictions", ns: "nav", key: "teamPredictions", permission: "predictions:read" },
+      { href: "/team/engagement", ns: "nav", key: "engagement", permission: "engagement:read:team" },
     ],
   },
   { href: "/hr-activity", key: "hrActivity", icon: Activity, permission: "dashboard:read:company" },
@@ -83,9 +91,12 @@ export const NAV_ITEMS: NavItem[] = [
     ],
   },
   { href: "/time-off", key: "timeOff", icon: CalendarDays },
+  { href: "/onboarding", key: "onboarding", icon: ClipboardCheck },
+  { href: "/offboarding", key: "offboarding", icon: UserMinus, permission: "employee:manage" },
   { href: "/documents", key: "documents", icon: FileText, permission: "documents:request" },
   { href: "/kb", key: "knowledgeBase", icon: BookOpen },
   { href: "/alerts", key: "alerts", icon: BellRing, permission: "alerts:read" },
+  { href: "/audit", key: "audit", icon: ScrollText, permission: "alerts:read" },
   {
     href: "/settings",
     key: "settings",

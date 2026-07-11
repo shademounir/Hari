@@ -27,6 +27,7 @@ import {
   getPredictionCandidates,
   scoreCandidates,
 } from "@/lib/predictive/data-layer";
+import { getEngagementBoard } from "@/lib/engagement/data-layer";
 import { isoDateInTimeZone } from "@/lib/datetime";
 
 export type ToolCaller = {
@@ -502,6 +503,76 @@ function buildAllHrTools(caller: ToolCaller, timezone = "UTC") {
         };
       }),
     }),
+
+    // ── Engagement / burnout risk (SCRUM-099) ───────────────────────────
+    // Privacy boundaries are enforced server-side, NOT in the prompt:
+    //   • SCOPE — getEngagementBoard() gives a manager ONLY their direct reports;
+    //     HR/Admin get the company. A caller can never see outside their scope.
+    //   • SELF — the caller's own row is excluded at the query layer, AND an
+    //     explicit self-query is refused with a GENERIC message so the tool never
+    //     confirms or denies that the caller has a score of their own.
+    //   • NAMES — only an opaque employeeId (+ department + factor keys) reaches
+    //     the model; the UI resolves id→name with RBAC. Never a name or raw note.
+    getEngagementRisk: tool({
+      description:
+        "Find employees at risk of burnout or disengagement. Returns each person as an opaque employee id (NOT a name) with their engagement band (GREEN/YELLOW/ORANGE/RED), the 2-D quadrant (BURNOUT/BOREOUT/STRAINED/ENGAGED), and the top factor keys that dragged the score down. A MANAGER sees ONLY their own direct reports; HR/Admins see the whole company. Names are never provided — refer to people by department + quadrant and present findings SUPPORTIVELY (this is to offer support, not to blame or punish). Use for 'who is at risk of burnout / disengagement / boreout / wellbeing' questions. You cannot look up the current user's own engagement.",
+      inputSchema: z.object({
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(10)
+          .nullish()
+          .describe("How many at-risk people to return (default 5)."),
+        quadrant: ciEnum(["ENGAGED", "BURNOUT", "BOREOUT", "STRAINED"])
+          .nullish()
+          .describe("Optional: restrict to one 2-D quadrant, e.g. BURNOUT."),
+        employeeId: z
+          .string()
+          .nullish()
+          .describe("Optional: check one specific employee by id. Must not be the current user."),
+      }),
+      execute: withPermission(caller, "engagement:read:team", async ({ limit, quadrant, employeeId }) => {
+        // SELF-QUERY REJECTION — a generic refusal that leaks nothing about whether
+        // the caller has a score (must be identical to the out-of-scope refusal).
+        if (employeeId && caller.employeeId && employeeId === caller.employeeId) {
+          return refused("I can't provide engagement information for that person.");
+        }
+
+        const board = await getEngagementBoard(caller); // scope-enforced + self-excluded
+        const companyWide = can(caller.role, "engagement:read:all");
+        const scope = companyWide ? "company" : "team";
+
+        // Opaque id + department + factor KEYS only — never a name, title, or raw value.
+        const toEntry = (r: (typeof board)[number]) => ({
+          employeeId: r.employeeId,
+          department: r.department,
+          score: r.score,
+          band: r.band,
+          quadrant: r.quadrant,
+          exhaustion: r.exhaustion,
+          disengagement: r.disengagement,
+          topFactors: r.topFactorKeys,
+        });
+
+        if (employeeId) {
+          const row = board.find((r) => r.employeeId === employeeId);
+          // Out-of-scope OR no data → the SAME generic refusal, so the model can't
+          // distinguish "not on your team" from "no score" from "themselves".
+          if (!row) return refused("I can't provide engagement information for that person.");
+          return { scope, employee: toEntry(row) };
+        }
+
+        const filtered = quadrant ? board.filter((r) => r.quadrant === quadrant) : board;
+        return {
+          scope,
+          totalEvaluated: board.length,
+          atRiskCount: board.filter((r) => r.band === "ORANGE" || r.band === "RED").length,
+          results: filtered.slice(0, limit ?? 5).map(toEntry),
+          note: "Names are intentionally omitted. Refer to people by department + quadrant, and frame this as who may need SUPPORT — never as blame.",
+        };
+      }),
+    }),
   };
 }
 
@@ -533,6 +604,7 @@ export const TOOL_CATALOGUE = [
   // `employeeId` target is unlocked separately by `payslip:read:any` (above).
   { name: "getPayslip", permission: "payslip:read:self" },
   { name: "predictDepartures", permission: "predictions:read" },
+  { name: "getEngagementRisk", permission: "engagement:read:team" },
 ] as const satisfies readonly { name: ToolName; permission: Permission | null }[];
 
 /** Does this role get the catalogue entry? `null` permission = always (utility). */

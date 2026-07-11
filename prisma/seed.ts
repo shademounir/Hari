@@ -25,6 +25,7 @@ import {
   type DepartureRiskInput,
 } from "../src/lib/predictive/departure-risk";
 import { seedAnalytics } from "./analytics-seed";
+import { seedEngagement } from "./engagement-seed";
 
 // Seed corpus is authored in markdown for readability; store it as HTML (the
 // editor + reader work in HTML). Seed-only, so it lives here rather than in the
@@ -852,6 +853,7 @@ async function main() {
   await seedTeamActivity(prisma);
   await seedPredictiveData();
   await seedAnalytics(prisma);
+  await seedEngagement(prisma);
   await seedKnowledgeBase();
 }
 
