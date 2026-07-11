@@ -2,16 +2,26 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getLocale } from "next-intl/server";
 
 import { prisma } from "@/lib/prisma";
 import { can } from "@/lib/rbac";
 import { requireUser } from "@/lib/session";
+import { getUserLocale } from "@/i18n/locale";
 import {
   generateWorkCertificate,
   rejectDocumentRequest,
   type FulfillResult,
 } from "@/lib/documents";
+
+// Re-resolve the User id from the DB (email is stable across re-seeds) instead
+// of trusting the JWT-cached id, which can dangle after a `db:reset` and would
+// otherwise violate a GeneratedDocument FK (both requestedById and
+// validatedById target User). Same defense as resolveCaller() in lib/hr.ts.
+async function resolveActingUserId(email: string): Promise<string> {
+  const dbUser = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+  if (!dbUser) redirect("/login");
+  return dbUser.id;
+}
 
 export async function requestWorkCertificate() {
   const user = await requireUser();
@@ -20,21 +30,19 @@ export async function requestWorkCertificate() {
     redirect("/");
   }
 
-  // Re-resolve the User id from the DB (email is stable across re-seeds) instead
-  // of trusting the JWT-cached id, which can dangle after a `db:reset` and would
-  // otherwise violate GeneratedDocument_requestedById_fkey (the FK targets User).
-  // Same defense as resolveCaller() in lib/hr.ts.
-  const dbUser = await prisma.user.findUnique({
-    where: { email: user.email },
-    select: { id: true },
-  });
-  if (!dbUser) redirect("/login");
+  const userId = await resolveActingUserId(user.email);
+
+  // Captured now so the certificate (SCRUM-081) renders in the requester's own
+  // language, not whichever HR admin later clicks Generate — the app only has
+  // a per-browser locale cookie, no per-account preference.
+  const locale = await getUserLocale();
 
   await prisma.generatedDocument.create({
     data: {
       type: "WORK_CERTIFICATE",
       status: "REQUESTED",
-      requestedById: dbUser.id,
+      requestedById: userId,
+      locale,
     },
   });
 
@@ -49,8 +57,8 @@ export async function requestWorkCertificate() {
  */
 export async function generateDocumentAction(id: string): Promise<FulfillResult> {
   const user = await requireUser();
-  const locale = await getLocale();
-  const result = await generateWorkCertificate({ userId: user.id, role: user.role }, id, locale);
+  const userId = await resolveActingUserId(user.email);
+  const result = await generateWorkCertificate({ userId, role: user.role }, id);
   if (result.ok) revalidatePath("/documents");
   return result;
 }
@@ -58,7 +66,8 @@ export async function generateDocumentAction(id: string): Promise<FulfillResult>
 /** HR rejects a request with a note. Gated inside `rejectDocumentRequest`. */
 export async function rejectDocumentAction(id: string, note: string): Promise<FulfillResult> {
   const user = await requireUser();
-  const result = await rejectDocumentRequest({ userId: user.id, role: user.role }, id, note);
+  const userId = await resolveActingUserId(user.email);
+  const result = await rejectDocumentRequest({ userId, role: user.role }, id, note);
   if (result.ok) revalidatePath("/documents");
   return result;
 }

@@ -447,7 +447,9 @@
       "EMPLOYEE_OFFBOARDED": "Employee offboarded",
       "LEAVE_APPROVED": "Leave approved",
       "LEAVE_REJECTED": "Leave rejected",
-      "AUDIT_CONSOLE_VIEWED": "Audit console viewed"
+      "AUDIT_CONSOLE_VIEWED": "Audit console viewed",
+      "DOCUMENT_VALIDATED": "Document request validated",
+      "DOCUMENT_REJECTED": "Document request rejected"
     }
   },
   "settings": {
@@ -1195,6 +1197,7 @@
     "myDocuments": "My documents",
     "noDocuments": "You haven't requested any documents yet.",
     "download": "Download",
+    "generatedOn": "Generated on {date}",
     "status": {
       "REQUESTED": "Pending",
       "VALIDATED": "Validated",
@@ -1221,6 +1224,19 @@
         "invalid_state": "This request can no longer be processed.",
         "no_requester": "The requester's account is missing.",
         "no_employee": "No employee record for the requester."
+      }
+    },
+    "certificate": {
+      "title": "WORK CERTIFICATE",
+      "body": "This is to certify that {name} has been employed by {company} as {title} in the {department} department since {startDate}, under a {employmentType} contract.\n\nThis certificate is issued at the employee's request to serve where appropriate.",
+      "issued": "Issued in {city} on {date}.",
+      "signOff": "For {company}",
+      "hr": "Human Resources",
+      "ref": "Document reference: {id}",
+      "employmentType": {
+        "FULL_TIME": "full-time",
+        "PART_TIME": "part-time",
+        "CONTRACTOR": "contractor"
       }
     }
   }

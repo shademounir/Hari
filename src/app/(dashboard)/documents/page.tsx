@@ -83,6 +83,14 @@ export default async function DocumentsPage({
                     <p className="font-medium text-foreground">{t("workCertificateTitle")}</p>
                     <p className="text-xs text-muted-foreground">
                       {format.dateTime(d.requestedAt, { dateStyle: "medium" })}
+                      {d.generatedAt && (
+                        <>
+                          {" · "}
+                          {t("generatedOn", {
+                            date: format.dateTime(d.generatedAt, { dateStyle: "medium" }),
+                          })}
+                        </>
+                      )}
                       {d.status === "REJECTED" && d.rejectionNote && (
                         <span className="text-destructive"> · {d.rejectionNote}</span>
                       )}
@@ -115,8 +123,10 @@ export default async function DocumentsPage({
                 id: q.id,
                 status: q.status,
                 requestedAt: q.requestedAt.toISOString(),
+                generatedAt: q.generatedAt ? q.generatedAt.toISOString() : null,
                 requesterName: q.requesterName,
                 department: q.department,
+                pdfUrl: q.pdfUrl,
               }))}
             />
           </section>

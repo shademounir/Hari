@@ -3,8 +3,9 @@
 import { useState, useTransition } from "react";
 import { useTranslations, useFormatter } from "next-intl";
 import { toast } from "sonner";
-import { Loader2, FileCheck2, X } from "lucide-react";
+import { Loader2, FileCheck2, X, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button-link";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -23,8 +24,10 @@ export type QueueRow = {
   id: string;
   status: GeneratedDocumentStatus;
   requestedAt: string; // ISO
+  generatedAt: string | null; // ISO
   requesterName: string | null;
   department: string | null;
+  pdfUrl: string | null;
 };
 
 // HR fulfillment queue (client island): Generate produces the real PDF via the
@@ -90,6 +93,14 @@ export function DocumentQueue({ rows }: { rows: QueueRow[] }) {
                 <p className="text-xs text-muted-foreground">
                   {t("workCertificateTitle")} ·{" "}
                   {format.dateTime(new Date(row.requestedAt), { dateStyle: "medium" })}
+                  {row.generatedAt && (
+                    <>
+                      {" · "}
+                      {t("generatedOn", {
+                        date: format.dateTime(new Date(row.generatedAt), { dateStyle: "medium" }),
+                      })}
+                    </>
+                  )}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -123,6 +134,17 @@ export function DocumentQueue({ rows }: { rows: QueueRow[] }) {
                       {t("queue.reject")}
                     </Button>
                   </>
+                )}
+                {row.pdfUrl && (
+                  <ButtonLink
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5"
+                    href={`/api/documents/${row.id}/download`}
+                  >
+                    <Download className="size-4" />
+                    {t("download")}
+                  </ButtonLink>
                 )}
               </div>
             </li>
