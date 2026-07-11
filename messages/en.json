@@ -40,9 +40,10 @@
     "userMenu": "Account menu",
     "alerts": "Alerts",
     "audit": "Audit Log",
-    "analytics": "HR Analytics",
+    "analytics": "HR Analytics", 
+    "edit": "Edit",
     "teamAnalytics": "Team Analytics",   
-    "teamPredictions": "Team retention"
+    "teamPredictions": "Team retention",
     "engagement": "Engagement",
     "documents": "Documents"
   },
@@ -1090,7 +1091,11 @@
     "tagRemove": "Remove {tag}",
     "articleSettings": "Article settings",
     "slugPlaceholder": "Auto from the title",
-    "resizePanels": "Resize panels"
+    "resizePanels": "Resize panels",
+    "emptyCollection": "This collection has no articles yet.",
+    "searching": "Searching…",
+    "searchResults": "{count, plural, one {# result} other {# results}}",
+    "resizePanelsValue": "Settings panel {width} pixels wide"
   },
   "kbStatus": {
     "DRAFT": "Draft",

@@ -41,8 +41,9 @@
     "alerts": "Alertes",
     "audit": "Journal d'audit",
     "analytics": "Analytique RH",
-    "teamAnalytics": "Analytique équipe",
-    "teamPredictions": "Rétention de l'équipe"
+    "teamAnalytics": "Analytique équipe",   
+    "edit": "Modifier",
+    "teamPredictions": "Rétention de l'équipe",
     "engagement": "Engagement",
     "documents": "Documents"
   },
@@ -1090,7 +1091,11 @@
     "tagRemove": "Supprimer {tag}",
     "articleSettings": "Paramètres de l’article",
     "slugPlaceholder": "Auto depuis le titre",
-    "resizePanels": "Redimensionner les panneaux"
+    "resizePanels": "Redimensionner les panneaux",
+    "emptyCollection": "Cette collection ne contient pas encore d'articles.",
+    "searching": "Recherche…",
+    "searchResults": "{count, plural, one {# résultat} other {# résultats}}",
+    "resizePanelsValue": "Panneau de réglages : {width} pixels de large"
   },
   "kbStatus": {
     "DRAFT": "Brouillon",

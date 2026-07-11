@@ -40,9 +40,9 @@ export function TagInput({ name, defaultValue = [] }: { name: string; defaultVal
               type="button"
               onClick={() => remove(tag)}
               aria-label={t("tagRemove", { tag })}
-              className="rounded-full p-0.5 text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
+              className="-mr-1 inline-flex size-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
             >
-              <X className="size-3" />
+              <X className="size-3.5" />
             </button>
           </span>
         ))}

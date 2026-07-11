@@ -70,6 +70,8 @@ export function ResizablePanels({
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
+    // Rail hugs the right edge, so ArrowLeft widens it (+) and ArrowRight narrows it (−);
+    // Home/End jump to the widest/narrowest.
     if (e.key === "ArrowLeft") {
       e.preventDefault();
       apply(widthRef.current + 24);
@@ -77,6 +79,14 @@ export function ResizablePanels({
     } else if (e.key === "ArrowRight") {
       e.preventDefault();
       apply(widthRef.current - 24);
+      persist();
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      apply(max);
+      persist();
+    } else if (e.key === "End") {
+      e.preventDefault();
+      apply(min);
       persist();
     }
   };
@@ -95,6 +105,7 @@ export function ResizablePanels({
         aria-valuenow={width}
         aria-valuemin={min}
         aria-valuemax={max}
+        aria-valuetext={t("resizePanelsValue", { width })}
         tabIndex={0}
         onPointerDown={onPointerDown}
         onKeyDown={onKeyDown}

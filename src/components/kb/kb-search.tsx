@@ -71,6 +71,8 @@ export function KbSearch() {
     router.push(r.url);
   };
 
+  const hasResults = q.trim().length >= 2 && results.length > 0;
+
   const onInputKey = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -110,14 +112,32 @@ export function KbSearch() {
               placeholder={t("searchPlaceholder")}
               className="w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
               aria-label={t("searchLabel")}
+              role="combobox"
+              aria-expanded={hasResults}
+              aria-controls="kb-search-results"
+              aria-autocomplete="list"
+              aria-activedescendant={hasResults ? `kb-search-opt-${active}` : undefined}
             />
           </div>
-          <ul className="max-h-80 overflow-auto p-1">
+          {/* Screen-reader status: searching / result count / no results (visual list below). */}
+          <div role="status" aria-live="polite" className="sr-only">
+            {loading
+              ? t("searching")
+              : q.trim().length >= 2
+                ? results.length > 0
+                  ? t("searchResults", { count: results.length })
+                  : t("searchEmpty")
+                : ""}
+          </div>
+          <ul id="kb-search-results" role="listbox" aria-label={t("searchLabel")} className="max-h-80 overflow-auto p-1">
             {q.trim().length >= 2 &&
               results.map((r, i) => (
-              <li key={r.id}>
+              <li key={r.id} role="presentation">
                 <button
                   type="button"
+                  id={`kb-search-opt-${i}`}
+                  role="option"
+                  aria-selected={i === active}
                   onMouseEnter={() => setActive(i)}
                   onClick={() => go(r)}
                   className={cn(

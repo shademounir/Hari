@@ -81,7 +81,9 @@ export function ImageField({ defaultValue }: { defaultValue?: string | null }) {
 
   return (
     <div className="space-y-1 text-sm">
-      <span className="font-medium">{t("fieldImage")}</span>
+      <label htmlFor="kb-cover-file" className="block font-medium">
+        {t("fieldImage")}
+      </label>
       {/* The actual stored value — a same-origin /api/kb/images/… URL (or empty to clear). */}
       <input type="hidden" name="image" value={value} />
 
@@ -105,6 +107,7 @@ export function ImageField({ defaultValue }: { defaultValue?: string | null }) {
 
         <div className="flex flex-col gap-2">
           <input
+            id="kb-cover-file"
             ref={inputRef}
             type="file"
             accept="image/*"
@@ -113,7 +116,11 @@ export function ImageField({ defaultValue }: { defaultValue?: string | null }) {
             className="block w-full text-xs text-muted-foreground file:mr-3 file:rounded-md file:border file:border-input file:bg-background file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-foreground hover:file:bg-muted disabled:opacity-60"
           />
           {uploading && (
-            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span
+              role="status"
+              aria-live="polite"
+              className="flex items-center gap-1.5 text-xs text-muted-foreground"
+            >
               <Loader2 className="size-3.5 animate-spin" /> {t("imageUploading")}
             </span>
           )}
@@ -132,7 +139,11 @@ export function ImageField({ defaultValue }: { defaultValue?: string | null }) {
       </div>
 
       <span className="block text-xs text-muted-foreground">{t("fieldImageHint")}</span>
-      {error && <span className="block text-xs text-destructive">{error}</span>}
+      {error && (
+        <span role="alert" className="block text-xs text-destructive">
+          {error}
+        </span>
+      )}
     </div>
   );
 }
