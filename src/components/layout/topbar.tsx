@@ -34,6 +34,12 @@ function humanize(segment: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+// A Prisma cuid (opaque record id) has no place in a breadcrumb — e.g. an edit URL
+// /kb/admin/documents/<cuid> would otherwise read "…/ Documents / Cmr4x…". Detect it
+// so the crumb shows a human label ("Edit") instead of the raw id. Matched to the exact
+// cuid shape (`c` + 24 lowercase base-36 chars) so hyphen-less slugs aren't caught.
+const OPAQUE_ID = /^c[a-z0-9]{24}$/;
+
 export function Topbar({ user }: { user: NavUser }) {
   const pathname = usePathname();
   const t = useTranslations("nav");
@@ -56,7 +62,14 @@ export function Topbar({ user }: { user: NavUser }) {
   for (const seg of segments.slice(1)) {
     acc = `${acc === "/" ? "" : acc}/${seg}`;
     const child = topItem?.children?.find((c) => c.href === acc);
-    crumbs.push({ label: child ? tSettings(child.labelKey) : humanize(seg), href: acc });
+    const childLabel = child
+      ? child.ns === "nav"
+        ? t(child.key)
+        : tSettings(child.key)
+      : OPAQUE_ID.test(seg)
+        ? t("edit")
+        : humanize(seg);
+    crumbs.push({ label: childLabel, href: acc });
   }
 
   return (

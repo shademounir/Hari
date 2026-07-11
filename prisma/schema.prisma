@@ -47,6 +47,10 @@ model User {
   alertsRaised   Alert[]      @relation("AlertSubject")
   alertsAcked    Alert[]      @relation("AlertAck")
   alertsResolved Alert[]      @relation("AlertResolved")
+
+  // HARI-88: document generation back-relations.
+  documentsRequested GeneratedDocument[] @relation("DocumentRequester")
+  documentsValidated GeneratedDocument[] @relation("DocumentValidator")
 }
 
 /// HR profile / org data.
@@ -63,14 +67,50 @@ model Employee {
   salary         Int // annual, in the org's configured currency (see OrgSettings) — sensitive: only HR/Super can read via tools
   avatarUrl      String?
 
+  // SCRUM-098 (predictive analytics). Denormalized/derived signal anchors:
+  lastReviewDate     DateTime? // latest PerformanceReview.reviewDate (hot-path denormalization)
+  lastRoleChangeDate DateTime? // last title/role change → months-in-role; falls back to startDate
+  leftAt             DateTime? // set when status → TERMINATED; feeds dept turnover + the domino effect
+  // HR analytics (HARI-122 / SCRUM-097). All nullable/defaulted — additive, never
+  // read by name-facing surfaces; only the RBAC-gated analytics layer aggregates them.
+  birthDate          DateTime? // for the age pyramid (aggregated into bands, never shown raw)
+  gender             Gender? // diversity split; optional, self-declared
+  contractType       ContractType     @default(CDI) // CDI/CDD/… — orthogonal to employmentType (time)
+  timeToHireDays     Int? // days between requisition open and arrival — recruitment KPI
+  terminationDate    DateTime? // set when status = TERMINATED — powers turnover over time
+  departureReason    DepartureReason? // why they left — turnover breakdown
+
   // Self-referential org chart.
   manager   Employee?  @relation("Reports", fields: [managerId], references: [id])
   managerId String?
   reports   Employee[] @relation("Reports")
 
-  leaveBalances LeaveBalance[]
-  leaveRequests LeaveRequest[] @relation("Requester")
-  approvals     LeaveRequest[] @relation("Approver")
+  leaveBalances     LeaveBalance[]
+  leaveRequests     LeaveRequest[]          @relation("Requester")
+  approvals         LeaveRequest[]          @relation("Approver")
+  // SCRUM-098 (predictive analytics)
+  salaryChanges     SalaryChange[]
+  engagementSurveys EngagementSurvey[]
+  riskSnapshots     DepartureRiskSnapshot[]
+  // SCRUM-099 (engagement & burnout)
+  engagementSnapshots EngagementSnapshot[]
+  qualitativeSignals  QualitativeSignal[]    @relation("QualSubject")
+  oneOnOnes           OneOnOne[]             @relation("CheckInSubject")
+  // SCRUM-097 (HR analytics). Reviews are unified into one PerformanceReview model
+  // (subject + reviewer); SCRUM-098's rating lives there too.
+  payrollSnapshots  PayrollSnapshot[]
+  reviewsReceived   PerformanceReview[]     @relation("ReviewSubject")
+  reviewsGiven      PerformanceReview[]     @relation("Reviewer")
+
+  // Predictive/turnover query paths (SCRUM-098): active-headcount and departure
+  // aggregates filter on status/department/leftAt every batch pass, and the manager
+  // risk scope filters managerId+status. Without these the groupBy/count sequential-scan.
+  @@index([status, department])
+  @@index([leftAt])
+  @@index([managerId, status])
+  // SCRUM-095 / SCRUM-096 (onboarding / offboarding)
+  onboardingTasks   OnboardingTask[]
+  offboarding       Offboarding?
 }
 
 model LeaveBalance {
@@ -85,19 +125,19 @@ model LeaveBalance {
 }
 
 model LeaveRequest {
-  id         String      @id @default(cuid())
-  employee   Employee    @relation("Requester", fields: [employeeId], references: [id], onDelete: Cascade)
-  employeeId String
-  type       LeaveType
-  startDate  DateTime
-  endDate    DateTime
-  days       Int
-  reason     String? // the requester's stated reason for the leave
+  id           String      @id @default(cuid())
+  employee     Employee    @relation("Requester", fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId   String
+  type         LeaveType
+  startDate    DateTime
+  endDate      DateTime
+  days         Int
+  reason       String? // the requester's stated reason for the leave
   decisionNote String? // the approver's note (required on rejection) — SCRUM-071 B1
-  status     LeaveStatus @default(PENDING)
-  approver   Employee?   @relation("Approver", fields: [approverId], references: [id])
-  approverId String?
-  createdAt  DateTime    @default(now())
+  status       LeaveStatus @default(PENDING)
+  approver     Employee?   @relation("Approver", fields: [approverId], references: [id])
+  approverId   String?
+  createdAt    DateTime    @default(now())
 }
 
 /// Org-wide settings, a single row (id = "singleton"). Editable by a super admin
@@ -216,6 +256,63 @@ enum EmploymentType {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
+// HR analytics dimensions + facts (HARI-122 / SCRUM-097)
+// ─────────────────────────────────────────────────────────────────────────
+
+enum Gender {
+  FEMALE
+  MALE
+  OTHER
+}
+
+/// Nature of the employment contract (fr labour taxonomy) — distinct from
+/// EmploymentType (which is about working time). Used by the contract filter.
+enum ContractType {
+  CDI // permanent
+  CDD // fixed-term
+  ALTERNANCE // work-study
+  STAGE // internship
+}
+
+/// Why an employee left — drives the turnover breakdown.
+enum DepartureReason {
+  VOLUNTARY // resignation
+  INVOLUNTARY // dismissal
+  RETIREMENT
+  END_OF_CONTRACT // CDD/stage reached its term
+}
+
+/// One month of gross pay for one employee — the fact table behind the payroll
+/// evolution curve and historical department breakdown (salary alone is a single
+/// current snapshot, so it can't show 12-month trends).
+model PayrollSnapshot {
+  id          String   @id @default(cuid())
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId  String
+  month       DateTime // first day of the month (UTC)
+  grossAmount Int // gross pay for that month, in the org currency
+
+  @@unique([employeeId, month])
+  @@index([month])
+}
+
+/// A conducted annual review ("entretien annuel"). Powers review-coverage KPIs
+/// (HARI-122) and the time-since-last-review engagement signal (HARI-124).
+model PerformanceReview {
+  id          String    @id @default(cuid())
+  employee    Employee  @relation("ReviewSubject", fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId  String
+  reviewer    Employee? @relation("Reviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  reviewerId  String?
+  conductedAt DateTime
+  rating      Int? // SCRUM-098: optional 1–5 rating (explicability only, never copied into an alert)
+  createdAt   DateTime  @default(now())
+
+  @@index([employeeId])
+  @@index([conductedAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 // AI observability + guardrails (SCRUM-062 / SCRUM-063)
 // ─────────────────────────────────────────────────────────────────────────
 
@@ -266,6 +363,8 @@ enum AlertKind {
   AI_GUARD_BLOCK // deterministic guard blocked a request
   AI_ERROR // model/stream failure
   CONVERSATION_CLOSED // the assistant ended a chat
+  DEPARTURE_RISK // SCRUM-098: computed departure-risk score above the alert threshold
+  ENGAGEMENT_RISK // SCRUM-099: daily engagement score crossed the alert threshold
 }
 
 enum AlertSeverity {
@@ -306,4 +405,380 @@ model Alert {
   @@index([status])
   @@index([createdAt])
   @@index([kind])
+}
+
+/// SCRUM-064: the sensitive actions worth recording for after-the-fact review.
+enum AuditAction {
+  ALERT_ACKNOWLEDGED
+  ALERT_RESOLVED
+  ALERT_REOPENED
+  ALERTS_CONSOLE_VIEWED
+  // SCRUM-096: offboarding lifecycle (compliance trail).
+  OFFBOARDING_INITIATED
+  OFFBOARDING_STEP_COMPLETED
+  EMPLOYEE_OFFBOARDED
+  // SCRUM-100: further significant actions + access to the audit console itself.
+  LEAVE_APPROVED
+  LEAVE_REJECTED
+  AUDIT_CONSOLE_VIEWED
+  // SCRUM-080: HR decision on a generated-document request.
+  DOCUMENT_VALIDATED
+  DOCUMENT_REJECTED
+}
+
+/// SCRUM-064: a minimal audit trail of sensitive admin/security actions (alert
+/// triage + alerts-console access). Metadata only — never full confidential
+/// content — mirroring the AiEvent/Alert no-PII contract. The actor and target
+/// are stored as raw ids with a denormalized role, so the trail deliberately
+/// SURVIVES user/target deletion (an audit record must persist); it soft-links
+/// to an Alert / AiEvent by id when relevant.
+model AuditLog {
+  id         String      @id @default(cuid())
+  createdAt  DateTime    @default(now())
+  actorId    String? // who performed it (raw id; kept even if the user is later deleted)
+  actorRole  Role // denormalized so the trail survives user deletion
+  action     AuditAction
+  targetType String? // e.g. "Alert"
+  targetId   String? // opaque id of the target — never content
+  alertId    String? // linked alert (soft reference)
+  aiEventId  String? // linked AiEvent (soft reference)
+  meta       Json? // small structured extras — no PII
+
+  @@index([createdAt])
+  @@index([action])
+  @@index([actorId])
+}
+
+/// SCRUM-095: category of an onboarding step, for grouping + iconography.
+enum OnboardingCategory {
+  PAPERWORK
+  EQUIPMENT
+  ACCESS
+  TRAINING
+  ORIENTATION
+}
+
+enum OnboardingStatus {
+  PENDING
+  DONE
+}
+
+/// SCRUM-095: one step of a new hire's personalized onboarding checklist. The
+/// step label is a stable i18n `key` (onboarding.steps.<key>) — not free text —
+/// so the checklist is fully localized, consistent with the mandatory-i18n rule.
+model OnboardingTask {
+  id          String             @id @default(cuid())
+  employee    Employee           @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId  String
+  key         String // i18n step key → onboarding.steps.<key>
+  category    OnboardingCategory
+  order       Int                @default(0)
+  status      OnboardingStatus   @default(PENDING)
+  completedAt DateTime?
+  createdAt   DateTime           @default(now())
+
+  @@index([employeeId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// SCRUM-096: offboarding — the compliant exit workflow. When someone leaves, HR
+// runs a checklist of exit steps (revoke access, recover equipment, final pay,
+// handover, exit interview) and then ARCHIVES the employee (status → TERMINATED)
+// rather than deleting them, so records are retained for conformité. Every
+// significant step is written to the AuditLog (SCRUM-064) — metadata only.
+// ─────────────────────────────────────────────────────────────────────────
+
+/// Why the employee is leaving. A code, never free text — no PII.
+enum OffboardingReason {
+  RESIGNATION
+  TERMINATION
+  END_OF_CONTRACT
+  RETIREMENT
+  OTHER
+}
+
+enum OffboardingState {
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum OffboardingTaskStatus {
+  PENDING
+  DONE
+}
+
+/// Category of an exit step, for grouping + iconography.
+enum OffboardingCategory {
+  ACCESS
+  EQUIPMENT
+  PAYROLL
+  KNOWLEDGE
+  EXIT
+}
+
+/// One offboarding process per employee (`employeeId @unique`). Completing it
+/// archives the employee; the row itself is kept for the compliance trail.
+model Offboarding {
+  id            String            @id @default(cuid())
+  employee      Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId    String            @unique
+  reason        OffboardingReason
+  state         OffboardingState  @default(IN_PROGRESS)
+  lastDay       DateTime
+  initiatedById String? // soft id of the HR actor — survives user deletion
+  createdAt     DateTime          @default(now())
+  completedAt   DateTime?
+  tasks         OffboardingTask[]
+
+  @@index([state])
+}
+
+model OffboardingTask {
+  id            String                @id @default(cuid())
+  offboarding   Offboarding           @relation(fields: [offboardingId], references: [id], onDelete: Cascade)
+  offboardingId String
+  key           String // i18n step key → offboarding.steps.<key>
+  category      OffboardingCategory
+  order         Int                   @default(0)
+  status        OffboardingTaskStatus @default(PENDING)
+  completedAt   DateTime?
+
+  @@index([offboardingId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// SCRUM-098 — Predictive workforce analytics ("Pragmatic ML-Lite").
+// The scoring math lives in `lib/predictive/departure-risk.ts` (pure); these
+// tables hold the SIGNALS it reads and the SNAPSHOTS it writes. Snapshots +
+// alerts store only scores/bands/factor breakdowns — never names or salary —
+// mirroring the AiEvent/Alert no-PII contract.
+// ─────────────────────────────────────────────────────────────────────────
+
+/// Risk map band. LOW = green, MEDIUM = orange, HIGH = red.
+enum RiskBand {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+/// Salary-change history → the "salary evolution" factor (12-month growth %).
+/// Sensitive like Employee.salary: read only where `salary:read:all` holds.
+model SalaryChange {
+  id            String   @id @default(cuid())
+  employee      Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId    String
+  effectiveDate DateTime
+  amount        Int // new annual salary, org currency (as Employee.salary)
+  reason        String?
+  createdAt     DateTime @default(now())
+
+  @@index([employeeId, effectiveDate])
+}
+
+/// Internal-survey scores → the "engagement" weak signal (feedbacks internes).
+/// No free text on this hot-path model — numeric score only, no-PII contract.
+model EngagementSurvey {
+  id         String   @id @default(cuid())
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId String
+  score      Int // 0–10 (range validated in the write path, not the DB)
+  surveyDate DateTime
+  source     String? // campaign label (e.g. "quarterly-pulse") — never PII
+  createdAt  DateTime @default(now())
+
+  @@index([employeeId, surveyDate])
+}
+
+/// Adjustable coefficients (HR recalibration). Versioned + retained: editing
+/// activates a NEW row so past snapshots stay reproducible against their weights.
+model PredictiveWeightConfig {
+  id          String   @id @default(cuid())
+  version     Int      @unique @default(autoincrement())
+  weights     Json // { seniority, absenteeism, review, salary, turnover, jobProfile, burnout, roleStagnation, dominoEffect, engagement }
+  thresholds  Json // { medium, high }
+  active      Boolean  @default(true)
+  updatedById String? // raw id, audit-style
+  createdAt   DateTime @default(now())
+
+  @@index([active])
+}
+
+/// A computed departure-risk score for one employee at a point in time. Powers
+/// the risk map, 12-month projection, history, and accuracy backtesting. `factors`
+/// stores the explicable FactorContribution[] breakdown (no black box).
+model DepartureRiskSnapshot {
+  id                String   @id @default(cuid())
+  employee          Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId        String
+  score             Int // 0–100
+  band              RiskBand
+  factors           Json // FactorContribution[] from computeDepartureRisk
+  weightVersion     Int // which PredictiveWeightConfig produced it (reproducibility)
+  computedAt        DateTime @default(now())
+  // Accuracy backtest: null until the outcome window elapses; true if the
+  // employee actually left within it. Never PII — a bare outcome flag.
+  departedWithin90d Boolean?
+
+  @@index([employeeId, computedAt])
+  @@index([band])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// HR document generation (HARI-88 / SCRUM-078)
+// ─────────────────────────────────────────────────────────────────────────
+
+/// Document types that can be generated. Sprint 4 supports WORK_CERTIFICATE only.
+enum GeneratedDocumentType {
+  WORK_CERTIFICATE
+}
+
+/// Lifecycle of a generated document request.
+enum GeneratedDocumentStatus {
+  REQUESTED // employee submitted the request
+  VALIDATED // HR approved, PDF generation queued
+  GENERATED // PDF produced, download link available
+  DOWNLOADED // employee has downloaded the document
+  REJECTED // HR rejected the request
+}
+
+/// HARI-88 / SCRUM-078: an HR document requested by an employee (e.g. work certificate).
+/// Drives the full generation workflow: request → HR validation → PDF generation → download.
+/// PDF generation (SCRUM-081) and MinIO storage are deferred; pdfUrl is reserved for that sprint.
+model GeneratedDocument {
+  id     String                  @id @default(cuid())
+  type   GeneratedDocumentType
+  status GeneratedDocumentStatus @default(REQUESTED)
+
+  // Requester — SetNull so the record outlives account deletion.
+  requestedBy   User?   @relation("DocumentRequester", fields: [requestedById], references: [id], onDelete: SetNull)
+  requestedById String?
+
+  // HR validator — null until HR acts on the request.
+  validatedBy   User?   @relation("DocumentValidator", fields: [validatedById], references: [id], onDelete: SetNull)
+  validatedById String?
+
+  // Required when status = REJECTED, null otherwise.
+  rejectionNote String?
+
+  // The requester's locale at request time (not whoever happens to generate the
+  // PDF) — the app only has a per-browser cookie, no per-account locale, so this
+  // is captured once and used to render the certificate in the requester's own
+  // language regardless of who fulfills it.
+  locale String @default("en")
+
+  // MinIO object key of the generated PDF (documents/<id>.pdf); null until GENERATED.
+  // Set by generateWorkCertificate (SCRUM-081); served via the download proxy route.
+  pdfUrl String?
+
+  // Workflow timestamps — one per lifecycle transition.
+  requestedAt  DateTime  @default(now())
+  validatedAt  DateTime?
+  generatedAt  DateTime?
+  downloadedAt DateTime?
+  rejectedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([requestedById])
+  @@index([validatedById])
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// SCRUM-099 — Engagement & burnout/boreout. The scoring math lives in
+// `lib/engagement/engagement.ts` (pure); these tables hold the qualitative
+// signal inputs and the daily snapshots. Snapshots/alerts store scores, the
+// 2-D vector, quadrant, and factor KEYS only — never names or raw notes.
+// ─────────────────────────────────────────────────────────────────────────
+
+/// Engagement band (ticket thresholds): GREEN 80–100 · YELLOW 60–79 · ORANGE 40–59 · RED 0–39.
+enum EngagementBand {
+  GREEN
+  YELLOW
+  ORANGE
+  RED
+}
+
+/// 2-D diagnosis quadrant (exhaustion × disengagement).
+enum EngagementQuadrant {
+  ENGAGED
+  BURNOUT
+  BOREOUT
+  STRAINED
+}
+
+/// Trust in a score given data availability (gates alerts for thin-data new hires).
+enum Confidence {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+/// Daily engagement snapshot. No PII — score, the 2-D vector, quadrant, and the
+/// explicable factor breakdown (keys + signed points) only.
+model EngagementSnapshot {
+  id            String             @id @default(cuid())
+  employee      Employee           @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId    String
+  score         Int // 0–100, EMA-smoothed (100 = most engaged)
+  band          EngagementBand
+  exhaustion    Int // 0–100 (Y axis)
+  disengagement Int // 0–100 (X axis)
+  quadrant      EngagementQuadrant
+  factors       Json // EngagementFactor[] from computeEngagement (explains the raw daily reading)
+  momentum      Float? // slope over the trailing 4 weeks (early-warning velocity)
+  confidence    Confidence         @default(LOW)
+  dataCoverage  Int // % of signals with data, 0–100
+  weightVersion Int // which EngagementSignalConfig produced it
+  computedAt    DateTime           @default(now())
+
+  @@index([employeeId, computedAt])
+  @@index([band])
+}
+
+/// Manager-entered qualitative ratings. Attributed to the rater + period so a
+/// successor manager never sees a prior manager's raw numbers (only the aggregate).
+model QualitativeSignal {
+  id              String   @id @default(cuid())
+  employee        Employee @relation("QualSubject", fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId      String
+  raterId         String // User id of the rating manager (gating + audit)
+  period          DateTime // the month this rating applies to
+  workQuality     Int // 1–5
+  participation   Int // 1–5
+  peerInteraction Int // 1–5
+  note            String? // HR + authoring-manager only — never the subject
+  createdAt       DateTime @default(now())
+
+  @@unique([employeeId, raterId, period])
+  @@index([employeeId, period])
+}
+
+/// 1:1 check-in log → the "time since last 1:1" signal.
+model OneOnOne {
+  id         String   @id @default(cuid())
+  employee   Employee @relation("CheckInSubject", fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId String
+  managerId  String
+  heldAt     DateTime
+  createdAt  DateTime @default(now())
+
+  @@index([employeeId, heldAt])
+}
+
+/// Versioned recalibration config (mirror PredictiveWeightConfig). HR-only.
+model EngagementSignalConfig {
+  id          String   @id @default(cuid())
+  version     Int      @unique @default(autoincrement())
+  baseline    Int      @default(82)
+  weights     Json // EngagementWeights
+  thresholds  Json // { greenMin, yellowMin, orangeMin }
+  active      Boolean  @default(true)
+  updatedById String?
+  createdAt   DateTime @default(now())
+
+  @@index([active])
 }

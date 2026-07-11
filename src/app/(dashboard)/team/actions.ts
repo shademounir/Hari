@@ -3,14 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/session";
-import { can } from "@/lib/rbac";
+import { can, type Role } from "@/lib/rbac";
 import {
   bulkDecideLeaveRequests,
   decideLeaveRequest,
-  resolveCaller,
   type Caller,
   type LeaveDecision,
 } from "@/lib/hr";
+import { recordAudit } from "@/lib/audit";
 
 // Results are returned (not just void) so the optimistic client island can toast
 // success vs failure and roll back removed rows. Scope + authorization stay here
@@ -18,28 +18,48 @@ import {
 export type DecideResult = { ok: boolean };
 export type BulkResult = { ok: boolean; count: number };
 
-async function requireApprover(): Promise<Caller> {
+type Approver = { caller: Caller; userId: string; role: Role };
+
+async function requireApprover(): Promise<Approver> {
   const user = await requireUser();
   if (!can(user.role, "leave:approve")) redirect("/");
-  // resolveCaller re-resolves the Employee id from the DB rather than trusting
-  // the JWT-cached `employeeId` (stale after a DB reset would write a dangling
-  // approverId → FK violation). Shared with the team page so read + write agree.
-  return resolveCaller(user);
+  // id/role/employeeId are resolved live from the DB in the auth session
+  // callback (lib/auth.ts), so the session's employeeId is already current —
+  // no per-write re-resolution needed.
+  const caller: Caller = { role: user.role, employeeId: user.employeeId };
+  return { caller, userId: user.id, role: user.role };
 }
 
+// SCRUM-100: a leave decision is a significant HR action — record it on the audit
+// trail (metadata only: request id + decision, never the reason text or names).
+const leaveAction = (decision: LeaveDecision) =>
+  decision === "APPROVED" ? "LEAVE_APPROVED" : "LEAVE_REJECTED";
+
 export async function approveLeaveAction(requestId: string): Promise<DecideResult> {
-  const caller = await requireApprover();
+  const { caller, userId, role } = await requireApprover();
   const ok = await decideLeaveRequest(caller, requestId, "APPROVED");
-  if (ok) revalidatePath("/team");
+  if (ok) {
+    await recordAudit(
+      { userId, role },
+      { action: "LEAVE_APPROVED", targetType: "LeaveRequest", targetId: requestId },
+    );
+    revalidatePath("/team");
+  }
   return { ok };
 }
 
 export async function rejectLeaveAction(requestId: string, note: string): Promise<DecideResult> {
-  const caller = await requireApprover();
+  const { caller, userId, role } = await requireApprover();
   // A rejection MUST carry a reason — enforced client-side and re-checked here.
   if (!note?.trim()) return { ok: false };
   const ok = await decideLeaveRequest(caller, requestId, "REJECTED", note);
-  if (ok) revalidatePath("/team");
+  if (ok) {
+    await recordAudit(
+      { userId, role },
+      { action: "LEAVE_REJECTED", targetType: "LeaveRequest", targetId: requestId },
+    );
+    revalidatePath("/team");
+  }
   return { ok };
 }
 
@@ -48,9 +68,15 @@ export async function bulkDecideAction(
   decision: LeaveDecision,
   note?: string,
 ): Promise<BulkResult> {
-  const caller = await requireApprover();
+  const { caller, userId, role } = await requireApprover();
   if (decision === "REJECTED" && !note?.trim()) return { ok: false, count: 0 };
   const count = await bulkDecideLeaveRequests(caller, ids, decision, note);
-  if (count > 0) revalidatePath("/team");
+  if (count > 0) {
+    await recordAudit(
+      { userId, role },
+      { action: leaveAction(decision), targetType: "LeaveRequest", meta: { count } },
+    );
+    revalidatePath("/team");
+  }
   return { ok: count > 0, count };
 }

@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { MessageCircleQuestion, ShieldAlert, OctagonAlert, BellRing } from "lucide-react";
 import { requireUser } from "@/lib/session";
-import { resolveCaller } from "@/lib/hr";
 import { getHrDashboard } from "@/lib/kpi/hr-dashboard";
 import { can } from "@/lib/rbac";
 import type { HrKpiKey } from "@/types/dashboard";
@@ -30,7 +29,7 @@ export default async function HrActivityPage() {
   // the link) and the permission check inside getHrDashboard.
   if (!can(user.role, "dashboard:read:company")) redirect("/");
 
-  const caller = await resolveCaller(user);
+  const caller = { role: user.role, employeeId: user.employeeId };
   const t = await getTranslations("hrDashboard");
   const tStatus = await getTranslations("docStatus");
 

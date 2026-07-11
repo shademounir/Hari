@@ -1,7 +1,30 @@
 import { describe, it, expect } from "vitest";
-import { can, ROLE_PERMISSIONS, visibleDocTiers } from "@/lib/rbac";
+import { can, PERMISSIONS, ROLE_PERMISSIONS, visibleDocTiers } from "@/lib/rbac";
 
 describe("RBAC matrix", () => {
+  it("engagement: managers read+rate their team, HR reads all + manages; employees get NOTHING, and there is NO self-read (SCRUM-099)", () => {
+    // Employees can never touch engagement.
+    expect(can("EMPLOYEE", "engagement:read:team")).toBe(false);
+    expect(can("EMPLOYEE", "engagement:input")).toBe(false);
+    // Managers: their team + qualitative input, but not company-wide or recalibration.
+    expect(can("MANAGER", "engagement:read:team")).toBe(true);
+    expect(can("MANAGER", "engagement:input")).toBe(true);
+    expect(can("MANAGER", "engagement:read:all")).toBe(false);
+    expect(can("MANAGER", "engagement:manage")).toBe(false);
+    // HR/Admin: everything.
+    expect(can("HR_ADMIN", "engagement:read:all")).toBe(true);
+    expect(can("HR_ADMIN", "engagement:manage")).toBe(true);
+    expect(can("SUPER_ADMIN", "engagement:read:all")).toBe(true);
+    expect(can("SUPER_ADMIN", "engagement:manage")).toBe(true);
+
+    // CRITICAL PRIVACY INVARIANT: `engagement:read:self` must not exist at all —
+    // no employee (nor anyone) may read their own engagement score via a permission.
+    expect((PERMISSIONS as readonly string[])).not.toContain("engagement:read:self");
+    for (const role of Object.keys(ROLE_PERMISSIONS) as (keyof typeof ROLE_PERMISSIONS)[]) {
+      expect((ROLE_PERMISSIONS[role] as string[])).not.toContain("engagement:read:self");
+    }
+  });
+
   it("employees can read the handbook and request leave, but not approve", () => {
     expect(can("EMPLOYEE", "handbook:read")).toBe(true);
     expect(can("EMPLOYEE", "leave:request")).toBe(true);
@@ -52,6 +75,19 @@ describe("RBAC matrix", () => {
     expect(can("MANAGER", "kb:manage")).toBe(false);
     expect(can("HR_ADMIN", "kb:manage")).toBe(true);
     expect(can("SUPER_ADMIN", "kb:manage")).toBe(true);
+  });
+
+  it("departure-risk predictions: managers+ can read; only HR/Admin can recalibrate (SCRUM-098)", () => {
+    // read: MANAGER and up (managers see their own team, anonymized downstream).
+    expect(can("EMPLOYEE", "predictions:read")).toBe(false);
+    expect(can("MANAGER", "predictions:read")).toBe(true);
+    expect(can("HR_ADMIN", "predictions:read")).toBe(true);
+    expect(can("SUPER_ADMIN", "predictions:read")).toBe(true);
+    // manage (recalibration): HR/Admin only — a manager can view but not retune.
+    expect(can("EMPLOYEE", "predictions:manage")).toBe(false);
+    expect(can("MANAGER", "predictions:manage")).toBe(false);
+    expect(can("HR_ADMIN", "predictions:manage")).toBe(true);
+    expect(can("SUPER_ADMIN", "predictions:manage")).toBe(true);
   });
 
   it("KB document visibility tiers are nested by role (HARI-59)", () => {

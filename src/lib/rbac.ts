@@ -26,12 +26,24 @@ export const PERMISSIONS = [
   "leave:approve", // approve/reject requests
   "dashboard:read:team", // view aggregated team KPIs (headcount, pending, AI usage)
   "dashboard:read:company", // view company-wide AI activity + document corpus KPIs (HR/Admin)
+  "analytics:full", // company-wide HR analytics: absenteeism, turnover, payroll, pyramid (HR/Admin)
+  "analytics:team", // team-scoped HR analytics for a manager (no payroll)
   "payslip:read:self",
   "payslip:read:any",
   "handbook:read", // RAG over the handbook / read the knowledge base
   "kb:manage", // create/edit/publish/archive KB documents & collections
   "employee:manage", // create/edit employees
   "alerts:read", // view + triage AI observability alerts (Admin/HR)
+  "documents:request", // request own generated HR documents
+  "predictions:read", // view departure-risk predictions (managers: own team, anonymized; HR: full)
+  "predictions:manage", // recalibrate model weights / thresholds (HR/Admin)
+  // SCRUM-099 engagement/burnout. NOTE: there is deliberately NO `engagement:read:self` —
+  // employees must NEVER see their own engagement score (psychological-harm + GDPR Art. 22).
+  "engagement:read:team", // view engagement for own reports (managers)
+  "engagement:read:all", // view company-wide engagement (HR/Admin)
+  "engagement:input", // submit qualitative manager ratings for own reports
+  "engagement:manage", // recalibrate engagement weights / thresholds (HR/Admin)
+  "documents:download:any", // download any generated document (HR/Admin); employees download their own implicitly
   "admin:settings", // platform settings
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
@@ -46,12 +58,22 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   "leave:approve": "Approve / reject leave",
   "dashboard:read:team": "View team KPI dashboard",
   "dashboard:read:company": "View company AI activity & documents dashboard",
+  "analytics:full": "View company HR analytics (absenteeism, turnover, payroll)",
+  "analytics:team": "View team HR analytics",
   "payslip:read:self": "View own payslips",
   "payslip:read:any": "View anyone's payslips",
   "handbook:read": "Ask the handbook (RAG)",
   "kb:manage": "Manage the knowledge base",
   "employee:manage": "Manage employee records",
   "alerts:read": "View AI alerts",
+  "documents:request": "Request own HR documents",
+  "predictions:read": "View departure-risk predictions",
+  "predictions:manage": "Recalibrate the predictive model",
+  "engagement:read:team": "View team engagement & burnout risk",
+  "engagement:read:all": "View company-wide engagement & burnout risk",
+  "engagement:input": "Submit qualitative engagement ratings",
+  "engagement:manage": "Recalibrate the engagement model",
+  "documents:download:any": "Download any generated HR document",
   "admin:settings": "Manage platform settings",
 };
 
@@ -61,6 +83,7 @@ const EMPLOYEE: Permission[] = [
   "leave:read:self",
   "payslip:read:self",
   "handbook:read",
+  "documents:request",
 ];
 
 const MANAGER: Permission[] = [
@@ -68,6 +91,10 @@ const MANAGER: Permission[] = [
   "directory:read:team",
   "leave:approve",
   "dashboard:read:team",
+  "predictions:read", // own team only, anonymized (enforced in the data/tool layer)
+  "analytics:team",
+  "engagement:read:team", // own reports only; scores are NEVER shown to the subject
+  "engagement:input", // rate own reports' work quality / participation / peer interaction
 ];
 
 const HR_ADMIN: Permission[] = [
@@ -79,6 +106,11 @@ const HR_ADMIN: Permission[] = [
   "kb:manage",
   "alerts:read",
   "dashboard:read:company",
+  "predictions:manage", // recalibration; predictions:read inherited from MANAGER
+  "analytics:full",
+  "engagement:read:all", // whole company; engagement:read:team + input inherited from MANAGER
+  "engagement:manage", // recalibrate engagement weights / thresholds
+  "documents:download:any",
 ];
 
 const SUPER_ADMIN: Permission[] = [
