@@ -3,7 +3,6 @@
 // MinIO is never exposed directly — the PDF is proxied server-side,
 // consistent with the KB cover-image proxy (api/kb/images/[...key]).
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import { authorizeDocumentDownload } from "@/lib/documents";
 import { getObject } from "@/lib/storage";
 
@@ -16,23 +15,14 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth();
-  if (!session?.user?.email) return new Response("Unauthorized", { status: 401 });
+  if (!session?.user) return new Response("Unauthorized", { status: 401 });
 
   const { id } = await params;
 
-  // Re-resolve the acting user id from the DB by email (stable across re-seeds)
-  // instead of trusting the JWT-cached id, which can dangle after a `db:reset`
-  // and would then misclassify the requester as a non-owner — a 403 on their
-  // own certificate, and the DOWNLOADED stamp never fires. Same defense as the
-  // document server actions (resolveActingUserId) and lib/hr.ts resolveCaller().
-  const dbUser = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: { id: true },
-  });
-  if (!dbUser) return new Response("Unauthorized", { status: 401 });
-
+  // session.user.id is resolved live from the DB in the auth session callback
+  // (lib/auth.ts), so ownership checks below use a current id, not a stale one.
   const result = await authorizeDocumentDownload(
-    { userId: dbUser.id, role: session.user.role },
+    { userId: session.user.id, role: session.user.role },
     id,
   );
 

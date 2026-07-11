@@ -8,7 +8,6 @@ import {
   getPendingApprovals,
   getTeamLeaveRequests,
   getTeamScope,
-  resolveCaller,
 } from "@/lib/hr";
 import { getTeamDashboard } from "@/lib/kpi/dashboard";
 import { can } from "@/lib/rbac";
@@ -51,9 +50,9 @@ export default async function TeamPage({ searchParams }: Props) {
   // the link) and the data-layer check inside getTeamKpis.
   if (!can(user.role, "dashboard:read:team")) redirect("/");
 
-  // Re-resolve employeeId from the DB (not the JWT-cached value) so the read path
-  // scopes by the same fresh id the write path (server actions) uses.
-  const caller = await resolveCaller(user);
+  // employeeId is resolved live from the DB in the auth session callback
+  // (lib/auth.ts), so read and write paths share one already-fresh id.
+  const caller = { role: user.role, employeeId: user.employeeId };
   const params = await searchParams;
   const t = await getTranslations("team");
 

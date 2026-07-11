@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { requireUser } from "@/lib/session";
-import { resolveCaller } from "@/lib/hr";
 import { can } from "@/lib/rbac";
 import {
   getEngagementDashboard,
@@ -45,7 +44,7 @@ export default async function TeamEngagementPage({ searchParams }: Props) {
   const user = await requireUser();
   if (!can(user.role, "engagement:read:team")) redirect("/");
 
-  const caller = await resolveCaller(user);
+  const caller = { role: user.role, employeeId: user.employeeId };
   const t = await getTranslations("engagement");
   const params = await searchParams;
   const now = new Date();
