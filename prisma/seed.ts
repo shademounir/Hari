@@ -500,14 +500,21 @@ async function seedPeople() {
 
   // Pass 1: create users + employees (no manager link yet).
   for (const p of PEOPLE) {
+    // Deterministic ids derived from the (unique, stable) email local-part, so a
+    // `db:reset` re-creates every row with the SAME id. A signed-in session's
+    // JWT then survives a reset intact — no dangling `sub`/`employeeId`, no FK
+    // violation on write — which is why the callbacks can stay pure (lib/auth.ts).
+    const slug = p.email.split("@")[0];
     const user = await prisma.user.create({
       data: {
+        id: `usr_${slug}`,
         email: p.email,
         name: p.name,
         role: p.role,
         passwordHash: p.login ? passwordHash : await bcrypt.hash("disabled", 10),
         employee: {
           create: {
+            id: `emp_${slug}`,
             title: p.title,
             department: p.department,
             location: p.location,

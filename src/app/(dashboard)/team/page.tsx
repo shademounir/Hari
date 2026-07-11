@@ -50,8 +50,6 @@ export default async function TeamPage({ searchParams }: Props) {
   // the link) and the data-layer check inside getTeamKpis.
   if (!can(user.role, "dashboard:read:team")) redirect("/");
 
-  // employeeId is resolved live from the DB in the auth session callback
-  // (lib/auth.ts), so read and write paths share one already-fresh id.
   const caller = { role: user.role, employeeId: user.employeeId };
   const params = await searchParams;
   const t = await getTranslations("team");

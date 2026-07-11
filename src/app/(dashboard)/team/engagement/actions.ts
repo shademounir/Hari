@@ -60,8 +60,6 @@ export async function saveQualitativeSignalAction(input: QualitativeInput): Prom
   if (!parsed.success) return { ok: false, error: "invalid" };
   const { employeeId, workQuality, participation, peerInteraction, note } = parsed.data;
 
-  // employeeId is resolved live from the DB in the auth session callback
-  // (lib/auth.ts), so the session value is already current.
   if (user.employeeId && employeeId === user.employeeId) return { ok: false, error: "forbidden" }; // no self-rating
 
   // Ownership: HR/Admin (engagement:read:all) may rate anyone; a manager only their reports.
