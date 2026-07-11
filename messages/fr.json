@@ -43,7 +43,8 @@
     "analytics": "Analytique RH",
     "teamAnalytics": "Analytique équipe",
     "documents": "Documents",
-    "documentRequests": "Demandes de documents"
+    "documentRequests": "Demandes de documents",
+    "documentHistory": "Historique des documents"
   },
   "roles": {
     "EMPLOYEE": "Collaborateur",
@@ -1050,10 +1051,21 @@
       "title": "Mes demandes",
       "type": "Type",
       "requestedOn": "Demandé le",
+      "generatedOn": "Généré le",
       "status": "Statut",
       "actions": "Actions",
       "download": "Télécharger",
       "rejectionReason": "Motif : {note}"
+    },
+    "history": {
+      "title": "Historique des documents",
+      "description": "Toutes les demandes de documents RH de l'entreprise, de la soumission au téléchargement.",
+      "employee": "Collaborateur",
+      "type": "Type",
+      "requestedOn": "Demandé le",
+      "generatedOn": "Généré le",
+      "status": "Statut",
+      "empty": "Aucune demande de document pour le moment."
     },
     "requests": {
       "title": "Demandes de documents",

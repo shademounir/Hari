@@ -153,6 +153,7 @@ export type MyDocumentView = {
   type: string;
   status: string;
   requestedAt: string;
+  generatedAt: string | null;
   rejectionNote: string | null;
 };
 
@@ -161,13 +162,56 @@ export async function getMyDocumentRequests(userId: string): Promise<MyDocumentV
   const rows = await prisma.generatedDocument.findMany({
     where: { requestedById: userId },
     orderBy: { requestedAt: "desc" },
-    select: { id: true, type: true, status: true, requestedAt: true, rejectionNote: true },
+    select: {
+      id: true,
+      type: true,
+      status: true,
+      requestedAt: true,
+      generatedAt: true,
+      rejectionNote: true,
+    },
   });
   return rows.map((r) => ({
     id: r.id,
     type: r.type,
     status: r.status,
     requestedAt: r.requestedAt.toISOString().slice(0, 10),
+    generatedAt: r.generatedAt ? r.generatedAt.toISOString().slice(0, 10) : null,
     rejectionNote: r.rejectionNote,
+  }));
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// SCRUM-083: HR's view of the full document history — every request in the
+// company, any status, not just the pending queue (documents/requests.ts).
+// Gated on `documents:download:any`: the same permission already means "may
+// see/fetch any generated document", so a dedicated history is a natural
+// extension of it rather than a new permission (HR/Admin only — a manager,
+// even with `directory:read:team`, never sees a team member's documents).
+// ─────────────────────────────────────────────────────────────────────────
+export type CompanyDocumentView = {
+  id: string;
+  employeeName: string;
+  type: string;
+  status: string;
+  requestedAt: string;
+  generatedAt: string | null;
+};
+
+/** Every document request company-wide, newest first. Empty unless the caller may. */
+export async function getCompanyDocumentHistory(role: Role): Promise<CompanyDocumentView[]> {
+  if (!can(role, "documents:download:any")) return [];
+
+  const rows = await prisma.generatedDocument.findMany({
+    orderBy: { requestedAt: "desc" },
+    include: { requestedBy: { select: { name: true } } },
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    employeeName: r.requestedBy?.name ?? "—",
+    type: r.type,
+    status: r.status,
+    requestedAt: r.requestedAt.toISOString().slice(0, 10),
+    generatedAt: r.generatedAt ? r.generatedAt.toISOString().slice(0, 10) : null,
   }));
 }

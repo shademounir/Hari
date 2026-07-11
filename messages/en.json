@@ -43,7 +43,8 @@
     "analytics": "HR Analytics",
     "teamAnalytics": "Team Analytics",
     "documents": "Documents",
-    "documentRequests": "Document Requests"
+    "documentRequests": "Document Requests",
+    "documentHistory": "Document History"
   },
   "roles": {
     "EMPLOYEE": "Employee",
@@ -1050,10 +1051,21 @@
       "title": "My requests",
       "type": "Type",
       "requestedOn": "Requested on",
+      "generatedOn": "Generated on",
       "status": "Status",
       "actions": "Actions",
       "download": "Download",
       "rejectionReason": "Reason: {note}"
+    },
+    "history": {
+      "title": "Document History",
+      "description": "All HR document requests company-wide, from submission to download.",
+      "employee": "Employee",
+      "type": "Type",
+      "requestedOn": "Requested on",
+      "generatedOn": "Generated on",
+      "status": "Status",
+      "empty": "No document requests yet."
     },
     "requests": {
       "title": "Document Requests",

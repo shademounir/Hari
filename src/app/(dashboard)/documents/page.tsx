@@ -92,6 +92,7 @@ export default async function DocumentsPage({
                   <TableRow>
                     <TableHead>{t("myRequests.type")}</TableHead>
                     <TableHead>{t("myRequests.requestedOn")}</TableHead>
+                    <TableHead>{t("myRequests.generatedOn")}</TableHead>
                     <TableHead>{t("myRequests.status")}</TableHead>
                     <TableHead className="text-right">{t("myRequests.actions")}</TableHead>
                   </TableRow>
@@ -101,6 +102,9 @@ export default async function DocumentsPage({
                     <TableRow key={r.id}>
                       <TableCell>{t(`type.${r.type}` as "type.WORK_CERTIFICATE")}</TableCell>
                       <TableCell className="tabular-nums">{r.requestedAt}</TableCell>
+                      <TableCell className="tabular-nums text-muted-foreground">
+                        {r.generatedAt ?? "—"}
+                      </TableCell>
                       <TableCell>
                         <div className="space-y-1">
                           <Badge variant={r.status === "REJECTED" ? "destructive" : "secondary"}>

@@ -37,6 +37,7 @@ export type NavKey =
   | "offboarding"
   | "documents"
   | "documentRequests"
+  | "documentHistory"
   | "knowledgeBase"
   | "alerts"
   | "audit"
@@ -93,6 +94,7 @@ export const NAV_ITEMS: NavItem[] = [
     permission: "documents:request",
     children: [
       { href: "/documents/requests", ns: "nav", key: "documentRequests", permission: "documents:validate" },
+      { href: "/documents/history", ns: "nav", key: "documentHistory", permission: "documents:download:any" },
     ],
   },
   { href: "/kb", key: "knowledgeBase", icon: BookOpen },
