@@ -37,6 +37,12 @@ export const PERMISSIONS = [
   "documents:request", // request own generated HR documents
   "predictions:read", // view departure-risk predictions (managers: own team, anonymized; HR: full)
   "predictions:manage", // recalibrate model weights / thresholds (HR/Admin)
+  // SCRUM-099 engagement/burnout. NOTE: there is deliberately NO `engagement:read:self` —
+  // employees must NEVER see their own engagement score (psychological-harm + GDPR Art. 22).
+  "engagement:read:team", // view engagement for own reports (managers)
+  "engagement:read:all", // view company-wide engagement (HR/Admin)
+  "engagement:input", // submit qualitative manager ratings for own reports
+  "engagement:manage", // recalibrate engagement weights / thresholds (HR/Admin)
   "documents:download:any", // download any generated document (HR/Admin); employees download their own implicitly
   "admin:settings", // platform settings
 ] as const;
@@ -63,6 +69,10 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   "documents:request": "Request own HR documents",
   "predictions:read": "View departure-risk predictions",
   "predictions:manage": "Recalibrate the predictive model",
+  "engagement:read:team": "View team engagement & burnout risk",
+  "engagement:read:all": "View company-wide engagement & burnout risk",
+  "engagement:input": "Submit qualitative engagement ratings",
+  "engagement:manage": "Recalibrate the engagement model",
   "documents:download:any": "Download any generated HR document",
   "admin:settings": "Manage platform settings",
 };
@@ -83,6 +93,8 @@ const MANAGER: Permission[] = [
   "dashboard:read:team",
   "predictions:read", // own team only, anonymized (enforced in the data/tool layer)
   "analytics:team",
+  "engagement:read:team", // own reports only; scores are NEVER shown to the subject
+  "engagement:input", // rate own reports' work quality / participation / peer interaction
 ];
 
 const HR_ADMIN: Permission[] = [
@@ -96,6 +108,8 @@ const HR_ADMIN: Permission[] = [
   "dashboard:read:company",
   "predictions:manage", // recalibration; predictions:read inherited from MANAGER
   "analytics:full",
+  "engagement:read:all", // whole company; engagement:read:team + input inherited from MANAGER
+  "engagement:manage", // recalibrate engagement weights / thresholds
   "documents:download:any",
 ];
 

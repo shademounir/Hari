@@ -16,14 +16,12 @@
 // scopes its callers — so this layer takes no caller and reads company-wide.
 //
 // EFFICIENCY / no N+1:
-//   • Per employee: ONE relational fetch (employee + manager + balances + salary
-//     history + latest survey) plus ONE sick-leave aggregate — the manager join
-//     resolves the "domino effect" without a second round-trip per employee.
-//   • Department turnover is the one signal that would cause N+1 if recomputed
-//     per employee, so it is factored out: the cron calls
-//     `getDepartmentTurnoverRates()` ONCE (two grouped queries total) and passes
-//     each rate in via `opts.departmentTurnover`. The standalone path computes it
-//     for the single department on demand.
+//   • Batch scoring (`scoreCandidates`, used by the cron and the dashboard) runs in
+//     a FIXED number of queries regardless of headcount: `getDepartmentTurnoverRates`
+//     (2 grouped) + `buildInputsForCandidates` (1 relational read, 1 grouped
+//     sick-leave sum, 1 engagement read). No per-employee round-trip.
+//   • The standalone path (`buildDepartureRiskInput`, one employee for the AI tool)
+//     does its own small fetches and computes turnover for the single department.
 // ─────────────────────────────────────────────────────────────────────────
 import "server-only";
 import type { LeaveType, Prisma } from "@prisma/client";
@@ -213,9 +211,42 @@ export type BuildInputOpts = {
 };
 
 /**
+ * Pure mapping from one employee's relational row + its three per-person signals
+ * to the privacy-safe `DepartureRiskInput`. Kept pure (no Prisma) so the single
+ * and batch fetch paths share ONE assembly implementation and can't drift.
+ */
+function assembleRiskInput(
+  employee: EmployeeRow,
+  signals: { asOf: Date; sickDays: number; engagementScore: number | null; departmentTurnover: number },
+): DepartureRiskInput {
+  const { asOf, sickDays, engagementScore, departmentTurnover } = signals;
+  // "In current role" falls back to hire date when no role change is recorded.
+  const roleAnchor = employee.lastRoleChangeDate ?? employee.startDate;
+  // Domino effect: manager's departure within the last 6 months.
+  const managerLeftAt = employee.manager?.leftAt ?? null;
+  const managerLeftRecently =
+    managerLeftAt !== null && managerLeftAt >= subMonths(asOf, 6) && managerLeftAt <= asOf;
+
+  return {
+    asOf,
+    startDate: employee.startDate,
+    lastReviewDate: employee.lastReviewDate,
+    absenceDaysLast12m: sickDays,
+    salaryGrowthPct12m: salaryGrowthPct12m(employee.salary, employee.salaryChanges, asOf),
+    departmentTurnoverRate: departmentTurnover,
+    jobProfileRiskBaseline: jobProfileBaseline(employee.title),
+    unusedPtoDaysLast12m: unusedPtoDays(employee.leaveBalances),
+    monthsInCurrentRole: monthsBetween(roleAnchor, asOf),
+    managerLeftRecently,
+    recentEngagementScore: engagementScore,
+  };
+}
+
+/**
  * Assemble the full `DepartureRiskInput` for one employee — the privacy-safe,
  * fully-derived object the pure scorer consumes. Throws if the employee is
- * unknown (caller decides how to surface that).
+ * unknown (caller decides how to surface that). This is the STANDALONE path (the
+ * AI tool, a single lookup); batch scoring uses `buildInputsForCandidates`.
  */
 export async function buildDepartureRiskInput(
   employeeId: string,
@@ -237,26 +268,66 @@ export async function buildDepartureRiskInput(
     opts.departmentTurnover ?? getDepartmentTurnover(employee.department, asOf),
   ]);
 
-  // "In current role" falls back to hire date when no role change is recorded.
-  const roleAnchor = employee.lastRoleChangeDate ?? employee.startDate;
-  // Domino effect: manager's departure within the last 6 months.
-  const managerLeftAt = employee.manager?.leftAt ?? null;
-  const managerLeftRecently =
-    managerLeftAt !== null && managerLeftAt >= subMonths(asOf, 6) && managerLeftAt <= asOf;
+  return assembleRiskInput(employee, { asOf, sickDays, engagementScore, departmentTurnover });
+}
 
-  return {
-    asOf,
-    startDate: employee.startDate,
-    lastReviewDate: employee.lastReviewDate,
-    absenceDaysLast12m: sickDays,
-    salaryGrowthPct12m: salaryGrowthPct12m(employee.salary, employee.salaryChanges, asOf),
-    departmentTurnoverRate: departmentTurnover,
-    jobProfileRiskBaseline: jobProfileBaseline(employee.title),
-    unusedPtoDaysLast12m: unusedPtoDays(employee.leaveBalances),
-    monthsInCurrentRole: monthsBetween(roleAnchor, asOf),
-    managerLeftRecently,
-    recentEngagementScore: engagementScore,
-  };
+/**
+ * Batch equivalent of `buildDepartureRiskInput` for a set of employees, in a FIXED
+ * number of queries regardless of headcount: one relational read, one grouped
+ * sick-leave sum, and one engagement read (latest-per-employee picked in memory).
+ * Turnover is supplied precomputed by the caller. Returns a map keyed by employeeId;
+ * an id with no matching employee is simply absent.
+ */
+async function buildInputsForCandidates(
+  candidateIds: string[],
+  opts: { asOf: Date; turnover: Map<string, number> },
+): Promise<Map<string, DepartureRiskInput>> {
+  const inputs = new Map<string, DepartureRiskInput>();
+  if (candidateIds.length === 0) return inputs;
+  const { asOf, turnover } = opts;
+  const windowStart = subMonths(asOf, 12);
+
+  const [employees, sickByEmployee, surveys] = await Promise.all([
+    prisma.employee.findMany({
+      where: { id: { in: candidateIds } },
+      select: { ...employeeSelect, id: true },
+    }),
+    prisma.leaveRequest.groupBy({
+      by: ["employeeId"],
+      where: {
+        employeeId: { in: candidateIds },
+        type: "SICK",
+        status: "APPROVED",
+        startDate: { gte: windowStart, lte: asOf },
+      },
+      _sum: { days: true },
+    }),
+    prisma.engagementSurvey.findMany({
+      where: { employeeId: { in: candidateIds }, surveyDate: { lte: asOf } },
+      orderBy: { surveyDate: "desc" },
+      select: { employeeId: true, score: true },
+    }),
+  ]);
+
+  const sickDaysByEmployee = new Map(sickByEmployee.map((r) => [r.employeeId, r._sum.days ?? 0]));
+  // `surveys` is ordered surveyDate DESC → the first row seen per employee is the latest.
+  const engagementByEmployee = new Map<string, number>();
+  for (const s of surveys) {
+    if (!engagementByEmployee.has(s.employeeId)) engagementByEmployee.set(s.employeeId, s.score);
+  }
+
+  for (const employee of employees) {
+    inputs.set(
+      employee.id,
+      assembleRiskInput(employee, {
+        asOf,
+        sickDays: sickDaysByEmployee.get(employee.id) ?? 0,
+        engagementScore: engagementByEmployee.get(employee.id) ?? null,
+        departmentTurnover: turnover.get(employee.department) ?? 0,
+      }),
+    );
+  }
+  return inputs;
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -347,10 +418,11 @@ export async function getPredictionCandidates(caller: {
 }
 
 /**
- * Score a set of candidates and return them sorted by descending risk. Department
- * turnover is computed ONCE for the whole batch (no N+1); each employee still
- * needs its own signal fetch (unavoidable — per-person history), but the two
- * cross-employee aggregates (turnover, and the manager join) never repeat per row.
+ * Score a set of candidates and return them sorted by descending risk. The entire
+ * batch runs in a FIXED number of queries — turnover (2 grouped), plus the 3 reads
+ * inside `buildInputsForCandidates` — regardless of headcount, so the nightly cron
+ * and the first-load dashboard don't fan out `3×N` concurrent queries and exhaust
+ * the connection pool. The pure scorer then runs in memory.
  */
 export async function scoreCandidates(
   candidates: RiskCandidate[],
@@ -359,20 +431,20 @@ export async function scoreCandidates(
   if (candidates.length === 0) return [];
   const { asOf, config } = opts;
   const turnover = await getDepartmentTurnoverRates(asOf);
-
-  const scored = await Promise.all(
-    candidates.map(async (c) => {
-      const input = await buildDepartureRiskInput(c.employeeId, {
-        asOf,
-        departmentTurnover: turnover.get(c.department) ?? 0,
-      });
-      const result = computeDepartureRisk(input, {
-        weights: config.weights,
-        thresholds: config.thresholds,
-      });
-      return { ...c, score: result.score, band: result.band, factors: result.factors };
-    }),
+  const inputs = await buildInputsForCandidates(
+    candidates.map((c) => c.employeeId),
+    { asOf, turnover },
   );
+
+  const scored = candidates.flatMap((c) => {
+    const input = inputs.get(c.employeeId);
+    if (!input) return []; // employee vanished between candidate fetch and scoring
+    const result = computeDepartureRisk(input, {
+      weights: config.weights,
+      thresholds: config.thresholds,
+    });
+    return [{ ...c, score: result.score, band: result.band, factors: result.factors }];
+  });
 
   return scored.sort((a, b) => b.score - a.score);
 }

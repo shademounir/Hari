@@ -22,6 +22,8 @@
     "hrActivity": "HR Activity",
     "predictions": "Predictions",
     "timeOff": "Time Off",
+    "onboarding": "Onboarding",
+    "offboarding": "Offboarding",
     "settings": "Settings",
     "signOut": "Sign out",
     "openNavigation": "Open navigation",
@@ -37,10 +39,13 @@
     "breadcrumb": "Breadcrumb",
     "userMenu": "Account menu",
     "alerts": "Alerts",
-    "analytics": "HR Analytics",
-    "teamAnalytics": "Team Analytics",
-    "documents": "Documents",
+    "audit": "Audit Log",
+    "analytics": "HR Analytics", 
     "edit": "Edit"
+    "teamAnalytics": "Team Analytics",   
+    "teamPredictions": "Team retention"
+    "engagement": "Engagement",
+    "documents": "Documents"
   },
   "roles": {
     "EMPLOYEE": "Employee",
@@ -70,7 +75,11 @@
     "documents:download:any": "Download any generated HR document",
     "documents:request": "Request own HR documents",
     "predictions:read": "View departure-risk predictions",
-    "predictions:manage": "Recalibrate the predictive model"
+    "predictions:manage": "Recalibrate the predictive model",
+    "engagement:read:team": "View team engagement & burnout risk",
+    "engagement:read:all": "View company-wide engagement & burnout risk",
+    "engagement:input": "Submit qualitative engagement ratings",
+    "engagement:manage": "Recalibrate the engagement model"
   },
   "leaveType": {
     "VACATION": "Vacation",
@@ -339,6 +348,108 @@
     "status": "Status",
     "empty": "Nothing here yet."
   },
+  "onboarding": {
+    "title": "Onboarding",
+    "description": "Your first-days checklist — tick each step as you complete it.",
+    "myOnboarding": "My onboarding",
+    "progressCount": "{done} / {total} done",
+    "empty": "No onboarding steps assigned yet.",
+    "stepDone": "Done",
+    "teamProgress": "Team onboarding",
+    "overviewEmpty": "No employees to show.",
+    "employee": "Employee",
+    "role": "Role",
+    "department": "Department",
+    "progress": "Progress",
+    "status": "Status",
+    "statusComplete": "Complete",
+    "categories": {
+      "PAPERWORK": "Paperwork",
+      "EQUIPMENT": "Equipment",
+      "ACCESS": "Access",
+      "TRAINING": "Training",
+      "ORIENTATION": "Orientation"
+    },
+    "steps": {
+      "signContract": "Sign your employment contract",
+      "submitId": "Submit ID and legal documents",
+      "bankDetails": "Provide bank details for payroll",
+      "laptop": "Collect your laptop and equipment",
+      "accessBadge": "Get your building access badge",
+      "accounts": "Activate your email and accounts",
+      "securityTraining": "Complete security & data-privacy training",
+      "handbookReview": "Read the employee handbook",
+      "teamIntro": "Meet your team",
+      "managerMeeting": "First 1:1 with your manager"
+    }
+  },
+  "offboarding": {
+    "title": "Offboarding",
+    "description": "Run the exit checklist for a departing employee, then archive their record.",
+    "initiate": "Start an offboarding",
+    "noCandidates": "No active employees are available to offboard.",
+    "employee": "Employee",
+    "reason": "Reason",
+    "lastDay": "Last day",
+    "startProcess": "Start",
+    "inProgress": "In progress",
+    "noneInProgress": "No offboarding in progress.",
+    "progress": "Progress",
+    "progressCount": "{done} / {total} done",
+    "completeAndArchive": "Complete & archive",
+    "archived": "Archived",
+    "archivedOn": "Archived on",
+    "reasons": {
+      "RESIGNATION": "Resignation",
+      "TERMINATION": "Termination",
+      "END_OF_CONTRACT": "End of contract",
+      "RETIREMENT": "Retirement",
+      "OTHER": "Other"
+    },
+    "categories": {
+      "ACCESS": "Access",
+      "EQUIPMENT": "Equipment",
+      "PAYROLL": "Payroll",
+      "KNOWLEDGE": "Knowledge",
+      "EXIT": "Exit"
+    },
+    "steps": {
+      "revokeAccounts": "Revoke accounts and SSO access",
+      "disableEmail": "Disable email and mailbox",
+      "collectBadge": "Collect building access badge",
+      "returnLaptop": "Recover laptop",
+      "returnDevices": "Recover phone and other devices",
+      "finalPay": "Process final pay",
+      "benefitsTermination": "Terminate benefits and insurance",
+      "knowledgeHandover": "Complete knowledge handover",
+      "documentation": "Archive documentation and files",
+      "exitInterview": "Conduct exit interview",
+      "offboardingLetter": "Issue offboarding letter"
+    }
+  },
+  "audit": {
+    "title": "Audit Log",
+    "description": "The compliance trail of sensitive actions — metadata only, never content.",
+    "filterLabel": "Filter by action",
+    "filterAll": "All",
+    "empty": "No audit entries to show.",
+    "colTime": "Time (UTC)",
+    "colActor": "Actor",
+    "colAction": "Action",
+    "colTarget": "Target",
+    "actions": {
+      "ALERT_ACKNOWLEDGED": "Alert acknowledged",
+      "ALERT_RESOLVED": "Alert resolved",
+      "ALERT_REOPENED": "Alert reopened",
+      "ALERTS_CONSOLE_VIEWED": "Alerts console viewed",
+      "OFFBOARDING_INITIATED": "Offboarding started",
+      "OFFBOARDING_STEP_COMPLETED": "Offboarding step completed",
+      "EMPLOYEE_OFFBOARDED": "Employee offboarded",
+      "LEAVE_APPROVED": "Leave approved",
+      "LEAVE_REJECTED": "Leave rejected",
+      "AUDIT_CONSOLE_VIEWED": "Audit console viewed"
+    }
+  },
   "settings": {
     "title": "Settings",
     "description": "The single RBAC matrix that gates the UI, server actions, and AI tools.",
@@ -497,7 +608,8 @@
       "pagination": {
         "showing": "Showing {from}–{to} of {total}",
         "previous": "Previous",
-        "next": "Next"
+        "next": "Next",
+        "landmark": "Risk map pagination"
       }
     },
     "factor": {
@@ -597,7 +709,8 @@
         "invalid": "Please pick a department and a valid number.",
         "rate_limited": "The AI model is rate-limited right now. Please wait a moment and try again.",
         "ai_unavailable": "The AI planner is unavailable right now. Please try again later."
-      }
+      },
+      "generating": "Generating the recruitment plan…"
     },
     "succession": {
       "title": "Succession planning",
@@ -630,6 +743,149 @@
       "READY_NOW": "Ready now",
       "READY_1_2Y": "Ready in 1–2 yrs",
       "DEVELOPING": "Developing"
+    },
+    "team": {
+      "title": "Team retention",
+      "description": "Anonymized departure-risk signal for your direct reports.",
+      "anonymizedNote": "Results are aggregated and anonymized — no names are shown. Use them as team-level insight, not to single out individuals.",
+      "evaluated": "Reports evaluated",
+      "highRisk": "High risk",
+      "empty": "No direct reports to evaluate yet.",
+      "rank": "Report #{n}"
+    }
+  },
+  "engagement":   {
+    "teamTitle": "Team Engagement & Burnout",
+    "teamDescription": "Early signals of disengagement and burnout for your team. Scores are for support, never punishment — and are never shown to the employee.",
+    "adminTitle": "Engagement & Burnout (Company)",
+    "adminDescription": "Company-wide engagement health, with a burnout/boreout breakdown and per-team filters.",
+    "noData": "No engagement data yet — the nightly job will populate this once snapshots exist.",
+    "band": {
+      "GREEN": "Healthy",
+      "YELLOW": "Watch",
+      "ORANGE": "At risk",
+      "RED": "Critical"
+    },
+    "quadrant": {
+      "title": "Burnout vs. Boreout map",
+      "description": "Each person plotted by exhaustion (Y) and disengagement (X). The quadrant decides the response — burnout needs LESS load, boreout needs MORE challenge.",
+      "exhaustion": "Exhaustion",
+      "disengagement": "Disengagement",
+      "ENGAGED": "Engaged",
+      "BURNOUT": "Burnout",
+      "BOREOUT": "Boreout",
+      "STRAINED": "Strained"
+    },
+    "metrics": {
+      "evaluated": "People evaluated",
+      "evaluatedHint": "Active employees with a current score",
+      "atRisk": "At risk",
+      "atRiskHint": "In the At-risk or Critical band",
+      "burnout": "In burnout",
+      "burnoutHint": "High exhaustion + disengagement",
+      "boreout": "In boreout",
+      "boreoutHint": "Under-stimulated, needs new challenge"
+    },
+    "table": {
+      "title": "Team roster",
+      "description": "Current engagement, 4-week momentum, and the 'why' behind each score.",
+      "empty": "No one to show.",
+      "employee": "Employee",
+      "department": "Department",
+      "quadrant": "Quadrant",
+      "momentum": "Momentum",
+      "score": "Engagement",
+      "actions": "Actions"
+    },
+    "detail": {
+      "view": "Why",
+      "title": "Engagement: {name}",
+      "exhaustion": "Exhaustion",
+      "disengagement": "Disengagement",
+      "whySection": "What's driving the score",
+      "agendaTitle": "AI 1:1 support plan",
+      "agendaGenerate": "Generate plan",
+      "agendaRegenerate": "Regenerate",
+      "agendaHint": "Generate a supportive, non-punitive 1:1 agenda tailored to the failing signals.",
+      "agendaTopics": "Discussion topics",
+      "agendaQuestions": "Questions to ask",
+      "agendaActions": "Supportive actions",
+      "agendaAvoid": "What NOT to say",
+      "agendaFollowUp": "Follow up in {days} days.",
+      "agendaErrorTitle": "AI Error",
+      "agendaError": {
+        "forbidden": "You don't have access to generate this plan.",
+        "invalid": "Couldn't build a plan from the available signals.",
+        "rate_limited": "The AI model is rate-limited right now. Please wait a moment and try again.",
+        "ai_unavailable": "The AI planner is unavailable right now. Please try again later."
+      }
+    },
+    "factor": {
+      "baseline": "Baseline",
+      "absenceSpike": "Absenteeism spike",
+      "unplannedLeave": "Unplanned leave",
+      "taskLatency": "Task latency",
+      "afterHours": "After-hours activity",
+      "unusedPto": "Unused time off",
+      "assistantDrop": "Drop in assistant use",
+      "oneOnOneGap": "Time since last 1:1",
+      "roleStagnation": "Time in same role",
+      "workQuality": "Work quality",
+      "participation": "Meeting participation",
+      "peerInteraction": "Peer interaction"
+    },
+    "qualitative": {
+      "rate": "Rate",
+      "title": "Rate {name}",
+      "subtitle": "Your confidential monthly read on this report — feeds the qualitative half of the score.",
+      "workQuality": "Work quality",
+      "participation": "Meeting participation",
+      "peerInteraction": "Peer interaction",
+      "note": "Note (optional)",
+      "notePlaceholder": "Any context…",
+      "notePrivacy": "Visible only to you and HR — never the employee.",
+      "submit": "Save rating",
+      "cancel": "Cancel",
+      "saved": "Rating saved",
+      "errorTitle": "Couldn't save",
+      "error": {
+        "forbidden": "You can only rate your own direct reports.",
+        "invalid": "Please provide a valid rating (1–5).",
+        "internal": "Something went wrong. Please try again."
+      }
+    },
+    "filters": {
+      "label": "Filter",
+      "department": "Department",
+      "manager": "Manager",
+      "band": "Risk level",
+      "allDepartments": "All departments",
+      "allManagers": "All managers",
+      "allBands": "All levels",
+      "search": "Search by name",
+      "searchPlaceholder": "Search…",
+      "selected": "{count} selected",
+      "sort": "Sort by",
+      "sort_risk": "Most at risk",
+      "sort_scoreDesc": "Highest engagement",
+      "sort_name": "Name (A–Z)",
+      "sort_momentum": "Fastest decline"
+    },
+    "trend": {
+      "title": "Engagement trend",
+      "description": "Average engagement across the current view over recent weeks.",
+      "avgLabel": "Avg. engagement",
+      "noData": "Not enough history yet."
+    },
+    "distribution": {
+      "title": "Quadrant breakdown by department",
+      "description": "How each department splits across the four quadrants.",
+      "noData": "No data for this selection."
+    },
+    "pagination": {
+      "showing": "Showing {from}–{to} of {total}",
+      "previous": "Previous",
+      "next": "Next"
     }
   },
   "tools": {
@@ -665,7 +921,8 @@
       "approveLeave": "Approve or reject a pending request.",
       "getPayslip": "A payslip — your own, or anyone visible with elevated rights.",
       "endConversation": "End the conversation and lock the chat — used only to decline abuse or unsafe requests.",
-      "predictDepartures": "Rank who is most at risk of leaving (managers: own team, anonymized; HR: full detail)."
+      "predictDepartures": "Rank who is most at risk of leaving (managers: own team, anonymized; HR: full detail).",
+      "getEngagementRisk": "Find who is at risk of burnout/disengagement (managers: own team; HR: company). Names never exposed to the model."
     }
   },
   "login": {
@@ -915,6 +1172,9 @@
       },
       "DEPARTURE_RISK": {
         "title": "Employee at risk of departure"
+      },
+      "ENGAGEMENT_RISK": {
+        "title": "Employee engagement at risk"
       }
     },
     "colDetail": "Detail",
@@ -931,6 +1191,37 @@
     "workCertificateDescription": "Request an automatically generated work certificate.",
     "requestWorkCertificate": "Request certificate",
     "requestSuccess": "Your request has been submitted successfully.",
-    "forbidden": "You are not allowed to access this page."
+    "forbidden": "You are not allowed to access this page.",
+    "myDocuments": "My documents",
+    "noDocuments": "You haven't requested any documents yet.",
+    "download": "Download",
+    "status": {
+      "REQUESTED": "Pending",
+      "VALIDATED": "Validated",
+      "GENERATED": "Ready",
+      "DOWNLOADED": "Downloaded",
+      "REJECTED": "Rejected"
+    },
+    "queue": {
+      "title": "Requests to process",
+      "empty": "No document requests to process.",
+      "generate": "Generate",
+      "reject": "Reject",
+      "generated": "Document generated.",
+      "rejected": "Request rejected.",
+      "actionError": "Action failed",
+      "rejectTitle": "Reject this request",
+      "rejectDescription": "The employee will see this reason.",
+      "rejectPlaceholder": "Reason for rejection…",
+      "cancel": "Cancel",
+      "confirmReject": "Reject request",
+      "reason": {
+        "forbidden": "You don't have permission.",
+        "not_found": "Document not found.",
+        "invalid_state": "This request can no longer be processed.",
+        "no_requester": "The requester's account is missing.",
+        "no_employee": "No employee record for the requester."
+      }
+    }
   }
 }

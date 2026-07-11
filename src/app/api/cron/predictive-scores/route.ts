@@ -16,8 +16,11 @@ import { runDailyRiskScoring } from "@/lib/predictive/data-layer";
 export const runtime = "nodejs"; // needs Prisma + node:crypto
 export const dynamic = "force-dynamic"; // never cached — it mutates
 
-/** Constant-time check of the Bearer secret. Fails closed when CRON_SECRET is unset. */
-function isAuthorized(req: Request): boolean {
+/**
+ * Constant-time check of the Bearer secret. Fails closed when CRON_SECRET is unset.
+ * Exported for unit testing (Next only routes the GET export; this is inert to the router).
+ */
+export function isAuthorized(req: Request): boolean {
   const secret = process.env.CRON_SECRET;
   if (!secret) return false;
   const provided = req.headers.get("authorization") ?? "";

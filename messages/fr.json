@@ -22,6 +22,8 @@
     "hrActivity": "Activité RH",
     "predictions": "Prédictions",
     "timeOff": "Congés",
+    "onboarding": "Intégration",
+    "offboarding": "Départ",
     "settings": "Paramètres",
     "signOut": "Se déconnecter",
     "openNavigation": "Ouvrir la navigation",
@@ -37,10 +39,13 @@
     "breadcrumb": "Fil d'Ariane",
     "userMenu": "Menu du compte",
     "alerts": "Alertes",
+    "audit": "Journal d'audit",
     "analytics": "Analytique RH",
-    "teamAnalytics": "Analytique équipe",
-    "documents": "Documents",
+    "teamAnalytics": "Analytique équipe",   
     "edit": "Modifier"
+    "teamPredictions": "Rétention de l'équipe"
+    "engagement": "Engagement",
+    "documents": "Documents"
   },
   "roles": {
     "EMPLOYEE": "Collaborateur",
@@ -70,7 +75,11 @@
     "documents:download:any": "Télécharger tout document RH généré",
     "documents:request": "Demander ses propres documents RH",
     "predictions:read": "Voir les prédictions de risque de départ",
-    "predictions:manage": "Recalibrer le modèle prédictif"
+    "predictions:manage": "Recalibrer le modèle prédictif",
+    "engagement:read:team": "Voir l'engagement et le risque d'épuisement de l'équipe",
+    "engagement:read:all": "Voir l'engagement et le risque d'épuisement de l'entreprise",
+    "engagement:input": "Saisir des évaluations qualitatives d'engagement",
+    "engagement:manage": "Recalibrer le modèle d'engagement"
   },
   "leaveType": {
     "VACATION": "Congés",
@@ -339,6 +348,108 @@
     "status": "Statut",
     "empty": "Rien pour le moment."
   },
+  "onboarding": {
+    "title": "Intégration",
+    "description": "Votre checklist des premiers jours — cochez chaque étape une fois terminée.",
+    "myOnboarding": "Mon intégration",
+    "progressCount": "{done} / {total} terminées",
+    "empty": "Aucune étape d'intégration assignée pour l'instant.",
+    "stepDone": "Terminé",
+    "teamProgress": "Intégration de l'équipe",
+    "overviewEmpty": "Aucun employé à afficher.",
+    "employee": "Employé",
+    "role": "Poste",
+    "department": "Département",
+    "progress": "Progression",
+    "status": "Statut",
+    "statusComplete": "Terminée",
+    "categories": {
+      "PAPERWORK": "Administratif",
+      "EQUIPMENT": "Équipement",
+      "ACCESS": "Accès",
+      "TRAINING": "Formation",
+      "ORIENTATION": "Orientation"
+    },
+    "steps": {
+      "signContract": "Signer votre contrat de travail",
+      "submitId": "Fournir votre pièce d'identité et documents légaux",
+      "bankDetails": "Communiquer votre RIB pour la paie",
+      "laptop": "Récupérer votre ordinateur et votre équipement",
+      "accessBadge": "Obtenir votre badge d'accès aux locaux",
+      "accounts": "Activer votre e-mail et vos comptes",
+      "securityTraining": "Suivre la formation sécurité & confidentialité",
+      "handbookReview": "Lire le manuel de l'employé",
+      "teamIntro": "Rencontrer votre équipe",
+      "managerMeeting": "Premier entretien avec votre manager"
+    }
+  },
+  "offboarding": {
+    "title": "Départ",
+    "description": "Déroulez la checklist de départ d'un employé, puis archivez son dossier.",
+    "initiate": "Démarrer un départ",
+    "noCandidates": "Aucun employé actif disponible pour un départ.",
+    "employee": "Employé",
+    "reason": "Motif",
+    "lastDay": "Dernier jour",
+    "startProcess": "Démarrer",
+    "inProgress": "En cours",
+    "noneInProgress": "Aucun départ en cours.",
+    "progress": "Progression",
+    "progressCount": "{done} / {total} terminées",
+    "completeAndArchive": "Terminer et archiver",
+    "archived": "Archivés",
+    "archivedOn": "Archivé le",
+    "reasons": {
+      "RESIGNATION": "Démission",
+      "TERMINATION": "Licenciement",
+      "END_OF_CONTRACT": "Fin de contrat",
+      "RETIREMENT": "Départ à la retraite",
+      "OTHER": "Autre"
+    },
+    "categories": {
+      "ACCESS": "Accès",
+      "EQUIPMENT": "Équipement",
+      "PAYROLL": "Paie",
+      "KNOWLEDGE": "Connaissances",
+      "EXIT": "Sortie"
+    },
+    "steps": {
+      "revokeAccounts": "Révoquer les comptes et l'accès SSO",
+      "disableEmail": "Désactiver l'e-mail et la boîte mail",
+      "collectBadge": "Récupérer le badge d'accès aux locaux",
+      "returnLaptop": "Récupérer l'ordinateur portable",
+      "returnDevices": "Récupérer le téléphone et les autres appareils",
+      "finalPay": "Traiter le solde de tout compte",
+      "benefitsTermination": "Résilier les avantages et l'assurance",
+      "knowledgeHandover": "Réaliser la passation des connaissances",
+      "documentation": "Archiver la documentation et les fichiers",
+      "exitInterview": "Mener l'entretien de départ",
+      "offboardingLetter": "Émettre la lettre de départ"
+    }
+  },
+  "audit": {
+    "title": "Journal d'audit",
+    "description": "La piste de conformité des actions sensibles — métadonnées uniquement, jamais le contenu.",
+    "filterLabel": "Filtrer par action",
+    "filterAll": "Toutes",
+    "empty": "Aucune entrée d'audit à afficher.",
+    "colTime": "Horodatage (UTC)",
+    "colActor": "Auteur",
+    "colAction": "Action",
+    "colTarget": "Cible",
+    "actions": {
+      "ALERT_ACKNOWLEDGED": "Alerte prise en charge",
+      "ALERT_RESOLVED": "Alerte résolue",
+      "ALERT_REOPENED": "Alerte rouverte",
+      "ALERTS_CONSOLE_VIEWED": "Console d'alertes consultée",
+      "OFFBOARDING_INITIATED": "Départ initié",
+      "OFFBOARDING_STEP_COMPLETED": "Étape de départ terminée",
+      "EMPLOYEE_OFFBOARDED": "Employé archivé",
+      "LEAVE_APPROVED": "Congé approuvé",
+      "LEAVE_REJECTED": "Congé refusé",
+      "AUDIT_CONSOLE_VIEWED": "Journal d'audit consulté"
+    }
+  },
   "settings": {
     "title": "Paramètres",
     "description": "La matrice RBAC unique qui contrôle l'interface, les actions serveur et les outils IA.",
@@ -497,7 +608,8 @@
       "pagination": {
         "showing": "Affichage {from}–{to} sur {total}",
         "previous": "Précédent",
-        "next": "Suivant"
+        "next": "Suivant",
+        "landmark": "Pagination de la carte des risques"
       }
     },
     "factor": {
@@ -597,7 +709,8 @@
         "invalid": "Veuillez choisir un département et un nombre valide.",
         "rate_limited": "Le modèle IA est temporairement limité (trop de requêtes). Patientez un instant puis réessayez.",
         "ai_unavailable": "Le planificateur IA est indisponible pour le moment. Réessayez plus tard."
-      }
+      },
+      "generating": "Génération du plan de recrutement…"
     },
     "succession": {
       "title": "Plans de succession",
@@ -630,6 +743,149 @@
       "READY_NOW": "Prêt maintenant",
       "READY_1_2Y": "Prêt dans 1–2 ans",
       "DEVELOPING": "En développement"
+    },
+    "team": {
+      "title": "Rétention de l'équipe",
+      "description": "Signal de risque de départ anonymisé pour vos collaborateurs directs.",
+      "anonymizedNote": "Les résultats sont agrégés et anonymisés — aucun nom n'est affiché. À utiliser comme un signal d'équipe, non pour cibler des personnes.",
+      "evaluated": "Collaborateurs évalués",
+      "highRisk": "Risque élevé",
+      "empty": "Aucun collaborateur direct à évaluer pour l'instant.",
+      "rank": "Collaborateur n°{n}"
+    }
+  },
+  "engagement":   {
+    "teamTitle": "Engagement & épuisement de l'équipe",
+    "teamDescription": "Signaux précoces de désengagement et d'épuisement pour votre équipe. Les scores servent à soutenir, jamais à sanctionner — et ne sont jamais montrés à l'employé.",
+    "adminTitle": "Engagement & épuisement (Entreprise)",
+    "adminDescription": "Santé de l'engagement à l'échelle de l'entreprise, avec répartition épuisement/ennui et filtres par équipe.",
+    "noData": "Aucune donnée d'engagement pour l'instant — le traitement nocturne la remplira dès que des instantanés existeront.",
+    "band": {
+      "GREEN": "Sain",
+      "YELLOW": "À surveiller",
+      "ORANGE": "À risque",
+      "RED": "Critique"
+    },
+    "quadrant": {
+      "title": "Carte épuisement / ennui",
+      "description": "Chaque personne positionnée selon l'épuisement (Y) et le désengagement (X). Le quadrant guide la réponse — l'épuisement demande MOINS de charge, l'ennui PLUS de défis.",
+      "exhaustion": "Épuisement",
+      "disengagement": "Désengagement",
+      "ENGAGED": "Engagé",
+      "BURNOUT": "Épuisement",
+      "BOREOUT": "Ennui (boreout)",
+      "STRAINED": "Sous tension"
+    },
+    "metrics": {
+      "evaluated": "Personnes évaluées",
+      "evaluatedHint": "Employés actifs avec un score actuel",
+      "atRisk": "À risque",
+      "atRiskHint": "Niveau À risque ou Critique",
+      "burnout": "En épuisement",
+      "burnoutHint": "Épuisement + désengagement élevés",
+      "boreout": "En ennui",
+      "boreoutHint": "Sous-stimulé, besoin de défis"
+    },
+    "table": {
+      "title": "Effectif de l'équipe",
+      "description": "Engagement actuel, tendance sur 4 semaines et le « pourquoi » de chaque score.",
+      "empty": "Personne à afficher.",
+      "employee": "Employé",
+      "department": "Département",
+      "quadrant": "Quadrant",
+      "momentum": "Tendance",
+      "score": "Engagement",
+      "actions": "Actions"
+    },
+    "detail": {
+      "view": "Pourquoi",
+      "title": "Engagement : {name}",
+      "exhaustion": "Épuisement",
+      "disengagement": "Désengagement",
+      "whySection": "Ce qui influence le score",
+      "agendaTitle": "Plan de soutien 1:1 (IA)",
+      "agendaGenerate": "Générer le plan",
+      "agendaRegenerate": "Régénérer",
+      "agendaHint": "Générez un ordre du jour de 1:1 bienveillant et non punitif, adapté aux signaux problématiques.",
+      "agendaTopics": "Sujets à aborder",
+      "agendaQuestions": "Questions à poser",
+      "agendaActions": "Actions de soutien",
+      "agendaAvoid": "Ce qu'il NE faut PAS dire",
+      "agendaFollowUp": "Faire le point dans {days} jours.",
+      "agendaErrorTitle": "Erreur IA",
+      "agendaError": {
+        "forbidden": "Vous n'avez pas accès à la génération de ce plan.",
+        "invalid": "Impossible de construire un plan à partir des signaux disponibles.",
+        "rate_limited": "Le modèle IA est temporairement limité. Patientez un instant puis réessayez.",
+        "ai_unavailable": "Le planificateur IA est indisponible pour le moment. Réessayez plus tard."
+      }
+    },
+    "factor": {
+      "baseline": "Base",
+      "absenceSpike": "Pic d'absentéisme",
+      "unplannedLeave": "Congés imprévus",
+      "taskLatency": "Latence des tâches",
+      "afterHours": "Activité hors horaires",
+      "unusedPto": "Congés non pris",
+      "assistantDrop": "Baisse d'usage de l'assistant",
+      "oneOnOneGap": "Temps depuis le dernier 1:1",
+      "roleStagnation": "Ancienneté dans le poste",
+      "workQuality": "Qualité du travail",
+      "participation": "Participation aux réunions",
+      "peerInteraction": "Interaction avec les pairs"
+    },
+    "qualitative": {
+      "rate": "Évaluer",
+      "title": "Évaluer {name}",
+      "subtitle": "Votre lecture mensuelle confidentielle — alimente la part qualitative du score.",
+      "workQuality": "Qualité du travail",
+      "participation": "Participation aux réunions",
+      "peerInteraction": "Interaction avec les pairs",
+      "note": "Note (facultatif)",
+      "notePlaceholder": "Contexte éventuel…",
+      "notePrivacy": "Visible uniquement par vous et les RH — jamais par l'employé.",
+      "submit": "Enregistrer",
+      "cancel": "Annuler",
+      "saved": "Évaluation enregistrée",
+      "errorTitle": "Échec de l'enregistrement",
+      "error": {
+        "forbidden": "Vous ne pouvez évaluer que vos subordonnés directs.",
+        "invalid": "Veuillez fournir une note valide (1–5).",
+        "internal": "Une erreur est survenue. Veuillez réessayer."
+      }
+    },
+    "filters": {
+      "label": "Filtrer",
+      "department": "Département",
+      "manager": "Manager",
+      "band": "Niveau de risque",
+      "allDepartments": "Tous les départements",
+      "allManagers": "Tous les managers",
+      "allBands": "Tous les niveaux",
+      "search": "Rechercher par nom",
+      "searchPlaceholder": "Rechercher…",
+      "selected": "{count} sélectionnés",
+      "sort": "Trier par",
+      "sort_risk": "Plus à risque",
+      "sort_scoreDesc": "Engagement le plus élevé",
+      "sort_name": "Nom (A–Z)",
+      "sort_momentum": "Baisse la plus rapide"
+    },
+    "trend": {
+      "title": "Tendance de l'engagement",
+      "description": "Engagement moyen de la vue actuelle sur les dernières semaines.",
+      "avgLabel": "Engagement moyen",
+      "noData": "Historique insuffisant."
+    },
+    "distribution": {
+      "title": "Répartition par quadrant et département",
+      "description": "Comment chaque département se répartit entre les quatre quadrants.",
+      "noData": "Aucune donnée pour cette sélection."
+    },
+    "pagination": {
+      "showing": "Affichage {from}–{to} sur {total}",
+      "previous": "Précédent",
+      "next": "Suivant"
     }
   },
   "tools": {
@@ -665,7 +921,8 @@
       "approveLeave": "Approuve ou refuse une demande en attente.",
       "getPayslip": "Une fiche de paie — la vôtre, ou celle de toute personne visible avec des droits élevés.",
       "endConversation": "Mettre fin à la conversation et verrouiller le chat — uniquement pour refuser des abus ou des demandes dangereuses.",
-      "predictDepartures": "Classer les personnes les plus à risque de départ (managers : leur équipe, anonymisé ; RH : détail complet)."
+      "predictDepartures": "Classer les personnes les plus à risque de départ (managers : leur équipe, anonymisé ; RH : détail complet).",
+      "getEngagementRisk": "Repérer les risques d'épuisement/désengagement (managers : leur équipe ; RH : entreprise). Les noms ne sont jamais transmis au modèle."
     }
   },
   "login": {
@@ -915,6 +1172,9 @@
       },
       "DEPARTURE_RISK": {
         "title": "Employé à risque de départ"
+      },
+      "ENGAGEMENT_RISK": {
+        "title": "Engagement de l'employé à risque"
       }
     },
     "colDetail": "Détail",
@@ -931,6 +1191,37 @@
     "workCertificateDescription": "Demandez une attestation de travail générée automatiquement par les RH.",
     "requestWorkCertificate": "Demander une attestation",
     "requestSuccess": "Votre demande a bien été enregistrée.",
-    "forbidden": "Vous n'êtes pas autorisé à accéder à cette page."
+    "forbidden": "Vous n'êtes pas autorisé à accéder à cette page.",
+    "myDocuments": "Mes documents",
+    "noDocuments": "Vous n'avez encore demandé aucun document.",
+    "download": "Télécharger",
+    "status": {
+      "REQUESTED": "En attente",
+      "VALIDATED": "Validé",
+      "GENERATED": "Prêt",
+      "DOWNLOADED": "Téléchargé",
+      "REJECTED": "Refusé"
+    },
+    "queue": {
+      "title": "Demandes à traiter",
+      "empty": "Aucune demande de document à traiter.",
+      "generate": "Générer",
+      "reject": "Refuser",
+      "generated": "Document généré.",
+      "rejected": "Demande refusée.",
+      "actionError": "Échec de l'action",
+      "rejectTitle": "Refuser cette demande",
+      "rejectDescription": "L'employé verra ce motif.",
+      "rejectPlaceholder": "Motif du refus…",
+      "cancel": "Annuler",
+      "confirmReject": "Refuser la demande",
+      "reason": {
+        "forbidden": "Vous n'avez pas l'autorisation.",
+        "not_found": "Document introuvable.",
+        "invalid_state": "Cette demande ne peut plus être traitée.",
+        "no_requester": "Le compte du demandeur est introuvable.",
+        "no_employee": "Aucune fiche employé pour le demandeur."
+      }
+    }
   }
 }
