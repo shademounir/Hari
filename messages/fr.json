@@ -42,8 +42,8 @@
     "audit": "Journal d'audit",
     "analytics": "Analytique RH",
     "teamAnalytics": "Analytique équipe",   
-    "edit": "Modifier"
-    "teamPredictions": "Rétention de l'équipe"
+    "edit": "Modifier",
+    "teamPredictions": "Rétention de l'équipe",
     "engagement": "Engagement",
     "documents": "Documents"
   },
