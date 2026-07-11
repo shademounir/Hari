@@ -42,6 +42,7 @@
     "audit": "Audit Log",
     "analytics": "HR Analytics",
     "teamAnalytics": "Team Analytics",
+    "engagement": "Engagement",
     "documents": "Documents"
   },
   "roles": {
@@ -72,7 +73,11 @@
     "documents:download:any": "Download any generated HR document",
     "documents:request": "Request own HR documents",
     "predictions:read": "View departure-risk predictions",
-    "predictions:manage": "Recalibrate the predictive model"
+    "predictions:manage": "Recalibrate the predictive model",
+    "engagement:read:team": "View team engagement & burnout risk",
+    "engagement:read:all": "View company-wide engagement & burnout risk",
+    "engagement:input": "Submit qualitative engagement ratings",
+    "engagement:manage": "Recalibrate the engagement model"
   },
   "leaveType": {
     "VACATION": "Vacation",
@@ -736,6 +741,140 @@
       "DEVELOPING": "Developing"
     }
   },
+  "engagement":   {
+    "teamTitle": "Team Engagement & Burnout",
+    "teamDescription": "Early signals of disengagement and burnout for your team. Scores are for support, never punishment — and are never shown to the employee.",
+    "adminTitle": "Engagement & Burnout (Company)",
+    "adminDescription": "Company-wide engagement health, with a burnout/boreout breakdown and per-team filters.",
+    "noData": "No engagement data yet — the nightly job will populate this once snapshots exist.",
+    "band": {
+      "GREEN": "Healthy",
+      "YELLOW": "Watch",
+      "ORANGE": "At risk",
+      "RED": "Critical"
+    },
+    "quadrant": {
+      "title": "Burnout vs. Boreout map",
+      "description": "Each person plotted by exhaustion (Y) and disengagement (X). The quadrant decides the response — burnout needs LESS load, boreout needs MORE challenge.",
+      "exhaustion": "Exhaustion",
+      "disengagement": "Disengagement",
+      "ENGAGED": "Engaged",
+      "BURNOUT": "Burnout",
+      "BOREOUT": "Boreout",
+      "STRAINED": "Strained"
+    },
+    "metrics": {
+      "evaluated": "People evaluated",
+      "evaluatedHint": "Active employees with a current score",
+      "atRisk": "At risk",
+      "atRiskHint": "In the At-risk or Critical band",
+      "burnout": "In burnout",
+      "burnoutHint": "High exhaustion + disengagement",
+      "boreout": "In boreout",
+      "boreoutHint": "Under-stimulated, needs new challenge"
+    },
+    "table": {
+      "title": "Team roster",
+      "description": "Current engagement, 4-week momentum, and the 'why' behind each score.",
+      "empty": "No one to show.",
+      "employee": "Employee",
+      "department": "Department",
+      "quadrant": "Quadrant",
+      "momentum": "Momentum",
+      "score": "Engagement",
+      "actions": "Actions"
+    },
+    "detail": {
+      "view": "Why",
+      "title": "Engagement: {name}",
+      "exhaustion": "Exhaustion",
+      "disengagement": "Disengagement",
+      "whySection": "What's driving the score",
+      "agendaTitle": "AI 1:1 support plan",
+      "agendaGenerate": "Generate plan",
+      "agendaRegenerate": "Regenerate",
+      "agendaHint": "Generate a supportive, non-punitive 1:1 agenda tailored to the failing signals.",
+      "agendaTopics": "Discussion topics",
+      "agendaQuestions": "Questions to ask",
+      "agendaActions": "Supportive actions",
+      "agendaAvoid": "What NOT to say",
+      "agendaFollowUp": "Follow up in {days} days.",
+      "agendaErrorTitle": "AI Error",
+      "agendaError": {
+        "forbidden": "You don't have access to generate this plan.",
+        "invalid": "Couldn't build a plan from the available signals.",
+        "rate_limited": "The AI model is rate-limited right now. Please wait a moment and try again.",
+        "ai_unavailable": "The AI planner is unavailable right now. Please try again later."
+      }
+    },
+    "factor": {
+      "baseline": "Baseline",
+      "absenceSpike": "Absenteeism spike",
+      "unplannedLeave": "Unplanned leave",
+      "taskLatency": "Task latency",
+      "afterHours": "After-hours activity",
+      "unusedPto": "Unused time off",
+      "assistantDrop": "Drop in assistant use",
+      "oneOnOneGap": "Time since last 1:1",
+      "roleStagnation": "Time in same role",
+      "workQuality": "Work quality",
+      "participation": "Meeting participation",
+      "peerInteraction": "Peer interaction"
+    },
+    "qualitative": {
+      "rate": "Rate",
+      "title": "Rate {name}",
+      "subtitle": "Your confidential monthly read on this report — feeds the qualitative half of the score.",
+      "workQuality": "Work quality",
+      "participation": "Meeting participation",
+      "peerInteraction": "Peer interaction",
+      "note": "Note (optional)",
+      "notePlaceholder": "Any context…",
+      "notePrivacy": "Visible only to you and HR — never the employee.",
+      "submit": "Save rating",
+      "cancel": "Cancel",
+      "saved": "Rating saved",
+      "errorTitle": "Couldn't save",
+      "error": {
+        "forbidden": "You can only rate your own direct reports.",
+        "invalid": "Please provide a valid rating (1–5).",
+        "internal": "Something went wrong. Please try again."
+      }
+    },
+    "filters": {
+      "label": "Filter",
+      "department": "Department",
+      "manager": "Manager",
+      "band": "Risk level",
+      "allDepartments": "All departments",
+      "allManagers": "All managers",
+      "allBands": "All levels",
+      "search": "Search by name",
+      "searchPlaceholder": "Search…",
+      "selected": "{count} selected",
+      "sort": "Sort by",
+      "sort_risk": "Most at risk",
+      "sort_scoreDesc": "Highest engagement",
+      "sort_name": "Name (A–Z)",
+      "sort_momentum": "Fastest decline"
+    },
+    "trend": {
+      "title": "Engagement trend",
+      "description": "Average engagement across the current view over recent weeks.",
+      "avgLabel": "Avg. engagement",
+      "noData": "Not enough history yet."
+    },
+    "distribution": {
+      "title": "Quadrant breakdown by department",
+      "description": "How each department splits across the four quadrants.",
+      "noData": "No data for this selection."
+    },
+    "pagination": {
+      "showing": "Showing {from}–{to} of {total}",
+      "previous": "Previous",
+      "next": "Next"
+    }
+  },
   "tools": {
     "status": {
       "searchHandbook": "Searching the handbook",
@@ -769,7 +908,8 @@
       "approveLeave": "Approve or reject a pending request.",
       "getPayslip": "A payslip — your own, or anyone visible with elevated rights.",
       "endConversation": "End the conversation and lock the chat — used only to decline abuse or unsafe requests.",
-      "predictDepartures": "Rank who is most at risk of leaving (managers: own team, anonymized; HR: full detail)."
+      "predictDepartures": "Rank who is most at risk of leaving (managers: own team, anonymized; HR: full detail).",
+      "getEngagementRisk": "Find who is at risk of burnout/disengagement (managers: own team; HR: company). Names never exposed to the model."
     }
   },
   "login": {
@@ -1015,6 +1155,9 @@
       },
       "DEPARTURE_RISK": {
         "title": "Employee at risk of departure"
+      },
+      "ENGAGEMENT_RISK": {
+        "title": "Employee engagement at risk"
       }
     },
     "colDetail": "Detail",
