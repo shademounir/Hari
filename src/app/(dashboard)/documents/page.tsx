@@ -126,7 +126,6 @@ export default async function DocumentsPage({
                 generatedAt: q.generatedAt ? q.generatedAt.toISOString() : null,
                 requesterName: q.requesterName,
                 department: q.department,
-                pdfUrl: q.pdfUrl,
               }))}
             />
           </section>
