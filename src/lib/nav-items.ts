@@ -90,6 +90,8 @@ export const NAV_ITEMS: NavItem[] = [
       { href: "/analytics/predictions", ns: "nav", key: "predictions", permission: "dashboard:read:company" },
     ],
   },
+  { href: "/team", key: "team", icon: Gauge, permission: "dashboard:read:team" },
+  { href: "/hr-activity", key: "hrActivity", icon: Activity, permission: "dashboard:read:company" },
   { href: "/time-off", key: "timeOff", icon: CalendarDays },
   { href: "/onboarding", key: "onboarding", icon: ClipboardCheck },
   { href: "/offboarding", key: "offboarding", icon: UserMinus, permission: "employee:manage" },

@@ -32,7 +32,7 @@ export default async function HrActivityPage() {
 
   const caller = await resolveCaller(user);
   const t = await getTranslations("hrDashboard");
-  const tStatus = await getTranslations("kbStatus");
+  const tStatus = await getTranslations("docStatus");
 
   const now = new Date();
   const dashboard = await getHrDashboard(caller, now);

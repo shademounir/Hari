@@ -233,7 +233,8 @@
     "filters": "Filters",
     "searchPlaceholder": "Search team members…",
     "optionPlaceholder": "Filter…",
-    "noResults": "No employees match the selected filters."
+    "noResults": "No employees match the selected filters.",
+    "directReport": "Direct report"
   },
   "employmentStatus": {
     "ACTIVE": "Active",
@@ -333,6 +334,11 @@
       "title": "Document corpus",
       "publishedShare": "Published"
     }
+  },
+  "docStatus": {
+    "DRAFT": "Draft",
+    "PUBLISHED": "Published",
+    "ARCHIVED": "Archived"
   },
   "timeOff": {
     "title": "Time Off",
