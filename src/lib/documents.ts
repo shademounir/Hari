@@ -14,28 +14,39 @@
 // ─────────────────────────────────────────────────────────────────────────
 import "server-only";
 import type { GeneratedDocumentStatus, GeneratedDocumentType } from "@prisma/client";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { can } from "@/lib/rbac";
 import type { Role } from "@/lib/rbac";
 import { putDocument } from "@/lib/storage";
-import { generateWorkCertificatePdf } from "@/lib/pdf/work-certificate";
+import { recordAudit } from "@/lib/audit";
+import { generateWorkCertificatePdf, type WorkCertificateCopy } from "@/lib/pdf/work-certificate";
+import { locales, defaultLocale, type Locale } from "@/i18n/routing";
 
 export type DocumentActor = { userId: string; role: Role };
 
 const COMPANY_NAME = process.env.COMPANY_NAME || "HARI";
 
-// Localized labels for the employment-type enum, injected into the certificate body.
-const EMPLOYMENT_TYPE_LABEL: Record<string, { en: string; fr: string }> = {
-  FULL_TIME: { en: "full-time", fr: "à temps plein" },
-  PART_TIME: { en: "part-time", fr: "à temps partiel" },
-  CONTRACTOR: { en: "contractor", fr: "de prestation (contractuel)" },
-};
+/** Narrow a stored (untrusted-by-type, since it's a plain DB string) locale. */
+function asLocale(value: string): Locale {
+  return (locales as readonly string[]).includes(value) ? (value as Locale) : defaultLocale;
+}
+
+function fmtDate(d: Date, locale: Locale): string {
+  return new Intl.DateTimeFormat(locale === "fr" ? "fr-FR" : "en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(d);
+}
 
 export type OwnDocument = {
   id: string;
   type: GeneratedDocumentType;
   status: GeneratedDocumentStatus;
   requestedAt: Date;
+  generatedAt: Date | null;
   rejectionNote: string | null;
   canDownload: boolean;
 };
@@ -45,7 +56,14 @@ export async function listOwnDocuments(userId: string): Promise<OwnDocument[]> {
   const rows = await prisma.generatedDocument.findMany({
     where: { requestedById: userId },
     orderBy: { requestedAt: "desc" },
-    select: { id: true, type: true, status: true, requestedAt: true, rejectionNote: true },
+    select: {
+      id: true,
+      type: true,
+      status: true,
+      requestedAt: true,
+      generatedAt: true,
+      rejectionNote: true,
+    },
   });
   return rows.map((d) => ({
     ...d,
@@ -58,14 +76,17 @@ export type QueueDocument = {
   type: GeneratedDocumentType;
   status: GeneratedDocumentStatus;
   requestedAt: Date;
+  generatedAt: Date | null;
   requesterName: string | null;
   department: string | null;
+  pdfUrl: string | null;
 };
 
 /**
  * The HR fulfillment queue: every request, newest first, with the requester's name
  * and department for context. Gated to `documents:download:any` (HR/Admin) — the
- * same permission that authorizes serving the finished PDF.
+ * same permission that authorizes serving the finished PDF. Also doubles as the
+ * document history (SCRUM-083): every status is included, not just pending ones.
  */
 export async function listDocumentQueue(actor: DocumentActor): Promise<QueueDocument[]> {
   if (!can(actor.role, "documents:download:any")) return [];
@@ -76,6 +97,8 @@ export async function listDocumentQueue(actor: DocumentActor): Promise<QueueDocu
       type: true,
       status: true,
       requestedAt: true,
+      generatedAt: true,
+      pdfUrl: true,
       requestedBy: { select: { name: true, employee: { select: { department: true } } } },
     },
   });
@@ -84,30 +107,72 @@ export async function listDocumentQueue(actor: DocumentActor): Promise<QueueDocu
     type: d.type,
     status: d.status,
     requestedAt: d.requestedAt,
+    generatedAt: d.generatedAt,
     requesterName: d.requestedBy?.name ?? null,
     department: d.requestedBy?.employee?.department ?? null,
+    pdfUrl: d.pdfUrl,
   }));
 }
 
 export type FulfillResult = { ok: true } | { ok: false; reason: string };
 
 /**
+ * Resolve the certificate's translatable copy from messages/{en,fr}.json —
+ * documents.certificate.* — for the given (requester's) locale. Kept separate
+ * from generateWorkCertificate so the i18n concern stays out of the pure
+ * pdf-lib renderer (lib/pdf/work-certificate.ts).
+ */
+async function buildCertificateCopy(
+  locale: Locale,
+  vars: {
+    employeeName: string;
+    jobTitle: string;
+    department: string;
+    startDate: Date;
+    employmentType: string;
+    city: string;
+    issueDate: Date;
+    documentId: string;
+  },
+): Promise<WorkCertificateCopy> {
+  const t = await getTranslations({ locale, namespace: "documents.certificate" });
+  const employmentType = t(`employmentType.${vars.employmentType}` as "employmentType.FULL_TIME");
+  return {
+    title: t("title"),
+    body: t("body", {
+      name: vars.employeeName,
+      company: COMPANY_NAME,
+      title: vars.jobTitle,
+      department: vars.department,
+      startDate: fmtDate(vars.startDate, locale),
+      employmentType,
+    }),
+    issued: t("issued", { city: vars.city, date: fmtDate(vars.issueDate, locale) }),
+    signOff: t("signOff", { company: COMPANY_NAME }),
+    hr: t("hr"),
+    ref: t("ref", { id: vars.documentId }),
+  };
+}
+
+/**
  * HR fulfillment: validate a request and generate the real PDF in one atomic step.
  * Gated to `documents:download:any`. Loads the requester's employee record, renders
- * the certificate, uploads it to private storage, and transitions the document to
- * GENERATED with the pdfUrl + validator stamps. Idempotent-ish: only REQUESTED /
+ * the certificate in the REQUESTER's own locale (captured at request time — not
+ * whichever HR admin happens to click, since the app only has a per-browser locale
+ * cookie, no per-account preference), uploads it to private storage, and
+ * transitions the document to GENERATED with the pdfUrl + validator stamps.
+ * Journals the decision (SCRUM-080's audit requirement). Only REQUESTED /
  * VALIDATED documents may be generated (never re-generate a downloaded one).
  */
 export async function generateWorkCertificate(
   actor: DocumentActor,
   id: string,
-  locale: string,
 ): Promise<FulfillResult> {
   if (!can(actor.role, "documents:download:any")) return { ok: false, reason: "forbidden" };
 
   const doc = await prisma.generatedDocument.findUnique({
     where: { id },
-    select: { id: true, type: true, status: true, requestedById: true },
+    select: { id: true, type: true, status: true, requestedById: true, locale: true },
   });
   if (!doc) return { ok: false, reason: "not_found" };
   if (doc.status !== "REQUESTED" && doc.status !== "VALIDATED") {
@@ -126,23 +191,20 @@ export async function generateWorkCertificate(
   });
   if (!requester?.employee) return { ok: false, reason: "no_employee" };
   const emp = requester.employee;
+  const locale = asLocale(doc.locale);
 
-  const loc = locale === "fr" ? "fr" : "en";
-  const employmentType =
-    (EMPLOYMENT_TYPE_LABEL[emp.employmentType]?.[loc]) ?? emp.employmentType.toLowerCase();
-
-  const bytes = await generateWorkCertificatePdf({
-    locale: loc,
-    companyName: COMPANY_NAME,
+  const copy = await buildCertificateCopy(locale, {
     employeeName: requester.name,
     jobTitle: emp.title,
     department: emp.department,
     startDate: emp.startDate,
-    employmentType,
+    employmentType: emp.employmentType,
     city: emp.location,
     issueDate: new Date(),
     documentId: doc.id,
   });
+
+  const bytes = await generateWorkCertificatePdf({ companyName: COMPANY_NAME, copy });
 
   const key = await putDocument(bytes, doc.id);
   const now = new Date();
@@ -156,10 +218,14 @@ export async function generateWorkCertificate(
       generatedAt: now,
     },
   });
+  await recordAudit(
+    { userId: actor.userId, role: actor.role },
+    { action: "DOCUMENT_VALIDATED", targetType: "GeneratedDocument", targetId: doc.id },
+  );
   return { ok: true };
 }
 
-/** HR rejects a request with a note. Gated to `documents:download:any`. */
+/** HR rejects a request with a note. Gated to `documents:download:any`. Journals the decision. */
 export async function rejectDocumentRequest(
   actor: DocumentActor,
   id: string,
@@ -180,6 +246,10 @@ export async function rejectDocumentRequest(
       rejectedAt: new Date(),
     },
   });
+  await recordAudit(
+    { userId: actor.userId, role: actor.role },
+    { action: "DOCUMENT_REJECTED", targetType: "GeneratedDocument", targetId: id },
+  );
   return { ok: true };
 }
 

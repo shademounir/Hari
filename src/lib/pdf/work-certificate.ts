@@ -1,22 +1,28 @@
 // ─────────────────────────────────────────────────────────────────────────
 // Real work-certificate ("attestation de travail") PDF generation (SCRUM-081).
-// Pure and dependency-light (pdf-lib only) — takes plain data, returns bytes. No
-// Prisma, no storage, no `server-only`, so it can be unit-tested and rendered in a
-// standalone script. The DB/storage orchestration lives in lib/documents.ts.
+// Pure and dependency-light (pdf-lib only) — takes plain, already-localized
+// strings and returns bytes. No Prisma, no storage, no next-intl, no
+// `server-only`, so it's trivially unit-testable and can be rendered in a
+// standalone script. The DB/storage orchestration AND the i18n resolution
+// (messages/{en,fr}.json → WorkCertificateCopy) both live in lib/documents.ts —
+// this module doesn't know or care which locale it's rendering, only that
+// every string it draws was handed to it already resolved.
 // ─────────────────────────────────────────────────────────────────────────
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 
+/** Every translatable string block on the certificate, already resolved. */
+export type WorkCertificateCopy = {
+  title: string;
+  body: string;
+  issued: string;
+  signOff: string;
+  hr: string;
+  ref: string;
+};
+
 export type WorkCertificateData = {
-  locale: string; // "en" | "fr" (falls back to en for anything else)
   companyName: string;
-  employeeName: string;
-  jobTitle: string;
-  department: string;
-  startDate: Date;
-  employmentType: string; // human-readable, already localized by the caller
-  city: string;
-  issueDate: Date;
-  documentId: string; // printed in the footer for verification
+  copy: WorkCertificateCopy;
 };
 
 const A4 = { width: 595.28, height: 841.89 }; // points
@@ -25,15 +31,6 @@ const INK = rgb(0.11, 0.13, 0.19);
 const MUTED = rgb(0.42, 0.45, 0.52);
 const RULE = rgb(0.82, 0.84, 0.88);
 const ACCENT = rgb(0.31, 0.36, 0.84);
-
-function fmtDate(d: Date, locale: string): string {
-  return new Intl.DateTimeFormat(locale === "fr" ? "fr-FR" : "en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    timeZone: "UTC",
-  }).format(d);
-}
 
 /** Greedy word-wrap to a max width, in the given font/size. */
 function wrapText(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
@@ -54,48 +51,8 @@ function wrapText(text: string, font: PDFFont, size: number, maxWidth: number): 
   return lines;
 }
 
-type Copy = {
-  title: string;
-  body: string;
-  issued: string;
-  signOff: string;
-  hr: string;
-  ref: string;
-};
-
-function copyFor(d: WorkCertificateData): Copy {
-  const startDate = fmtDate(d.startDate, d.locale);
-  const issueDate = fmtDate(d.issueDate, d.locale);
-  if (d.locale === "fr") {
-    return {
-      title: "ATTESTATION DE TRAVAIL",
-      body:
-        `Nous soussignés, ${d.companyName}, certifions que ${d.employeeName} est employé(e) ` +
-        `en qualité de ${d.jobTitle} au sein du département ${d.department} depuis le ${startDate}, ` +
-        `dans le cadre d'un contrat ${d.employmentType}.\n\n` +
-        `La présente attestation est délivrée à la demande de l'intéressé(e) pour servir et valoir ce que de droit.`,
-      issued: `Fait à ${d.city}, le ${issueDate}.`,
-      signOff: `Pour ${d.companyName}`,
-      hr: "Ressources Humaines",
-      ref: `Référence du document : ${d.documentId}`,
-    };
-  }
-  return {
-    title: "WORK CERTIFICATE",
-    body:
-      `This is to certify that ${d.employeeName} has been employed by ${d.companyName} ` +
-      `as ${d.jobTitle} in the ${d.department} department since ${startDate}, ` +
-      `under a ${d.employmentType} contract.\n\n` +
-      `This certificate is issued at the employee's request to serve where appropriate.`,
-    issued: `Issued in ${d.city} on ${issueDate}.`,
-    signOff: `For ${d.companyName}`,
-    hr: "Human Resources",
-    ref: `Document reference: ${d.documentId}`,
-  };
-}
-
 export async function generateWorkCertificatePdf(data: WorkCertificateData): Promise<Uint8Array> {
-  const copy = copyFor(data);
+  const { copy } = data;
   const doc = await PDFDocument.create();
   doc.setTitle(copy.title);
   doc.setProducer("HARI");

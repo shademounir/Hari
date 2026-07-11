@@ -447,7 +447,9 @@
       "EMPLOYEE_OFFBOARDED": "Employé archivé",
       "LEAVE_APPROVED": "Congé approuvé",
       "LEAVE_REJECTED": "Congé refusé",
-      "AUDIT_CONSOLE_VIEWED": "Journal d'audit consulté"
+      "AUDIT_CONSOLE_VIEWED": "Journal d'audit consulté",
+      "DOCUMENT_VALIDATED": "Demande de document validée",
+      "DOCUMENT_REJECTED": "Demande de document refusée"
     }
   },
   "settings": {
@@ -1195,6 +1197,7 @@
     "myDocuments": "Mes documents",
     "noDocuments": "Vous n'avez encore demandé aucun document.",
     "download": "Télécharger",
+    "generatedOn": "Généré le {date}",
     "status": {
       "REQUESTED": "En attente",
       "VALIDATED": "Validé",
@@ -1221,6 +1224,19 @@
         "invalid_state": "Cette demande ne peut plus être traitée.",
         "no_requester": "Le compte du demandeur est introuvable.",
         "no_employee": "Aucune fiche employé pour le demandeur."
+      }
+    },
+    "certificate": {
+      "title": "ATTESTATION DE TRAVAIL",
+      "body": "Nous soussignés, {company}, certifions que {name} est employé(e) en qualité de {title} au sein du département {department} depuis le {startDate}, dans le cadre d'un contrat {employmentType}.\n\nLa présente attestation est délivrée à la demande de l'intéressé(e) pour servir et valoir ce que de droit.",
+      "issued": "Fait à {city}, le {date}.",
+      "signOff": "Pour {company}",
+      "hr": "Ressources Humaines",
+      "ref": "Référence du document : {id}",
+      "employmentType": {
+        "FULL_TIME": "à temps plein",
+        "PART_TIME": "à temps partiel",
+        "CONTRACTOR": "de prestation (contractuel)"
       }
     }
   }
