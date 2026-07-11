@@ -113,6 +113,25 @@ export async function putCover(
   return key;
 }
 
+/**
+ * Upload a generated document PDF under a deterministic key (`documents/<id>.pdf`)
+ * so re-generation overwrites in place. Returns the object key stored in
+ * GeneratedDocument.pdfUrl and served via the same-origin download proxy.
+ */
+export async function putDocument(bytes: Uint8Array | Buffer, id: string): Promise<string> {
+  await ensureBucket();
+  const key = `documents/${id}.pdf`;
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: BUCKET,
+      Key: key,
+      Body: bytes,
+      ContentType: "application/pdf",
+    }),
+  );
+  return key;
+}
+
 /** Stream an object (body + content type), or null if it doesn't exist. */
 export async function getObject(
   key: string,

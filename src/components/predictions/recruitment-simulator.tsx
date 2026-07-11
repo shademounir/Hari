@@ -90,13 +90,13 @@ export function RecruitmentSimulator({
             disabled={pending}
             className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
           >
-            <Field label={t("department")} help={t("help")}>
+            <Field label={t("department")} htmlFor="sim-department" help={t("help")}>
               <Select
                 value={department}
                 onValueChange={(v) => v && setDepartment(v)}
                 disabled={pending}
               >
-                <SelectTrigger className="w-full" aria-label={t("department")}>
+                <SelectTrigger id="sim-department" className="w-full">
                   <SelectValue placeholder={t("departmentPlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
@@ -109,16 +109,13 @@ export function RecruitmentSimulator({
               </Select>
             </Field>
 
-            <Field label={t("seniorityLevel")}>
+            <Field label={t("seniorityLevel")} htmlFor="sim-seniority">
               <Select
                 value={seniority}
                 onValueChange={(v) => v && setSeniority(v as Seniority)}
                 disabled={pending}
               >
-                <SelectTrigger
-                  className="w-full"
-                  aria-label={t("seniorityLevel")}
-                >
+                <SelectTrigger id="sim-seniority" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -131,13 +128,13 @@ export function RecruitmentSimulator({
               </Select>
             </Field>
 
-            <Field label={t("urgency")}>
+            <Field label={t("urgency")} htmlFor="sim-urgency">
               <Select
                 value={urgency}
                 onValueChange={(v) => v && setUrgency(v as Urgency)}
                 disabled={pending}
               >
-                <SelectTrigger className="w-full" aria-label={t("urgency")}>
+                <SelectTrigger id="sim-urgency" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -150,14 +147,14 @@ export function RecruitmentSimulator({
               </Select>
             </Field>
 
-            <Field label={t("count")}>
+            <Field label={t("count")} htmlFor="sim-count">
               <Input
+                id="sim-count"
                 type="number"
                 min={1}
                 max={50}
                 value={count}
                 disabled={pending}
-                aria-label={t("count")}
                 onChange={(e) =>
                   setCount(
                     Math.max(1, Math.min(50, Number(e.target.value) || 1)),
@@ -166,14 +163,14 @@ export function RecruitmentSimulator({
               />
             </Field>
 
-            <Field label={t("budget")} help={t("budgetHelp")}>
+            <Field label={t("budget")} htmlFor="sim-budget" help={t("budgetHelp")}>
               <Input
+                id="sim-budget"
                 type="number"
                 min={0}
                 step={10000}
                 value={budget}
                 disabled={pending}
-                aria-label={t("budget")}
                 placeholder={t("budgetPlaceholder")}
                 onChange={(e) =>
                   setBudget(Math.max(0, Number(e.target.value) || 0))
@@ -198,7 +195,12 @@ export function RecruitmentSimulator({
           </fieldset>
         </form>
 
-        {plan && <PlanView plan={plan} />}
+        {/* Announce the async AI outcome to assistive tech: a busy cue while the
+            model runs, then the plan itself once it resolves (WCAG 4.1.3). */}
+        <div role="status" aria-live="polite" aria-busy={pending}>
+          {pending && <span className="sr-only">{t("generating")}</span>}
+          {plan && <PlanView plan={plan} />}
+        </div>
       </div>
     </TooltipProvider>
   );
@@ -206,17 +208,19 @@ export function RecruitmentSimulator({
 
 function Field({
   label,
+  htmlFor,
   help,
   children,
 }: {
   label: string;
+  htmlFor: string;
   help?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="space-y-1.5">
       <div className="flex items-center gap-1.5">
-        <label className="text-xs font-medium text-muted-foreground">
+        <label htmlFor={htmlFor} className="text-xs font-medium text-muted-foreground">
           {label}
         </label>
         {help && <HelpTooltip text={help} />}

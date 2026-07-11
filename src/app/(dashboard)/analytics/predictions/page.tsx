@@ -37,16 +37,23 @@ export default async function PredictionsPage({ searchParams }: Props) {
   const t = await getTranslations("predictions");
 
   const now = new Date();
+  // These three don't depend on the risk map — start them concurrently with the
+  // heavy getRiskMap read instead of serializing them behind it.
+  const departmentsP = getDepartments();
+  const accuracyP = getModelAccuracy();
+  const configP = getActiveModelConfig();
+
   const risk = await getRiskMap(now);
   const scoreByEmployee = new Map<string, { score: number; band: RiskBand }>(
     risk.rows.map((r) => [r.employeeId, { score: r.score, band: r.band }]),
   );
 
+  // Succession genuinely depends on the derived scores; the rest were already in flight.
   const [succession, departments, accuracy, config] = await Promise.all([
     getSuccessionPlan(scoreByEmployee, now),
-    getDepartments(),
-    getModelAccuracy(),
-    getActiveModelConfig(),
+    departmentsP,
+    accuracyP,
+    configP,
   ]);
 
   const canRecalibrate = can(user.role, "predictions:manage");

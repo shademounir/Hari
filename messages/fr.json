@@ -42,6 +42,7 @@
     "audit": "Journal d'audit",
     "analytics": "Analytique RH",
     "teamAnalytics": "Analytique équipe",
+    "teamPredictions": "Rétention de l'équipe"
     "engagement": "Engagement",
     "documents": "Documents"
   },
@@ -551,7 +552,7 @@
     "net": "Net",
     "period": "Mois le plus récent"
   },
-  "predictions":   {
+  "predictions": {
     "title": "Analyse prédictive des effectifs",
     "description": "Signaux faibles de désengagement, projections de départs à 12 mois et préparation de la relève.",
     "band": {
@@ -606,7 +607,8 @@
       "pagination": {
         "showing": "Affichage {from}–{to} sur {total}",
         "previous": "Précédent",
-        "next": "Suivant"
+        "next": "Suivant",
+        "landmark": "Pagination de la carte des risques"
       }
     },
     "factor": {
@@ -706,7 +708,8 @@
         "invalid": "Veuillez choisir un département et un nombre valide.",
         "rate_limited": "Le modèle IA est temporairement limité (trop de requêtes). Patientez un instant puis réessayez.",
         "ai_unavailable": "Le planificateur IA est indisponible pour le moment. Réessayez plus tard."
-      }
+      },
+      "generating": "Génération du plan de recrutement…"
     },
     "succession": {
       "title": "Plans de succession",
@@ -739,6 +742,15 @@
       "READY_NOW": "Prêt maintenant",
       "READY_1_2Y": "Prêt dans 1–2 ans",
       "DEVELOPING": "En développement"
+    },
+    "team": {
+      "title": "Rétention de l'équipe",
+      "description": "Signal de risque de départ anonymisé pour vos collaborateurs directs.",
+      "anonymizedNote": "Les résultats sont agrégés et anonymisés — aucun nom n'est affiché. À utiliser comme un signal d'équipe, non pour cibler des personnes.",
+      "evaluated": "Collaborateurs évalués",
+      "highRisk": "Risque élevé",
+      "empty": "Aucun collaborateur direct à évaluer pour l'instant.",
+      "rank": "Collaborateur n°{n}"
     }
   },
   "engagement":   {
@@ -1174,6 +1186,37 @@
     "workCertificateDescription": "Demandez une attestation de travail générée automatiquement par les RH.",
     "requestWorkCertificate": "Demander une attestation",
     "requestSuccess": "Votre demande a bien été enregistrée.",
-    "forbidden": "Vous n'êtes pas autorisé à accéder à cette page."
+    "forbidden": "Vous n'êtes pas autorisé à accéder à cette page.",
+    "myDocuments": "Mes documents",
+    "noDocuments": "Vous n'avez encore demandé aucun document.",
+    "download": "Télécharger",
+    "status": {
+      "REQUESTED": "En attente",
+      "VALIDATED": "Validé",
+      "GENERATED": "Prêt",
+      "DOWNLOADED": "Téléchargé",
+      "REJECTED": "Refusé"
+    },
+    "queue": {
+      "title": "Demandes à traiter",
+      "empty": "Aucune demande de document à traiter.",
+      "generate": "Générer",
+      "reject": "Refuser",
+      "generated": "Document généré.",
+      "rejected": "Demande refusée.",
+      "actionError": "Échec de l'action",
+      "rejectTitle": "Refuser cette demande",
+      "rejectDescription": "L'employé verra ce motif.",
+      "rejectPlaceholder": "Motif du refus…",
+      "cancel": "Annuler",
+      "confirmReject": "Refuser la demande",
+      "reason": {
+        "forbidden": "Vous n'avez pas l'autorisation.",
+        "not_found": "Document introuvable.",
+        "invalid_state": "Cette demande ne peut plus être traitée.",
+        "no_requester": "Le compte du demandeur est introuvable.",
+        "no_employee": "Aucune fiche employé pour le demandeur."
+      }
+    }
   }
 }
