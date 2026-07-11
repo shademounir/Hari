@@ -41,9 +41,9 @@
     "alerts": "Alerts",
     "audit": "Audit Log",
     "analytics": "HR Analytics", 
-    "edit": "Edit"
+    "edit": "Edit",
     "teamAnalytics": "Team Analytics",   
-    "teamPredictions": "Team retention"
+    "teamPredictions": "Team retention",
     "engagement": "Engagement",
     "documents": "Documents"
   },
