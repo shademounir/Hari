@@ -14,20 +14,11 @@ import type {
   LeaveType,
 } from "@prisma/client";
 
+// The caller's live identity — `role` + `employeeId` — comes straight from the
+// session, which the auth callback (lib/auth.ts) resolves from the DB by email
+// on every request. Callers pass `{ role, employeeId }` directly; there is no
+// separate re-resolution step.
 export type Caller = { role: Role; employeeId: string | null };
-
-/**
- * Build a Caller, re-resolving `employeeId` from the DB instead of the JWT-cached
- * value (stale after a DB reset → would scope to a dead id). Shared by the team
- * page and the leave-decision actions so read and write paths use the same id.
- */
-export async function resolveCaller(user: { id: string; role: Role }): Promise<Caller> {
-  const employee = await prisma.employee.findUnique({
-    where: { userId: user.id },
-    select: { id: true },
-  });
-  return { role: user.role, employeeId: employee?.id ?? null };
-}
 
 export type DirectoryEntry = {
   id: string;

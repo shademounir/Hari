@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Users, CalendarOff, ClipboardList } from "lucide-react";
 import { requireUser } from "@/lib/session";
-import { resolveCaller } from "@/lib/hr";
 import { can } from "@/lib/rbac";
 import { getTeamAnalytics } from "@/lib/analytics";
 import { parseAnalyticsFilters } from "@/lib/analytics/scope";
@@ -29,7 +28,7 @@ export default async function TeamAnalyticsPage({
     getTranslations("leaveType"),
   ]);
 
-  const caller = await resolveCaller(user);
+  const caller = { role: user.role, employeeId: user.employeeId };
   const model = await getTeamAnalytics(caller, filters, new Date());
   if (!model) redirect("/");
 

@@ -6,7 +6,6 @@ import { revalidatePath } from "next/cache";
 import { getLocale } from "next-intl/server";
 import { requireUser } from "@/lib/session";
 import { can } from "@/lib/rbac";
-import { resolveCaller } from "@/lib/hr";
 import { prisma } from "@/lib/prisma";
 import { getChatModel, DEFAULT_MODEL_ID } from "@/lib/ai/providers";
 
@@ -61,13 +60,14 @@ export async function saveQualitativeSignalAction(input: QualitativeInput): Prom
   if (!parsed.success) return { ok: false, error: "invalid" };
   const { employeeId, workQuality, participation, peerInteraction, note } = parsed.data;
 
-  const caller = await resolveCaller(user);
-  if (caller.employeeId && employeeId === caller.employeeId) return { ok: false, error: "forbidden" }; // no self-rating
+  // employeeId is resolved live from the DB in the auth session callback
+  // (lib/auth.ts), so the session value is already current.
+  if (user.employeeId && employeeId === user.employeeId) return { ok: false, error: "forbidden" }; // no self-rating
 
   // Ownership: HR/Admin (engagement:read:all) may rate anyone; a manager only their reports.
   const target = await prisma.employee.findUnique({ where: { id: employeeId }, select: { managerId: true } });
   if (!target) return { ok: false, error: "invalid" };
-  const owns = can(user.role, "engagement:read:all") || target.managerId === caller.employeeId;
+  const owns = can(user.role, "engagement:read:all") || target.managerId === user.employeeId;
   if (!owns) return { ok: false, error: "forbidden" };
 
   try {

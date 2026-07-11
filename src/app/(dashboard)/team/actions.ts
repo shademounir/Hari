@@ -7,7 +7,6 @@ import { can, type Role } from "@/lib/rbac";
 import {
   bulkDecideLeaveRequests,
   decideLeaveRequest,
-  resolveCaller,
   type Caller,
   type LeaveDecision,
 } from "@/lib/hr";
@@ -24,10 +23,10 @@ type Approver = { caller: Caller; userId: string; role: Role };
 async function requireApprover(): Promise<Approver> {
   const user = await requireUser();
   if (!can(user.role, "leave:approve")) redirect("/");
-  // resolveCaller re-resolves the Employee id from the DB rather than trusting
-  // the JWT-cached `employeeId` (stale after a DB reset would write a dangling
-  // approverId → FK violation). Shared with the team page so read + write agree.
-  const caller = await resolveCaller(user);
+  // id/role/employeeId are resolved live from the DB in the auth session
+  // callback (lib/auth.ts), so the session's employeeId is already current —
+  // no per-write re-resolution needed.
+  const caller: Caller = { role: user.role, employeeId: user.employeeId };
   return { caller, userId: user.id, role: user.role };
 }
 
