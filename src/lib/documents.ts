@@ -21,7 +21,7 @@ import type { Role } from "@/lib/rbac";
 import { putDocument } from "@/lib/storage";
 import { recordAudit } from "@/lib/audit";
 import { generateWorkCertificatePdf, type WorkCertificateCopy } from "@/lib/pdf/work-certificate";
-import { locales, defaultLocale, type Locale } from "@/i18n/routing";
+import { locales, defaultLocale, localeConfig, type Locale } from "@/i18n/routing";
 
 export type DocumentActor = { userId: string; role: Role };
 
@@ -33,7 +33,7 @@ function asLocale(value: string): Locale {
 }
 
 function fmtDate(d: Date, locale: Locale): string {
-  return new Intl.DateTimeFormat(locale === "fr" ? "fr-FR" : "en-US", {
+  return new Intl.DateTimeFormat(localeConfig[locale].dateLocale, {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -79,7 +79,6 @@ export type QueueDocument = {
   generatedAt: Date | null;
   requesterName: string | null;
   department: string | null;
-  pdfUrl: string | null;
 };
 
 /**
@@ -98,7 +97,6 @@ export async function listDocumentQueue(actor: DocumentActor): Promise<QueueDocu
       status: true,
       requestedAt: true,
       generatedAt: true,
-      pdfUrl: true,
       requestedBy: { select: { name: true, employee: { select: { department: true } } } },
     },
   });
@@ -110,7 +108,6 @@ export async function listDocumentQueue(actor: DocumentActor): Promise<QueueDocu
     generatedAt: d.generatedAt,
     requesterName: d.requestedBy?.name ?? null,
     department: d.requestedBy?.employee?.department ?? null,
-    pdfUrl: d.pdfUrl,
   }));
 }
 

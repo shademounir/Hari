@@ -27,7 +27,6 @@ export type QueueRow = {
   generatedAt: string | null; // ISO
   requesterName: string | null;
   department: string | null;
-  pdfUrl: string | null;
 };
 
 // HR fulfillment queue (client island): Generate produces the real PDF via the
@@ -135,7 +134,7 @@ export function DocumentQueue({ rows }: { rows: QueueRow[] }) {
                     </Button>
                   </>
                 )}
-                {row.pdfUrl && (
+                {(row.status === "GENERATED" || row.status === "DOWNLOADED") && (
                   <ButtonLink
                     size="sm"
                     variant="outline"
