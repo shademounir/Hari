@@ -18,12 +18,42 @@ describe("CNDP personal data detection", () => {
     expect(result.categories).toContain("PHONE");
   });
 
-  it("detects a national ID", () => {
+  it("detects a national ID (CIN) without flagging it as a passport", () => {
     const result = detectPersonalData("Mon CIN est AB123456");
 
     expect(result.hasPersonalData).toBe(true);
     expect(result.categories).toContain("NATIONAL_ID");
+    expect(result.categories).not.toContain("PASSPORT");
     expect(result.requiresReview).toBe(true);
+  });
+
+  it("detects a passport distinctly from a CIN by its longer numeric tail", () => {
+    const result = detectPersonalData("Passeport: AB1234567");
+
+    expect(result.categories).toContain("PASSPORT");
+    expect(result.categories).not.toContain("NATIONAL_ID");
+    expect(result.requiresReview).toBe(true);
+  });
+
+  it("detects a CNSS number only when explicitly labelled", () => {
+    const result = detectPersonalData("Numéro CNSS 123456789");
+
+    expect(result.categories).toContain("CNSS");
+    expect(result.requiresReview).toBe(true);
+  });
+
+  it("does not treat a bare number as a CNSS identifier", () => {
+    const result = detectPersonalData("Commande n° 1234567 confirmée");
+
+    expect(result.categories).not.toContain("CNSS");
+    expect(result.requiresReview).toBe(false);
+  });
+
+  it("does not flag a local phone number as a CNSS number", () => {
+    const result = detectPersonalData("Mon numéro est 0612345678");
+
+    expect(result.categories).toContain("PHONE");
+    expect(result.categories).not.toContain("CNSS");
   });
 
   it("returns no match for ordinary text", () => {
