@@ -19,8 +19,6 @@ export async function GET(
 
   const { id } = await params;
 
-  // session.user.id is resolved live from the DB in the auth session callback
-  // (lib/auth.ts), so ownership checks below use a current id, not a stale one.
   const result = await authorizeDocumentDownload(
     { userId: session.user.id, role: session.user.role },
     id,

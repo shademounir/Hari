@@ -14,10 +14,9 @@ import type {
   LeaveType,
 } from "@prisma/client";
 
-// The caller's live identity — `role` + `employeeId` — comes straight from the
-// session, which the auth callback (lib/auth.ts) resolves from the DB by email
-// on every request. Callers pass `{ role, employeeId }` directly; there is no
-// separate re-resolution step.
+// The caller's identity — `role` + `employeeId` — taken straight from the
+// session (both set at sign-in; see lib/auth.ts). Every data-layer entry point
+// takes a Caller so it can scope reads/writes to what that role may see.
 export type Caller = { role: Role; employeeId: string | null };
 
 export type DirectoryEntry = {
