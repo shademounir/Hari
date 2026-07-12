@@ -188,7 +188,11 @@ function buildPayroll(
 
   const bands = SALARY_BANDS.map((b) => ({ key: b.key, value: 0 }));
   for (const e of emps) {
-    if (!isActiveNow(e)) continue;
+    // Count the SAME population as overview.headcount (active AS OF now) — not just
+    // "not terminated" — so the bands always sum to headcount. Using isActiveNow
+    // here over-counts a future-dated hire (or someone whose leftAt has passed but
+    // whose status hasn't flipped yet), which desynced the two totals.
+    if (!isActiveAsOf(e, now)) continue;
     const idx = SALARY_BANDS.findIndex((b) => e.salary < b.max);
     bands[idx === -1 ? bands.length - 1 : idx].value++;
   }

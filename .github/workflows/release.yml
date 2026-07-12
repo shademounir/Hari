@@ -37,8 +37,15 @@ jobs:
           MINOR=$(echo $LATEST | cut -d. -f2)
           PATCH=$(echo $LATEST | cut -d. -f3)
 
-          # Read commits since last tag
-          COMMITS=$(git log ${LATEST}..HEAD --pretty=format:"%s %b")
+          # Read commits since the last tag — or ALL history on the first release.
+          # The v0.0.0 fallback is not a real ref, so `git log v0.0.0..HEAD` would
+          # fatal with "unknown revision". Only use a range when the tag exists.
+          if [ -n "$(git tag -l "$LATEST")" ]; then
+            RANGE="${LATEST}..HEAD"
+          else
+            RANGE="HEAD"
+          fi
+          COMMITS=$(git log $RANGE --pretty=format:"%s %b")
 
           # Decide bump type
           if echo "$COMMITS" | grep -q "BREAKING CHANGE"; then
@@ -59,7 +66,13 @@ jobs:
         id: changelog
         run: |
           PREVIOUS="${{ steps.version.outputs.previous }}"
-          LOG=$(git log ${PREVIOUS}..HEAD --pretty=format:"- %s (%h)" --no-merges)
+          # Fall back to full history when the previous tag doesn't exist (first release).
+          if [ -n "$(git tag -l "$PREVIOUS")" ]; then
+            RANGE="${PREVIOUS}..HEAD"
+          else
+            RANGE="HEAD"
+          fi
+          LOG=$(git log $RANGE --pretty=format:"- %s (%h)" --no-merges)
           echo "changelog<<EOF" >> $GITHUB_OUTPUT
           echo "$LOG" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
