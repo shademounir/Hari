@@ -36,8 +36,11 @@ model User {
   id             String       @id @default(cuid())
   email          String       @unique
   name           String
-  passwordHash   String
+  // Nullable so passwordless-only accounts (magic link / OTP / Google) can exist
+  // without a password; credentials login simply fails when it is null.
+  passwordHash   String?
   role           Role         @default(EMPLOYEE)
+  emailVerified  DateTime? // set the first time an email OTP / magic link is confirmed
   employee       Employee?
   createdAt      DateTime     @default(now())
   kbCreated      HrDocument[] @relation("KbCreatedBy")
@@ -781,4 +784,32 @@ model EngagementSignalConfig {
   createdAt   DateTime @default(now())
 
   @@index([active])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Authentication tokens (HARI-AUTH): password reset, passwordless magic link,
+// and email one-time codes (OTP). A single table backs all three flows. Only a
+// SHA-256 HASH of the secret is stored — never the raw link token or the code —
+// so a database leak can't be replayed. Rows are single-use (consumedAt) and
+// short-lived (expiresAt); a background/lazy sweep can delete expired rows.
+// ─────────────────────────────────────────────────────────────────────────
+enum AuthTokenType {
+  PASSWORD_RESET
+  MAGIC_LINK
+  EMAIL_OTP
+}
+
+model AuthToken {
+  id         String        @id @default(cuid())
+  type       AuthTokenType
+  identifier String // the target email, lowercased
+  tokenHash  String // SHA-256 of the raw secret (link token or OTP code)
+  expiresAt  DateTime
+  consumedAt DateTime? // set once, on first successful verification
+  attempts   Int           @default(0) // failed verification attempts (OTP throttle)
+  createdAt  DateTime      @default(now())
+
+  @@index([identifier, type])
+  @@index([tokenHash])
+  @@index([expiresAt])
 }
