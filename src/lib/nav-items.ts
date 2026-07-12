@@ -28,7 +28,6 @@ export type NavKey =
   | "assistant"
   | "directory"
   | "team"
-  | "teamPredictions"
   | "hrActivity"
   | "predictions"
   | "analytics"
@@ -74,9 +73,6 @@ export const NAV_ITEMS: NavItem[] = [
     permission: "dashboard:read:team",
     children: [
       { href: "/team/analytics", ns: "nav", key: "teamAnalytics", permission: "analytics:team" },
-      // Manager-scoped, anonymized departure-risk. HR holds predictions:read too but
-      // is redirected to the full board by the page, so this reads as the manager surface.
-      { href: "/team/predictions", ns: "nav", key: "teamPredictions", permission: "predictions:read" },
       { href: "/team/engagement", ns: "nav", key: "engagement", permission: "engagement:read:team" },
     ],
   },
@@ -90,8 +86,6 @@ export const NAV_ITEMS: NavItem[] = [
       { href: "/analytics/predictions", ns: "nav", key: "predictions", permission: "dashboard:read:company" },
     ],
   },
-  { href: "/team", key: "team", icon: Gauge, permission: "dashboard:read:team" },
-  { href: "/hr-activity", key: "hrActivity", icon: Activity, permission: "dashboard:read:company" },
   { href: "/time-off", key: "timeOff", icon: CalendarDays },
   { href: "/onboarding", key: "onboarding", icon: ClipboardCheck },
   { href: "/offboarding", key: "offboarding", icon: UserMinus, permission: "employee:manage" },
