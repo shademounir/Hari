@@ -1,9 +1,11 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { auth } from "@/lib/auth";
+import { auth, googleEnabled } from "@/lib/auth";
 import { DEMO_USERS, DEMO_PASSWORD } from "@/lib/demo-users";
 import { loginAs } from "./actions";
 import { CredentialsForm } from "./credentials-form";
+import { AltAuth } from "./alt-auth";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,11 +14,17 @@ import { Separator } from "@/components/ui/separator";
 import { ArrowRight } from "lucide-react";
 import { HariLogo } from "@/components/brand/logo";
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ reset?: string }>;
+}) {
   const session = await auth();
   if (session?.user) redirect("/");
 
+  const { reset } = await searchParams;
   const t = await getTranslations("login");
+  const tAuth = await getTranslations("auth");
   const tRoles = await getTranslations("roles");
   const tDemo = await getTranslations("login.demo");
 
@@ -59,6 +67,15 @@ export default async function LoginPage() {
             </p>
           </div>
 
+          {reset && (
+            <p
+              role="status"
+              className="rounded-md border border-emerald-500/30 bg-emerald-500/10 p-2 text-center text-sm text-emerald-700 dark:text-emerald-400"
+            >
+              {tAuth("resetDone")}
+            </p>
+          )}
+
           <div className="grid gap-3">
             {DEMO_USERS.map((u) => (
               <form key={u.email} action={loginAs.bind(null, u.email)}>
@@ -94,6 +111,15 @@ export default async function LoginPage() {
 
           <CredentialsForm />
 
+          <div className="flex justify-end">
+            <Link
+              href="/forgot-password"
+              className="text-xs text-muted-foreground underline hover:text-foreground"
+            >
+              {tAuth("forgotPassword")}
+            </Link>
+          </div>
+
           <p className="text-center text-xs text-muted-foreground">
             {t.rich("passwordNote", {
               code: (chunks) => (
@@ -102,6 +128,14 @@ export default async function LoginPage() {
               password: DEMO_PASSWORD,
             })}
           </p>
+
+          <div className="flex items-center gap-3">
+            <Separator className="flex-1" />
+            <span className="text-xs text-muted-foreground">{tAuth("orContinueWith")}</span>
+            <Separator className="flex-1" />
+          </div>
+
+          <AltAuth googleEnabled={googleEnabled} />
         </div>
       </section>
     </main>
