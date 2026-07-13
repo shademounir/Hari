@@ -22,7 +22,7 @@ embeddings. Fixed with a graceful **lexical-only fallback** (OR-semantics).
 <table>
 <tr>
 <td width="50%"><b>Normal path (embeddings up)</b><br/>Hybrid vector+FTS, cited answer, deep-link.</td>
-<td width="50%"><b>Embeddings outage → lexical fallback (the fix)</b><br/><code>EMBEDDING_MODEL</code> pointed at a model OpenRouter returns HTTP 400 for — the handbook <b>still answers</b> instead of the "unavailable" card.</td>
+<td width="50%"><b>Embeddings outage → lexical fallback (the fix)</b><br/>With <code>EMBEDDING_MODEL</code> forced to a model OpenRouter 400s (outage confirmed in the server log), the handbook <b>still returns 4 ranked sources</b> (Parental Leave first). The UI is intentionally identical to the healthy path — that seamlessness <i>is</i> the fix. (HR Admin session.)</td>
 </tr>
 <tr>
 <td><img src="./emp-rag-parental-leave.png" width="100%"/></td>
@@ -46,21 +46,33 @@ never get.
 
 ---
 
-## 3 · Predictive / engagement privacy (de-anonymization fix)
+## 3 · Predictive / engagement privacy + role-aware cards
 
-`getEngagementRisk` used to return a directory-joinable `employeeId` to managers,
-letting the model re-identify burnout-risk reports by name. Now the id is emitted
-**only for HR/Admin** (who may resolve identities), matching `predictDepartures`.
+Two things here. **(a) Privacy fix:** `getEngagementRisk` used to hand managers a
+directory-joinable `employeeId`, letting the model re-identify burnout-risk reports
+by name; the id is now emitted **only for HR/Admin**, matching `predictDepartures`.
+**(b) UI fix:** these two risk tools had **no generative card**, so their results
+rendered as a raw JSON dump (the `default:` fallback in `tool-call.tsx`). They now
+get clean, **role-aware** cards.
+
+The cards render exactly what the role-scoped output carries — nothing invented:
 
 <table>
 <tr>
-<td width="50%"><b>Manager — anonymized</b><br/>Tool output has <b>no <code>employeeId</code></b>; answer refers to "someone in IT / BOREOUT quadrant", cannot name anyone.</td>
-<td width="50%"><b>HR Admin — named allowed</b><br/>Tool output <b>includes <code>employeeId</code></b> (company scope) — HR is authorized to resolve identities.</td>
+<td width="50%"><b>Manager — anonymized</b><br/>"Team" scope, an <i>"Aggregate team view — individuals aren't named"</i> note, and <b>department-only</b> rows (no names/ids).</td>
+<td width="50%"><b>HR Admin — named</b><br/>"Company" scope; <code>predictDepartures</code> shows <b>names + titles</b> (HR may identify), with band + score + factor chips.</td>
 </tr>
 <tr>
-<td><img src="./mgr-engagement-anonymized.png" width="100%"/></td>
-<td><img src="./hr-engagement-named-contrast.png" width="100%"/></td>
+<td><img src="./card-manager-anonymized.png" width="100%"/></td>
+<td><img src="./card-hr-departure-named.png" width="100%"/></td>
 </tr>
+</table>
+
+Engagement card (HR, company scope) — supportive by design; refers to people by
+department + quadrant, never names, with localized band/quadrant/factor labels:
+
+<table>
+<tr><td><img src="./card-hr-engagement.png" width="720"/></td></tr>
 </table>
 
 ---
