@@ -31,7 +31,7 @@ La plateforme HARI définit quatre rôles utilisateurs. Chaque rôle hérite des
 |`EMPLOYEE`|Collaborateur|Accès aux fonctonnalités<br>personnelles : profl, congés,<br>fches de paie, assistant IA.|Le rôle de base. Peut<br>uniquement voir ses propres<br>données.|
 |`MANAGER`|Manager|Hérite de EMPLOYEE + accès<br>à son équipe directe :<br>annuaire équipe, congés<br>équipe, approbaton.|Peut approuver les congés<br>de ses reports uniquement.|
 |`HR_ADMIN`|RH (Ressources Humaines)|Hérite de MANAGER + accès<br>complet annuaire, salaires,<br>geston employés,<br>documents RH.|Rôle méter principal. Gère<br>les documents RAG et les<br>atestatons.|
-|`SUPER_ADMIN`|Admin|Hérite de HR_ADMIN +<br>administraton plateforme,<br>console alertes, logs,<br>paramètres.|Rôle technique/sécurité.<br>Seul à accéder à la<br>supervision IA.|
+|`SUPER_ADMIN`|Admin|Hérite de HR_ADMIN +<br>administraton plateforme,<br>paramètres, matrice des<br>permissions.|Rôle technique/sécurité.<br>Seul à porter<br>`admin:settings` (la<br>supervision IA `alerts:read`<br>est partagée avec RH).|
 
 
 
@@ -43,24 +43,34 @@ Les permissions sont définies dans le fichier src/lib/rbac.ts, source unique de
 // Extrait de src/lib/rbac.ts
 ```
 
+> **Note (réconcilié avec le code le 2026-07-13).** La liste ci-dessous reflète l'état réel de
+> `src/lib/rbac.ts`. L'app a grossi depuis le cadrage : il n'existe **pas** de permission
+> `leave:read:team` (les managers voient l'équipe via `directory:read:team` + `leave:approve`), et
+> plusieurs axes ont été ajoutés (analytics, prédictif, engagement, alertes, documents, KB, dashboards).
+
 ```
 export const PERMISSIONS = [
-  "directory:read:self",   // Voir son propre profil
-  "directory:read:team",   // Voir les reports directs
-  "directory:read:all",    // Voir tout l'annuaire
-  "salary:read:all",       // Voir les salaires (sensible)
-  "leave:request",         // Soumettre une demande de congé
-  "leave:read:self",       // Voir ses propres congés
-  "leave:read:team",       // Voir les congés de l'équipe
-  "leave:approve",         // Approuver / rejeter des congés
-  "payslip:read:self",     // Voir sa propre fiche de paie
-  "payslip:read:any",      // Voir n'importe quelle fiche de paie
-  "handbook:read",         // Interroger le RAG (assistant IA)
-  "employee:manage",       // Créer / modifier des employés et documents
-  "admin:settings",        // Paramètres plateforme + alertes admin
+  "directory:read:self",     // Voir son propre profil
+  "directory:read:team",     // Voir les reports directs
+  "directory:read:all",      // Voir tout l'annuaire
+  "salary:read:all",         // Voir les salaires (sensible)
+  "leave:request", "leave:read:self", "leave:approve",
+  "dashboard:read:team", "dashboard:read:company",
+  "analytics:full", "analytics:team",
+  "payslip:read:self", "payslip:read:any",
+  "handbook:read",           // Interroger le RAG (assistant IA)
+  "kb:manage",               // Gérer la base de connaissances (documents/collections)
+  "employee:manage",         // Créer / modifier des employés
+  "alerts:read",             // Voir + trier les alertes IA (RH + Admin)
+  "documents:request", "documents:download:any",
+  "predictions:read", "predictions:manage",
+  "engagement:read:team", "engagement:read:all", "engagement:input", "engagement:manage",
+  "admin:settings",          // Paramètres plateforme (SUPER_ADMIN uniquement)
+] as const;
+// Héritage cumulatif : EMPLOYEE ⊂ MANAGER ⊂ HR_ADMIN ⊂ SUPER_ADMIN
+// NB : il n'existe volontairement PAS de `engagement:read:self` — un employé ne
+// voit jamais son propre score d'engagement (harm psychologique + RGPD Art. 22).
 ```
-
-`] as const; // Héritage cumulatif des permissions : // EMPLOYEE` ⊂ `MANAGER` ⊂ `HR_ADMIN` ⊂ `SUPER_ADMIN` 
 
 La fonction can(role, permission) retourne true si le rôle possède la permission. Elle est utilisée dans withPermission() pour les outils IA et dans les pages/composants UI. 
 
@@ -123,9 +133,9 @@ Le tableau ci-dessous recense l'ensemble des fonctionnalités de la plateforme H
 |Télécharger le<br>document d'un<br>autre employé|**✘**|**✘**|**✔**|**✔**|_RH uniquement_|
 |Voir l'historique<br>de ses documents|**✔**|**✔**|**✔**|**✔**||
 |**ALERTES ET**<br>**SUPERVISION IA**<br>**(Sprint 3)**||||||
-|Voir les alertes IA<br>(console admin)|**✘**|**✘**|**✘**|**✔**|_admin:setngs_<br>_requis —_<br>_SUPER_ADMIN_<br>_uniquement_|
-|Changer le statut<br>d'une alerte|**✘**|**✘**|**✘**|**✔**|_admin:setngs_<br>_requis_|
-|Consulter les<br>AuditLog|**✘**|**✘**|**✘**|**✔**|_admin:setngs_<br>_requis_|
+|Voir les alertes IA<br>(cloche + `/alerts`)|**✘**|**✘**|**✔**|**✔**|_alerts:read —_<br>_HR_ADMIN +_<br>_SUPER_ADMIN_|
+|Changer le statut<br>d'une alerte|**✘**|**✘**|**✔**|**✔**|_alerts:read_<br>_requis_|
+|Consulter les<br>AuditLog|**✘**|**✘**|**✔**|**✔**|_alerts:read_<br>_requis_|
 |**ADMINISTRATIO**<br>**N PLATEFORME**||||||
 |Accéder aux<br>paramètres<br>plateforme|**✘**|**✘**|**✘**|**✔**|_admin:setngs_|
 |Modifer les rôles<br>utlisateurs|**✘**|**✘**|**✘**|**✔**|_admin:setngs —_<br>_journalisé dans_<br>_AuditLog_|
@@ -141,7 +151,7 @@ Les fonctionnalités suivantes sont considérées comme sensibles et font l'obje
 |---|---|---|---|---|
 |Consultaton des<br>salaires|`salary:read:all`|Collaborateur,<br>Manager|HR_ADMIN,<br>SUPER_ADMIN|Données fnancières<br>personnelles — risque<br>RGPD et confdentalité<br>RH élevé.|
 |Fiches de paie terces|`payslip:read:any`|Collaborateur,<br>Manager|HR_ADMIN,<br>SUPER_ADMIN|Informaton salariale<br>protégée.|
-|Console alertes IA|`admin:settings`|Collaborateur,<br>Manager, RH|SUPER_ADMIN|Accès aux événements<br>de sécurité — réservé à<br>l'admin technique.|
+|Console alertes IA|`alerts:read`|Collaborateur,<br>Manager|HR_ADMIN,<br>SUPER_ADMIN|Accès aux événements<br>d'observabilité IA —<br>RH + Admin (triage).|
 |Modifcaton de rôle|`admin:settings`|Collaborateur,<br>Manager, RH|SUPER_ADMIN|Tout changement de<br>rôle est journalisé dans<br>AuditLog<br>(ROLE_CHANGED).|
 |Queston salaire via IA|`salary:read:all`<br>`(tool)`|Collaborateur,<br>Manager|HR_ADMIN,<br>SUPER_ADMIN|Refus contrôlé +<br>AiEvent CRITICAL +<br>Alert — scénario de<br>démo Sprint 3.|
 |Annuaire global|`directory:read:a`<br>`ll`|Collaborateur|Manager (équipe), RH,<br>Admin|Portée limitée au<br>périmètre du rôle.|
@@ -189,13 +199,13 @@ Ces règles s'appliquent à tous les développeurs du projet HARI :
 
 **Vérification côté serveur obligatoire :** Chaque route API et chaque outil IA vérifie le rôle depuis la session Auth.js. Jamais depuis le payload client. 
 
-**withPermission() pour les outils IA :** Tous les outils dans src/lib/ai/tools.ts utilisent withPermission(caller, permission, fn). Sur refus : { denied: true } — jamais une exception qui révèle des données. 
+**Outils IA advertis par rôle :** `buildHrTools(caller)` n'expose au modèle que les outils dont le rôle détient la permission (via `TOOL_CATALOGUE`) — un outil hors périmètre n'est jamais offert, donc jamais appelé. Le `withPermission(caller, permission, fn)` interne est une défense en profondeur. Sur refus de portée (id d'une cible hors scope) : `{ refused, message }` **silencieux** — l'assistant compose avec les données autorisées, l'UI n'affiche rien ; jamais `{ denied: true }`, jamais une carte « accès refusé », jamais une exception. Les erreurs opérationnelles renvoient `{ error, errorCode }` (affichées). 
 
 **can() pour l'UI :** Les composants UI (sidebar, pages) utilisent can(role, permission) pour afficher ou masquer les éléments — mais cette protection ne remplace pas la vérification serveur. 
 
-**Journalisation des refus :** Tout refus RBAC côté serveur doit créer un AiEvent (QUERY_DENIED) ou un AuditLog (ACCESS_DENIED). Voir SCRUM-029. 
+**Journalisation (métadonnées uniquement) :** chaque tour de chat écrit un `AiEvent` dont le `kind` classe le résultat — `REFUSAL` (refus de portée), `GUARD_BLOCK` (garde d'entrée), `CONVERSATION_CLOSED`, `ERROR`, `TOOL_CALL`, `TURN`. **Jamais** de texte de prompt/réponse, de nom ni de salaire. Les actions console (tri d'alerte, validation de document, offboarding) passent par `AuditLog`. Voir SCRUM-029. 
 
-**Tests obligatoires :** Chaque permission sensible doit avoir un test d'intégration vérifiant le refus inter-rôles. Voir src/tests/rbac.test.ts. 
+**Tests obligatoires :** Chaque permission sensible doit avoir un test vérifiant le refus inter-rôles. Voir `tests/rbac.test.ts` (unitaire) et `tests/tools.integration.test.ts` (exposition des outils par rôle + ids hors périmètre). 
 
 ## **8. Critères d'acceptation** 
 

@@ -112,8 +112,14 @@ describe("chatErrorCode — classification order", () => {
     const { chatErrorCode } = await import("@/app/api/chat/route");
     // A 429 whose body also mentions 'unauthorized' must be rate_limited, not auth.
     expect(chatErrorCode(new Error("429 rate limited; unauthorized key note"))).toBe("rate_limited");
+    expect(chatErrorCode(new Error("402 payment required — insufficient credits"))).toBe("rate_limited");
     expect(chatErrorCode(new Error("404 no endpoints found for model"))).toBe("model_unavailable");
     expect(chatErrorCode(new Error("OPENROUTER_API_KEY is not set"))).toBe("auth_missing");
-    expect(chatErrorCode(new Error("socket hang up"))).toBe("generic");
+    expect(chatErrorCode(new Error("403 forbidden: model not entitled"))).toBe("auth_missing");
+    // Transport failures classify as network (distinct, more actionable than generic).
+    expect(chatErrorCode(new Error("socket hang up"))).toBe("network");
+    expect(chatErrorCode(new Error("502 bad gateway"))).toBe("network");
+    // Truly unclassifiable → generic.
+    expect(chatErrorCode(new Error("something odd happened"))).toBe("generic");
   });
 });

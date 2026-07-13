@@ -27,8 +27,12 @@
 - BF-14 : L'utilisateur dialogue avec un assistant qui peut appeler des outils RH (solde de congés,
   soumission de demande, fiches de paie, annuaire) — chaque outil est protégé par la même matrice
   de permissions que l'UI (`withPermission`).
-- BF-15 : Si l'outil appelé dépasse les droits du rôle, l'assistant reçoit `{ denied: true }` et
-  l'interface affiche une carte « accès refusé » au lieu d'exécuter l'action.
+- BF-15 : Les outils hors périmètre ne sont même pas exposés au modèle pour un rôle donné
+  (`buildHrTools` filtre `TOOL_CATALOGUE`), donc un rôle correctement configuré ne rencontre jamais
+  de refus. Pour les rares refus liés à la portée (id d'une cible hors équipe), l'outil renvoie un
+  `{ refused }` **silencieux** : l'assistant compose avec les données autorisées et l'interface
+  n'affiche **rien** (jamais de carte « accès refusé », jamais d'exception). Les erreurs
+  opérationnelles renvoient `{ error }`, que l'interface affiche.
 - BF-16 : L'assistant répond aux questions sur le règlement intérieur en citant ses sources
   (RAG vectoriel sur `HandbookChunk`).
 - BF-17 : Le raisonnement du modèle est diffusé en direct (panneau « Thinking… » repliable).

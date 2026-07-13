@@ -571,6 +571,16 @@
     "net": "Net",
     "period": "Most recent month"
   },
+  "riskCard": {
+    "departureTitle": "Departure risk",
+    "engagementTitle": "Engagement & burnout risk",
+    "scopeTeam": "Team",
+    "scopeCompany": "Company",
+    "atRisk": "{count} of {total} at risk",
+    "highRisk": "{count} of {total} high-risk",
+    "empty": "No one is currently flagged.",
+    "anonymized": "Aggregate team view — individuals aren't named."
+  },
   "predictions": {
     "title": "Predictive Workforce Analytics",
     "loading": "Loading predictions…",

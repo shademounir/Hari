@@ -571,6 +571,16 @@
     "net": "Net",
     "period": "Mois le plus récent"
   },
+  "riskCard": {
+    "departureTitle": "Risque de départ",
+    "engagementTitle": "Risque d'engagement / burnout",
+    "scopeTeam": "Équipe",
+    "scopeCompany": "Entreprise",
+    "atRisk": "{count} sur {total} à risque",
+    "highRisk": "{count} sur {total} à risque élevé",
+    "empty": "Personne n'est actuellement signalé.",
+    "anonymized": "Vue d'équipe agrégée — les personnes ne sont pas nommées."
+  },
   "predictions": {
     "title": "Analyse prédictive des effectifs",
     "loading": "Chargement des prédictions…",

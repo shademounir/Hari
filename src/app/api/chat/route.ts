@@ -31,6 +31,11 @@ export const maxDuration = 60;
 const REFUSAL_ALERT_THRESHOLD = 3;
 const REFUSAL_WINDOW_MS = 24 * 60 * 60 * 1000; // 24h rolling window
 
+// Coalesce repeat guard-block / conversation-closed / error alerts from the same
+// user within this window into the existing open alert, so a single probing user
+// can't bury real alerts in the (20-item) bell.
+const ALERT_DEDUPE_MS = 10 * 60 * 1000; // 10 min
+
 // Per-user cap on chat turns (each turn can fan out to a model call + tools).
 const CHAT_MAX_PER_MIN = 30;
 
@@ -68,10 +73,16 @@ function allUserTexts(messages: UIMessage[]): string[] {
 // otherwise be misclassified as an auth problem. Exported for unit testing.
 export function chatErrorCode(error: unknown): ChatErrorCode {
   const msg = error instanceof Error ? error.message : String(error);
-  if (/\b429\b|rate.?limit|quota/i.test(msg)) return "rate_limited";
+  // 402 (out of credits) / "insufficient" map to rate_limited (a billing/quota wall).
+  if (/\b429\b|rate.?limit|quota|\b402\b|insufficient|payment\s+required/i.test(msg))
+    return "rate_limited";
   if (/\b404\b|no endpoints|not a valid model|model_not_found/i.test(msg))
     return "model_unavailable";
-  if (/API_KEY|api key|unauthor|\b401\b/i.test(msg)) return "auth_missing";
+  // 403 (no entitlement) rides with 401/key as an auth/access problem.
+  if (/API_KEY|api key|unauthor|forbidden|\b401\b|\b403\b/i.test(msg)) return "auth_missing";
+  // Transport failures + 5xx upstreams → a distinct "network" message.
+  if (/socket|ECONN|ETIMEDOUT|fetch\s*failed|network|timeout|\b5\d{2}\b/i.test(msg))
+    return "network";
   return "generic";
 }
 
@@ -145,6 +156,7 @@ export async function POST(req: Request) {
       href: "/alerts",
       subjectId: userId,
       aiEventId: eventId,
+      dedupeWithinMs: ALERT_DEDUPE_MS,
     });
     const stream = createUIMessageStream({
       execute: ({ writer }) => {
@@ -309,28 +321,38 @@ Guidelines:
           href: "/alerts",
           subjectId: userId,
           aiEventId: eventId,
+          dedupeWithinMs: ALERT_DEDUPE_MS,
         });
       }
 
-      // Repeated-refusal escalation: alert only on the turn that crosses the
-      // threshold (this turn's refusals are already persisted above).
+      // Repeated-refusal escalation. Idempotent-by-dedupe rather than by the exact
+      // arithmetic crossing: once the user is at/over the threshold in-window we fire
+      // ONE alert, and `dedupeWithinMs` folds any concurrent/subsequent turn into it
+      // — so racing turns can neither double-alert nor skip the crossing. Wrapped so a
+      // transient failure on this count can't reject the async onFinish (the turn
+      // itself already succeeded; tracing must never throw into the stream).
       if (refusalsThisTurn > 0) {
-        const total = await prisma.aiEvent.count({
-          where: {
-            userId,
-            kind: "REFUSAL",
-            createdAt: { gte: new Date(Date.now() - REFUSAL_WINDOW_MS) },
-          },
-        });
-        if (total - refusalsThisTurn < REFUSAL_ALERT_THRESHOLD && total >= REFUSAL_ALERT_THRESHOLD) {
-          await createAlert({
-            kind: "AI_REFUSAL",
-            severity: "WARNING",
-            titleKey: "alerts.kind.AI_REFUSAL.title",
-            params: { role: caller.role, count: total },
-            href: "/alerts",
-            subjectId: userId,
+        try {
+          const total = await prisma.aiEvent.count({
+            where: {
+              userId,
+              kind: "REFUSAL",
+              createdAt: { gte: new Date(Date.now() - REFUSAL_WINDOW_MS) },
+            },
           });
+          if (total >= REFUSAL_ALERT_THRESHOLD) {
+            await createAlert({
+              kind: "AI_REFUSAL",
+              severity: "WARNING",
+              titleKey: "alerts.kind.AI_REFUSAL.title",
+              params: { role: caller.role, count: total },
+              href: "/alerts",
+              subjectId: userId,
+              dedupeWithinMs: REFUSAL_WINDOW_MS,
+            });
+          }
+        } catch (e) {
+          console.error("[chat] refusal escalation failed:", e);
         }
       }
     },
@@ -346,6 +368,7 @@ Guidelines:
         href: "/alerts",
         subjectId: userId,
         aiEventId: eventId,
+        dedupeWithinMs: ALERT_DEDUPE_MS,
       });
     },
   });

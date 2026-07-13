@@ -10,7 +10,11 @@ import type { AuthTokenType } from "@prisma/client";
 
 // Brute-force brake on password login. Only FAILED attempts accrue, so a
 // legitimate sign-in (including the demo one-click logins) never trips it.
+// Two keys: a tight per-(ip,email) cap, AND a looser per-EMAIL cap that is
+// IP-INDEPENDENT — so an attacker rotating X-Forwarded-For (which lands in a fresh
+// ip:email bucket each time) is still throttled globally against one account.
 const LOGIN_MAX_FAILURES = 10;
+const LOGIN_MAX_FAILURES_EMAIL = 20;
 const LOGIN_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
 
 // Google is optional: the provider (and its button) only appear when both
@@ -40,24 +44,31 @@ const providers: NextAuthConfig["providers"] = [
       const password = String(credentials?.password ?? "");
       if (!email || !password) return null;
 
-      // Reject early (before bcrypt) once this (ip, email) has too many recent
-      // failures — throttles online brute-forcing without a DB round-trip on the
-      // password itself.
-      const rlKey = `${clientIp((request as Request | undefined)?.headers)}:${email}`;
-      if (!(await rateLimitPeek("login", rlKey, LOGIN_MAX_FAILURES, LOGIN_WINDOW_MS)).ok) {
-        return null;
-      }
+      // Reject early (before bcrypt) once EITHER the per-(ip,email) OR the
+      // IP-independent per-email cap is exceeded — throttles online brute-forcing
+      // (including XFF-rotation) without a DB round-trip on the password itself.
+      const ipKey = `${clientIp((request as Request | undefined)?.headers)}:${email}`;
+      const recordFailure = () =>
+        Promise.all([
+          rateLimit("login", ipKey, LOGIN_MAX_FAILURES, LOGIN_WINDOW_MS),
+          rateLimit("login-email", email, LOGIN_MAX_FAILURES_EMAIL, LOGIN_WINDOW_MS),
+        ]);
+      const [ipPeek, emailPeek] = await Promise.all([
+        rateLimitPeek("login", ipKey, LOGIN_MAX_FAILURES, LOGIN_WINDOW_MS),
+        rateLimitPeek("login-email", email, LOGIN_MAX_FAILURES_EMAIL, LOGIN_WINDOW_MS),
+      ]);
+      if (!ipPeek.ok || !emailPeek.ok) return null;
 
       const user = await loadUser(email);
       // Passwordless-only accounts have no hash → credentials login can't apply.
       if (!user?.passwordHash) {
-        await rateLimit("login", rlKey, LOGIN_MAX_FAILURES, LOGIN_WINDOW_MS);
+        await recordFailure();
         return null;
       }
 
       const ok = await bcrypt.compare(password, user.passwordHash);
       if (!ok) {
-        await rateLimit("login", rlKey, LOGIN_MAX_FAILURES, LOGIN_WINDOW_MS);
+        await recordFailure();
         return null;
       }
 
