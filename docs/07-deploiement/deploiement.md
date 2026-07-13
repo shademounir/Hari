@@ -4,15 +4,17 @@
 
 | Environnement | Commande | Description |
 |---|---|---|
-| Démo / développement (Docker) | `docker compose up --build` | Démarre PostgreSQL+pgvector, Adminer (`:8080`) et l'app (`:3000`). Applique les migrations et seed automatiquement au boot |
-| Développement local (sans Docker) | `npm install` puis `docker compose up -d db` puis `npm run db:deploy && npm run db:seed` puis `npm run dev` | Utile pour un cycle de développement rapide avec hot-reload |
+| Démo / développement (Docker) | `docker compose up --build` | Démarre PostgreSQL+pgvector, Adminer (`:8080`), **MinIO** (`:9000` API / `:9001` console) et l'app (`:3000`). Applique les migrations et seed automatiquement au boot |
+| Développement local (sans Docker) | `npm install` puis `docker compose up -d db minio` puis `npm run db:deploy && npm run db:seed` puis `npm run dev` | Utile pour un cycle de développement rapide avec hot-reload. MinIO est requis : le seed y téléverse les couvertures des collections KB |
 
 ## Variables d'environnement (`.env`)
 
 | Variable | Nécessaire pour | Remarque |
 |---|---|---|
-| `OPENROUTER_API_KEY` | Chat et embeddings RAG | Gratuite sur openrouter.ai/keys ; alimente toute la démo |
-| `AUTH_SECRET` | Sessions | Générée avec `npx auth secret` |
+| `OPENROUTER_API_KEY` | Chat et embeddings RAG | Gratuite sur openrouter.ai/keys ; alimente toute la démo (le chat **et** les embeddings passent par l'endpoint `/embeddings` d'OpenRouter) |
+| `AUTH_SECRET` | Sessions | Générée avec `npx auth secret` ; une valeur de démo fonctionnelle est fournie |
+| `S3_*` / `MINIO_*` | Stockage objets (MinIO) | Bucket privé pour les couvertures KB et les PDF générés ; voir `.env.example` |
+| `CRON_SECRET` | Jobs cron | Bearer attendu par `/api/cron/*` (scores prédictifs & engagement) |
 | `AI_GATEWAY_API_KEY` | Optionnel | Active les modèles du Vercel AI Gateway dans le sélecteur |
 
 ## Gestion du schéma
@@ -29,10 +31,10 @@
 
 | Rôle | Email | Peut faire |
 |---|---|---|
-| Employé | `employee@acme.test` | Profil propre, congés/paie propres, interroger le règlement |
-| Manager | `manager@acme.test` | + voir l'équipe, approuver ses congés |
-| Admin RH | `hr@acme.test` | + toute l'entreprise, salaires, n'importe quelle fiche de paie |
-| Super Admin | `admin@acme.test` | + paramètres plateforme |
+| Employé | `collaborateur@hari.ma` | Profil propre, congés/paie propres, interroger le règlement |
+| Manager | `manager@hari.ma` | + voir l'équipe, approuver ses congés |
+| Admin RH | `rh@hari.ma` | + toute l'entreprise, salaires, n'importe quelle fiche de paie |
+| Super Admin | `admin@hari.ma` | + paramètres plateforme |
 
 ## Avant une mise en production réelle
 
@@ -52,9 +54,11 @@ flowchart TB
     subgraph Compose["docker-compose.yml"]
         DB["db : PostgreSQL + pgvector"]
         AD["adminer : UI d'administration"]
+        MIO["minio : stockage objets S3 (bucket privé)"]
         APP["app : Next.js (Dockerfile)"]
     end
     APP -->|Prisma| DB
     AD --> DB
+    APP -->|"S3 (couvertures KB, PDF)"| MIO
     APP -->|HTTPS| EXT["Fournisseurs IA externes<br/>(OpenRouter / AI Gateway)"]
 ```
