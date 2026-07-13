@@ -104,7 +104,7 @@ Le tableau ci-dessous recense l'ensemble des fonctionnalités de la plateforme H
 |**GESTION DES**<br>**CONGÉS**||||||
 |Soumetre une<br>demande de<br>congé|**✔**|**✔**|**✔**|**✔**|_leave:request_|
 |Consulter ses<br>propres congés|**✔**|**✔**|**✔**|**✔**|_leave:read:self_|
-|Consulter les<br>congés de son<br>équipe|**✘**|**✔**|**✔**|**✔**|_leave:read:team_|
+|Consulter les<br>congés de son<br>équipe|**✘**|**✔**|**✔**|**✔**|_directory:read:team_<br>_(+ leave:approve)_|
 |Approuver /<br>refuser une<br>demande de<br>congé|**✘**|**✔**|**✔**|**✔**|_leave:approve —_<br>_Manager limité à_<br>_ses reports_|
 |Approuver les<br>congés à l'échelle<br>entreprise|**✘**|**✘**|**✔**|**✔**|_leave:approve +_<br>_directory:read:all_|
 |**FICHES DE PAIE**||||||
@@ -153,7 +153,7 @@ Les fonctionnalités suivantes sont considérées comme sensibles et font l'obje
 |Fiches de paie terces|`payslip:read:any`|Collaborateur,<br>Manager|HR_ADMIN,<br>SUPER_ADMIN|Informaton salariale<br>protégée.|
 |Console alertes IA|`alerts:read`|Collaborateur,<br>Manager|HR_ADMIN,<br>SUPER_ADMIN|Accès aux événements<br>d'observabilité IA —<br>RH + Admin (triage).|
 |Modifcaton de rôle|`admin:settings`|Collaborateur,<br>Manager, RH|SUPER_ADMIN|Tout changement de<br>rôle est journalisé dans<br>AuditLog<br>(ROLE_CHANGED).|
-|Queston salaire via IA|`salary:read:all`<br>`(tool)`|Collaborateur,<br>Manager|HR_ADMIN,<br>SUPER_ADMIN|Refus contrôlé +<br>AiEvent CRITICAL +<br>Alert — scénario de<br>démo Sprint 3.|
+|Queston salaire via IA|`salary:read:all`|Collaborateur,<br>Manager|HR_ADMIN,<br>SUPER_ADMIN|Aucun outil salaire<br>n'est exposé au modèle<br>pour ces rôles →<br>l'assistant décline en<br>prose (aucun appel<br>d'outil, pas d'alerte<br>CRITICAL).|
 |Annuaire global|`directory:read:a`<br>`ll`|Collaborateur|Manager (équipe), RH,<br>Admin|Portée limitée au<br>périmètre du rôle.|
 |Génératon /<br>téléchargement PDF<br>ters|`employee:manage`|Collaborateur,<br>Manager|HR_ADMIN,<br>SUPER_ADMIN|Vérifcaton RBAC sur<br>l'identté du<br>demandeur avant tout<br>téléchargement.|
 
@@ -185,7 +185,7 @@ Accès supplémentaire : annuaire global, salaires, gestion employés, documents
 
 ## **Étape 6 : Poser une question salaire via l'assistant IA (en Collaborateur)** 
 
-Résultat attendu : refus contrôlé de l'assistant + AiEvent CRITICAL + Alert (Sprint 3). 
+Résultat attendu : l'assistant décline en prose (l'outil salaire n'est pas exposé à ce rôle, donc aucun appel d'outil). Un AiEvent `TURN` est journalisé ; les alertes proviennent des blocages garde-fou et des refus répétés — pas d'une simple question. 
 
 ## **Étape 7 : Se connecter en Admin (SUPER_ADMIN)** 
 
