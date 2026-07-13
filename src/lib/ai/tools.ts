@@ -21,7 +21,9 @@ import {
   getLeaveBalances,
   getPayslip,
   getPendingApprovals,
+  decideLeaveRequest,
 } from "@/lib/hr";
+import { recordAudit } from "@/lib/audit";
 import { searchHandbook } from "@/lib/rag";
 import {
   getActiveModelConfig,
@@ -35,6 +37,9 @@ export type ToolCaller = {
   role: Role;
   employeeId: string | null;
   name: string;
+  // The signed-in user's id — needed to attribute audit-trail entries for write
+  // tools (e.g. leave approval), matching what the dashboard actions record.
+  userId: string;
 };
 
 // A scope refusal: the agent relays `message`, the UI renders nothing (vs.
@@ -386,18 +391,30 @@ function buildAllHrTools(caller: ToolCaller, timezone = "UTC") {
         }
 
         const status = decision === "APPROVE" ? "APPROVED" : "REJECTED";
-        await prisma.leaveRequest.update({
-          where: { id: requestId },
-          data: { status, approverId: caller.employeeId },
-        });
-
-        // Deduct balance on approval.
-        if (status === "APPROVED") {
-          await prisma.leaveBalance.updateMany({
-            where: { employeeId: req.employeeId, type: req.type },
-            data: { usedDays: { increment: req.days } },
-          });
+        // Route the mutation through the SAME data-layer path the dashboard uses,
+        // so the status flip, the balance deduction, and the scope check can never
+        // diverge by channel. It re-checks scope + PENDING atomically and deducts
+        // the balance on approval (idempotent under races).
+        const ok = await decideLeaveRequest(
+          { role: caller.role, employeeId: caller.employeeId },
+          requestId,
+          status,
+        );
+        if (!ok) {
+          // Lost a race, or scope narrowed between the read above and the write.
+          return fail("request_not_pending", "That request could no longer be actioned.");
         }
+
+        // Audit the decision, exactly like the dashboard action (metadata only —
+        // request id + decision, never names or the reason text).
+        await recordAudit(
+          { userId: caller.userId, role: caller.role },
+          {
+            action: status === "APPROVED" ? "LEAVE_APPROVED" : "LEAVE_REJECTED",
+            targetType: "LeaveRequest",
+            targetId: requestId,
+          },
+        );
 
         return {
           result: {

@@ -2,6 +2,7 @@ import sharp from "sharp";
 import { auth } from "@/lib/auth";
 import { can } from "@/lib/rbac";
 import { putCover, coverUrl } from "@/lib/storage";
+import { rateLimit } from "@/lib/rate-limit";
 
 // Upload a KB collection cover to object storage. Manager-only (kb:manage), same
 // permission the data layer (lib/kb.ts assertManage) and the server actions enforce.
@@ -14,6 +15,9 @@ export async function POST(req: Request) {
   if (!session?.user) return new Response("Unauthorized", { status: 401 });
   if (!can(session.user.role, "kb:manage")) {
     return new Response("Forbidden", { status: 403 });
+  }
+  if (!(await rateLimit("kb-upload", session.user.id, 20, 60_000)).ok) {
+    return new Response("Too many requests", { status: 429 });
   }
 
   // Reject oversized bodies before buffering them into memory.

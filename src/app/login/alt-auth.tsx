@@ -78,7 +78,7 @@ function MagicLinkForm() {
   return (
     <form action={action} className="grid gap-2 rounded-lg border p-3">
       <p className="text-xs text-muted-foreground">{t("magicLinkHint")}</p>
-      <Input name="email" type="email" required placeholder={t("emailPlaceholder")} />
+      <Input name="email" type="email" required aria-label={t("email")} placeholder={t("emailPlaceholder")} />
       {state.error && <p className="text-sm text-destructive">{state.error}</p>}
       {state.sent && <p className="text-sm text-emerald-600">{t("checkEmail")}</p>}
       {state.devLink && <DevReveal label={t("devLinkNote")} value={state.devLink} />}
@@ -109,6 +109,7 @@ function OtpFlow() {
           name="email"
           type="email"
           required
+          aria-label={t("email")}
           placeholder={t("emailPlaceholder")}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -132,6 +133,7 @@ function OtpFlow() {
         autoComplete="one-time-code"
         maxLength={6}
         required
+        aria-label={t("codeLabel")}
         placeholder="000000"
         className="text-center tracking-[0.4em]"
       />

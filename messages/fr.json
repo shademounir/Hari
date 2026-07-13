@@ -7,7 +7,8 @@
     "you": "Vous",
     "none": "—",
     "cancel": "Annuler",
-    "decisionNote": "Note de décision"
+    "decisionNote": "Note de décision",
+    "close": "Fermer"
   },
   "languageSwitcher": {
     "label": "Langue",
@@ -455,7 +456,16 @@
       "LEAVE_REJECTED": "Congé refusé",
       "AUDIT_CONSOLE_VIEWED": "Journal d'audit consulté",
       "DOCUMENT_VALIDATED": "Demande de document validée",
-      "DOCUMENT_REJECTED": "Demande de document refusée"
+      "DOCUMENT_REJECTED": "Demande de document refusée",
+      "KB_COLLECTION_CREATED": "Collection KB créée",
+      "KB_COLLECTION_UPDATED": "Collection KB mise à jour",
+      "KB_COLLECTION_DELETED": "Collection KB supprimée",
+      "KB_DOCUMENT_CREATED": "Article KB créé",
+      "KB_DOCUMENT_UPDATED": "Article KB mis à jour",
+      "KB_DOCUMENT_PUBLISHED": "Article KB publié",
+      "KB_DOCUMENT_UNPUBLISHED": "Article KB dépublié",
+      "KB_DOCUMENT_ARCHIVED": "Article KB archivé",
+      "KB_DOCUMENT_DELETED": "Article KB supprimé"
     }
   },
   "settings": {
@@ -563,6 +573,7 @@
   },
   "predictions": {
     "title": "Analyse prédictive des effectifs",
+    "loading": "Chargement des prédictions…",
     "description": "Signaux faibles de désengagement, projections de départs à 12 mois et préparation de la relève.",
     "band": {
       "green": "Faible",
@@ -970,6 +981,8 @@
     "checkEmail": "Si l'adresse est enregistrée, un e-mail a été envoyé. Vérifiez votre boîte de réception.",
     "enterCodeHint": "Saisissez le code à 6 chiffres envoyé à {email}.",
     "verifyCode": "Vérifier & se connecter",
+    "email": "E-mail",
+    "codeLabel": "Code de connexion",
     "verifying": "Vérification…",
     "sending": "Envoi…",
     "saving": "Enregistrement…",

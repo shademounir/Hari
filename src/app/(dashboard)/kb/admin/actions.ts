@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/session";
-import { can } from "@/lib/rbac";
+import { can, type Role } from "@/lib/rbac";
 import {
   createCollection,
   updateCollection,
@@ -16,7 +16,8 @@ import {
   deleteDocument,
   isVisibility,
 } from "@/lib/kb";
-import { DocVisibility } from "@prisma/client";
+import { recordAudit } from "@/lib/audit";
+import { DocVisibility, type AuditAction } from "@prisma/client";
 
 // Every action re-checks kb:manage server-side (defense in depth: the UI is
 // already hidden, and lib/kb asserts too) and validates inputs before writing —
@@ -25,6 +26,18 @@ async function requireManager() {
   const user = await requireUser();
   if (!can(user.role, "kb:manage")) redirect("/");
   return { role: user.role, id: user.id }; // id stamps authorship
+}
+
+// KB mutations change what the AI RAG serves org-wide, so they belong on the
+// sensitive-action audit trail like leave/document decisions. Metadata only —
+// the target id/type, never titles or content.
+function auditKb(
+  caller: { id: string; role: Role },
+  action: AuditAction,
+  targetType: string,
+  targetId?: string | null,
+) {
+  return recordAudit({ userId: caller.id, role: caller.role }, { action, targetType, targetId });
 }
 
 function str(fd: FormData, key: string): string {
@@ -67,6 +80,7 @@ export async function createCollectionAction(fd: FormData) {
     image: str(fd, "image") || null,
     order: Number(str(fd, "order")) || 0,
   });
+  await auditKb(caller, "KB_COLLECTION_CREATED", "KbCollection");
   refresh();
   redirect("/kb/admin?saved=1");
 }
@@ -83,6 +97,7 @@ export async function updateCollectionAction(fd: FormData) {
     image: str(fd, "image") || null,
     order: Number(str(fd, "order")) || 0,
   });
+  await auditKb(caller, "KB_COLLECTION_UPDATED", "KbCollection", id);
   refresh();
   redirect("/kb/admin?saved=1");
 }
@@ -90,7 +105,10 @@ export async function updateCollectionAction(fd: FormData) {
 export async function deleteCollectionAction(fd: FormData) {
   const caller = await requireManager();
   const id = str(fd, "id");
-  if (id) await deleteCollection(caller, id);
+  if (id) {
+    await deleteCollection(caller, id);
+    await auditKb(caller, "KB_COLLECTION_DELETED", "KbCollection", id);
+  }
   refresh(); // invoked in-place from the admin list (row-actions menu) — no redirect
 }
 
@@ -110,6 +128,7 @@ export async function createDocumentAction(fd: FormData) {
     tags: tagsOf(fd),
     assistantOverride: assistantOverrideOf(fd),
   });
+  await auditKb(caller, "KB_DOCUMENT_CREATED", "KbDocument");
   refresh();
   redirect("/kb/admin?saved=1");
 }
@@ -129,6 +148,7 @@ export async function updateDocumentAction(fd: FormData) {
     tags: tagsOf(fd),
     assistantOverride: assistantOverrideOf(fd),
   });
+  await auditKb(caller, "KB_DOCUMENT_UPDATED", "KbDocument", id);
   refresh();
   redirect("/kb/admin?saved=1");
 }
@@ -136,27 +156,39 @@ export async function updateDocumentAction(fd: FormData) {
 export async function publishDocumentAction(fd: FormData) {
   const caller = await requireManager();
   const id = str(fd, "id");
-  if (id) await publishDocument(caller, id);
+  if (id) {
+    await publishDocument(caller, id);
+    await auditKb(caller, "KB_DOCUMENT_PUBLISHED", "KbDocument", id);
+  }
   refresh();
 }
 
 export async function unpublishDocumentAction(fd: FormData) {
   const caller = await requireManager();
   const id = str(fd, "id");
-  if (id) await unpublishToDraft(caller, id);
+  if (id) {
+    await unpublishToDraft(caller, id);
+    await auditKb(caller, "KB_DOCUMENT_UNPUBLISHED", "KbDocument", id);
+  }
   refresh();
 }
 
 export async function archiveDocumentAction(fd: FormData) {
   const caller = await requireManager();
   const id = str(fd, "id");
-  if (id) await archiveDocument(caller, id);
+  if (id) {
+    await archiveDocument(caller, id);
+    await auditKb(caller, "KB_DOCUMENT_ARCHIVED", "KbDocument", id);
+  }
   refresh();
 }
 
 export async function deleteDocumentAction(fd: FormData) {
   const caller = await requireManager();
   const id = str(fd, "id");
-  if (id) await deleteDocument(caller, id);
+  if (id) {
+    await deleteDocument(caller, id);
+    await auditKb(caller, "KB_DOCUMENT_DELETED", "KbDocument", id);
+  }
   refresh(); // invoked in-place from the admin list (row-actions menu) — no redirect
 }

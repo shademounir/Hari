@@ -13,7 +13,8 @@ import { getChatModel, getAvailableChatModels, type ChatErrorCode } from "@/lib/
 import { buildHrTools } from "@/lib/ai/tools";
 import { recordAiEvent, type RecordAiEventInput } from "@/lib/ai/events";
 import { createAlert } from "@/lib/alerts";
-import { inspectUserInput } from "@/lib/ai/guardrails";
+import { inspectConversation } from "@/lib/ai/guardrails";
+import { rateLimit } from "@/lib/rate-limit";
 import { classifyRequest } from "@/lib/ai/classify";
 import { prisma } from "@/lib/prisma";
 import { ROLE_LABELS } from "@/lib/rbac";
@@ -24,11 +25,16 @@ import { getLocale } from "next-intl/server";
 
 export const maxDuration = 60;
 
-// Raise an Admin/HR alert once a conversation accumulates this many tool
-// refusals — a signal of someone repeatedly probing out-of-scope actions.
+// Alert Admin/HR once a USER hits this many refusals within REFUSAL_WINDOW_MS
+// (someone probing out-of-scope actions). Keyed on userId, not the client's
+// conversationId, so rotating the id can't evade the threshold.
 const REFUSAL_ALERT_THRESHOLD = 3;
+const REFUSAL_WINDOW_MS = 24 * 60 * 60 * 1000; // 24h rolling window
 
-/** Concatenated text of the most recent user message (for the input guard). */
+// Per-user cap on chat turns (each turn can fan out to a model call + tools).
+const CHAT_MAX_PER_MIN = 30;
+
+/** Concatenated text of the most recent user message (for sensitivity classify). */
 function lastUserText(messages: UIMessage[]): string {
   for (let i = messages.length - 1; i >= 0; i--) {
     const m = messages[i];
@@ -39,6 +45,19 @@ function lastUserText(messages: UIMessage[]): string {
       .join("\n");
   }
   return "";
+}
+
+/** Text of every user message in the turn (for the whole-turn input guard —
+ *  the entire client-controlled messages[] reaches the model, not just the last). */
+function allUserTexts(messages: UIMessage[]): string[] {
+  return messages
+    .filter((m) => m.role === "user")
+    .map((m) =>
+      (m.parts ?? [])
+        .filter((p): p is { type: "text"; text: string } => p.type === "text")
+        .map((p) => p.text)
+        .join("\n"),
+    );
 }
 
 // Map an upstream/model failure to a stable code the client localizes
@@ -74,15 +93,23 @@ export async function POST(req: Request) {
     role: session.user.role,
     employeeId: session.user.employeeId,
     name: session.user.name ?? "the user",
+    userId: session.user.id,
   };
 
   // Opaque id grouping this chat's events (client-generated, reset on New Chat).
-  // Validate defensively — it's client input that lands in a DB column.
+  // It's client input in a DB column, so treat a blank/oversize value as absent
+  // (fresh uuid) — otherwise "" collapses unrelated users' events into one bucket.
   const conversationId =
-    typeof rawConversationId === "string" && rawConversationId.length <= 100
+    typeof rawConversationId === "string" &&
+    rawConversationId.trim().length > 0 &&
+    rawConversationId.length <= 100
       ? rawConversationId
       : randomUUID();
   const userId = session.user.id;
+  // Per-user rate limit — a stable code the client localizes (chat.errors.rate_limited).
+  if (!(await rateLimit("chat", userId, CHAT_MAX_PER_MIN, 60_000)).ok) {
+    return new Response("rate_limited", { status: 429 });
+  }
   // Base metadata stamped on every AiEvent for this turn — role + ids only, never content.
   const eventBase = { conversationId, userId, role: caller.role } as const;
 
@@ -102,7 +129,7 @@ export async function POST(req: Request) {
   // Block obvious abuse/injection BEFORE spending a model call; trace it and
   // raise an Admin/HR alert, then return a "conversation closed" stream so the
   // client locks the composer (same UX as the model calling endConversation).
-  const guard = inspectUserInput(userText);
+  const guard = inspectConversation(allUserTexts(messages));
   if (guard.blocked) {
     const eventId = await recordAiEvent({
       ...eventBase,
@@ -289,7 +316,11 @@ Guidelines:
       // threshold (this turn's refusals are already persisted above).
       if (refusalsThisTurn > 0) {
         const total = await prisma.aiEvent.count({
-          where: { conversationId, kind: "REFUSAL" },
+          where: {
+            userId,
+            kind: "REFUSAL",
+            createdAt: { gte: new Date(Date.now() - REFUSAL_WINDOW_MS) },
+          },
         });
         if (total - refusalsThisTurn < REFUSAL_ALERT_THRESHOLD && total >= REFUSAL_ALERT_THRESHOLD) {
           await createAlert({

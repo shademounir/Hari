@@ -473,12 +473,15 @@ export async function decideLeaveRequest(
 }
 
 /**
- * Approve/reject MANY pending requests in one scoped statement. Same invariant as
- * the single-row path: the WHERE carries the manager→report predicate (or the
- * whole company for HR), so any id in `requestIds` that isn't in the caller's
- * scope, already decided, or nonexistent simply matches nothing — no error, no
- * leak. `note` is the approver's decision note (persisted for both outcomes;
- * callers enforce that it is non-empty for a rejection). Returns rows changed.
+ * Approve/reject many pending requests, scoped like the single-row path: the
+ * WHERE carries the manager→report predicate (whole company for HR), so any id
+ * out of scope, already decided, or nonexistent matches nothing. `note` is the
+ * decision note (callers require it for rejections).
+ *
+ * On approval it also deducts the request's days from the employee's balance, in
+ * the same transaction as the status flip — the one place that deduction happens,
+ * so the dashboard and chatbot can't diverge. The per-row `status: PENDING` guard
+ * keeps it idempotent (no double-deduct under a race). Returns rows changed.
  */
 export async function bulkDecideLeaveRequests(
   caller: Caller,
@@ -489,21 +492,43 @@ export async function bulkDecideLeaveRequests(
   if (!can(caller.role, "leave:approve") || !caller.employeeId) return 0;
   if (requestIds.length === 0) return 0;
 
-  const where: Prisma.LeaveRequestWhereInput = {
+  const approverId = caller.employeeId;
+  const decisionNote = note?.trim() ? note.trim() : null;
+  const scope: Prisma.LeaveRequestWhereInput = {
     id: { in: requestIds },
     status: "PENDING",
     ...(can(caller.role, "directory:read:all")
       ? {}
-      : { employee: { managerId: caller.employeeId } }),
+      : { employee: { managerId: approverId } }),
   };
 
-  const res = await prisma.leaveRequest.updateMany({
-    where,
-    data: {
-      status: decision,
-      approverId: caller.employeeId,
-      decisionNote: note?.trim() ? note.trim() : null,
-    },
+  return prisma.$transaction(async (tx) => {
+    // The pending, in-scope rows we may act on. The per-row conditional flip
+    // below is the single source of truth for which requests actually transition.
+    const rows = await tx.leaveRequest.findMany({
+      where: scope,
+      select: { id: true, employeeId: true, type: true, days: true },
+    });
+
+    let changed = 0;
+    for (const r of rows) {
+      // Re-assert PENDING in the WHERE so a race flips the row exactly once.
+      const flip = await tx.leaveRequest.updateMany({
+        where: { id: r.id, status: "PENDING" },
+        data: { status: decision, approverId, decisionNote },
+      });
+      if (flip.count !== 1) continue;
+      changed++;
+
+      // Deduct the balance ONLY on approval, and only for a row that truly
+      // transitioned — mirrors the intended deduct-on-approval design.
+      if (decision === "APPROVED") {
+        await tx.leaveBalance.updateMany({
+          where: { employeeId: r.employeeId, type: r.type },
+          data: { usedDays: { increment: r.days } },
+        });
+      }
+    }
+    return changed;
   });
-  return res.count;
 }

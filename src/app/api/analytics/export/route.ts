@@ -10,7 +10,12 @@ type Cell = string | number;
 function toCsv(header: string[], rows: Cell[][]): string {
   const esc = (c: Cell) => {
     const s = String(c);
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    // Neutralize spreadsheet formula injection: a cell whose first char is a
+    // formula trigger (= + - @) or a control char is prefixed with a single quote
+    // so Excel/Sheets treat it as text (e.g. a name like `=HYPERLINK(...)`), THEN
+    // RFC-4180 quoted.
+    const guarded = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+    return /[",\n]/.test(guarded) ? `"${guarded.replace(/"/g, '""')}"` : guarded;
   };
   return [header, ...rows].map((r) => r.map(esc).join(",")).join("\r\n");
 }

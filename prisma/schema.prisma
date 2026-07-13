@@ -410,6 +410,22 @@ resolvedAt DateTime?
 @@index([kind])
 }
 
+/// Hardening: fixed-window rate-limit counters for abuse-prone endpoints
+/// (credential login, auth-email issuance, chat, KB upload/search). Keyed by a
+/// `bucket` + an opaque `key` (ip and/or normalized email / userId) + the window
+/// start; `count` is the number of hits in that window. Metadata only. Stale rows
+/// are harmless and may be pruned by a periodic job.
+model RateLimit {
+id          String   @id @default(cuid())
+bucket      String
+key         String
+windowStart DateTime
+count       Int      @default(0)
+
+@@unique([bucket, key, windowStart])
+@@index([windowStart])
+}
+
 /// SCRUM-064: the sensitive actions worth recording for after-the-fact review.
 enum AuditAction {
 ALERT_ACKNOWLEDGED
@@ -427,6 +443,17 @@ AUDIT_CONSOLE_VIEWED
 // SCRUM-080: HR decision on a generated-document request.
 DOCUMENT_VALIDATED
 DOCUMENT_REJECTED
+// Knowledge-base management (kb:manage) — these change what the AI RAG serves to
+// the whole org, so they belong on the sensitive-action trail like the rest.
+KB_COLLECTION_CREATED
+KB_COLLECTION_UPDATED
+KB_COLLECTION_DELETED
+KB_DOCUMENT_CREATED
+KB_DOCUMENT_UPDATED
+KB_DOCUMENT_PUBLISHED
+KB_DOCUMENT_UNPUBLISHED
+KB_DOCUMENT_ARCHIVED
+KB_DOCUMENT_DELETED
 }
 
 /// SCRUM-064: a minimal audit trail of sensitive admin/security actions (alert
