@@ -375,9 +375,11 @@ function buildAllHrTools(caller: ToolCaller, timezone = "UTC") {
         if (!req) return fail("request_not_found", "Request not found.");
 
         // Managers may only act on their own reports. (A manager is offered this
-        // tool, but a requestId outside their team is still refused here.)
+        // tool, but a requestId outside their team is still refused here.) Guard the
+        // null case explicitly: a caller with no employeeId must never match a
+        // report whose managerId is also null (`null !== null` is false).
         const companyWide = can(caller.role, "directory:read:all");
-        if (!companyWide && req.employee.managerId !== caller.employeeId) {
+        if (!companyWide && (!caller.employeeId || req.employee.managerId !== caller.employeeId)) {
           return refused("That request is for someone outside your team, so you can't action it.");
         }
 
@@ -553,9 +555,24 @@ function buildAllHrTools(caller: ToolCaller, timezone = "UTC") {
         const companyWide = can(caller.role, "engagement:read:all");
         const scope = companyWide ? "company" : "team";
 
-        // Opaque id + department + factor KEYS only — never a name, title, or raw value.
+        // Managers get AGGREGATE, anonymized team insight only — never a per-person
+        // lookup (which would re-identify a report). Refuse the id path explicitly
+        // rather than silently returning the whole board. The message is identical
+        // for any id, so it can't confirm whether a given person has a score.
+        if (employeeId && !companyWide) {
+          return refused(
+            "I can only share team-level engagement insight, not a specific individual. Ask about your team as a whole.",
+          );
+        }
+
+        // Department + factor KEYS only — never a name, title, or raw value. The
+        // employee id is emitted ONLY for the fully-authorized HR/Admin view: a
+        // MANAGER must not receive a directory-joinable id, or the model could
+        // cross-reference it back to a name via getEmployeeDirectory and defeat the
+        // "names are never provided" intent. This mirrors predictDepartures, which
+        // likewise drops the id for the anonymized (manager) case.
         const toEntry = (r: (typeof board)[number]) => ({
-          employeeId: r.employeeId,
+          ...(companyWide ? { employeeId: r.employeeId } : {}),
           department: r.department,
           score: r.score,
           band: r.band,
@@ -565,6 +582,7 @@ function buildAllHrTools(caller: ToolCaller, timezone = "UTC") {
           topFactors: r.topFactorKeys,
         });
 
+        // Targeted single-employee lookup (HR/Admin only — managers were refused above).
         if (employeeId) {
           const row = board.find((r) => r.employeeId === employeeId);
           // Out-of-scope OR no data → the SAME generic refusal, so the model can't

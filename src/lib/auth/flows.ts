@@ -30,9 +30,12 @@ async function issuanceThrottled(email: string): Promise<boolean> {
     // request-time concern — don't throttle, and don't touch the counter table.
     return false;
   }
+  // Fail CLOSED here: unlike chat/RBAC (guarded by auth), the downside of a DB blip
+  // is externally visible — an attacker could mail-bomb a victim's inbox while the
+  // limiter is degraded. Better to occasionally drop a legit email than to spam.
   const [pair, perIp] = await Promise.all([
-    rateLimit("auth-issue", `${ip}:${email}`, ISSUE_MAX, ISSUE_WINDOW_MS),
-    rateLimit("auth-issue-ip", ip, ISSUE_MAX * 4, ISSUE_WINDOW_MS),
+    rateLimit("auth-issue", `${ip}:${email}`, ISSUE_MAX, ISSUE_WINDOW_MS, { failClosed: true }),
+    rateLimit("auth-issue-ip", ip, ISSUE_MAX * 4, ISSUE_WINDOW_MS, { failClosed: true }),
   ]);
   return !pair.ok || !perIp.ok;
 }

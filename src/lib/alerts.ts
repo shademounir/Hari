@@ -37,6 +37,11 @@ export type CreateAlertInput = {
   href?: string | null;
   subjectId?: string | null;
   aiEventId?: string | null;
+  // If set (and subjectId present), coalesce: skip creating a new row when a
+  // non-resolved alert of the same kind+subject already exists within this window,
+  // returning the existing id. Keeps one probing user from flooding the bell and
+  // makes threshold escalations (AI_REFUSAL) idempotent under concurrent turns.
+  dedupeWithinMs?: number;
 };
 
 const toParams = (v: Prisma.JsonValue | null): Record<string, unknown> | null =>
@@ -71,7 +76,19 @@ export function alertDetail(a: Pick<AlertView, "kind" | "params">): string | nul
  */
 export async function createAlert(input: CreateAlertInput): Promise<string | null> {
   try {
-    const { params, ...rest } = input;
+    const { params, dedupeWithinMs, ...rest } = input;
+    if (dedupeWithinMs && rest.subjectId) {
+      const existing = await prisma.alert.findFirst({
+        where: {
+          kind: rest.kind,
+          subjectId: rest.subjectId,
+          status: { not: "RESOLVED" },
+          createdAt: { gte: new Date(Date.now() - dedupeWithinMs) },
+        },
+        select: { id: true },
+      });
+      if (existing) return existing.id; // fold into the existing open alert
+    }
     const row = await prisma.alert.create({
       data: { ...rest, params: params ?? undefined },
       select: { id: true },

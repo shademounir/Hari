@@ -118,22 +118,38 @@ export function isGatewayConfigured(): boolean {
   return !!process.env.AI_GATEWAY_API_KEY;
 }
 
+/** Whether OpenRouter is configured. Server-only (reads a secret env). */
+export function isOpenRouterConfigured(): boolean {
+  return !!process.env.OPENROUTER_API_KEY;
+}
+
 /**
- * Models selectable in the current environment. Gateway models are hidden when no
- * AI_GATEWAY_API_KEY is set, so the picker never offers a model that would fail at
- * request time. Server-only — compute it in a Server Component and pass it down.
+ * Models selectable in the current environment. A provider's models are hidden
+ * when its key is absent, so the picker never offers a model that would fail at
+ * request time — this now gates OpenRouter too (not just gateway), so a
+ * gateway-only deployment doesn't advertise OpenRouter models it can't run.
+ * Server-only — compute it in a Server Component and pass it down.
  */
 export function getAvailableChatModels(): ChatModel[] {
   const gateway = isGatewayConfigured();
-  return CHAT_MODELS.filter((m) => m.provider === "openrouter" || gateway);
+  const openrouter = isOpenRouterConfigured();
+  return CHAT_MODELS.filter((m) => (m.provider === "gateway" ? gateway : openrouter));
 }
 
-/** Resolve a registry id, falling back to the documented DEFAULT_MODEL_ID. */
+/**
+ * Resolve a registry id to a model that is actually AVAILABLE in this env. Falls
+ * back to the documented default when it's available, else the first available
+ * model, else the first registered model (whose provider-key error the route then
+ * maps to a localized message). This prevents defaulting to an OpenRouter model on
+ * a gateway-only deployment.
+ */
 function getChatModelMeta(id: string | undefined): ChatModel {
-  const found = CHAT_MODELS.find((m) => m.id === id);
+  const available = getAvailableChatModels();
+  const pick = (mid: string | undefined) => available.find((m) => m.id === mid);
+  const found = pick(id);
   if (found) return found;
-  if (id) console.warn(`[ai] unknown chat model "${id}" — falling back to ${DEFAULT_MODEL_ID}`);
-  return CHAT_MODELS.find((m) => m.id === DEFAULT_MODEL_ID) ?? CHAT_MODELS[0];
+  if (id) console.warn(`[ai] chat model "${id}" is unavailable in this env — falling back`);
+  return pick(DEFAULT_MODEL_ID) ?? available[0] ?? CHAT_MODELS[0];
 }
 
 /** Resolve a registry id to a ready-to-use LanguageModel. */
