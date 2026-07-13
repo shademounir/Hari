@@ -15,7 +15,7 @@ export function ForgotForm() {
 
   return (
     <form action={action} className="grid gap-3">
-      <Input name="email" type="email" required placeholder={t("emailPlaceholder")} />
+      <Input name="email" type="email" required aria-label={t("email")} placeholder={t("emailPlaceholder")} />
       {state.error && <p className="text-sm text-destructive">{state.error}</p>}
       {state.sent && <p className="text-sm text-emerald-600">{t("checkEmail")}</p>}
       {state.devLink && (

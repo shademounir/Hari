@@ -1,6 +1,7 @@
 import { getRequestConfig } from "next-intl/server";
 import { locales, type Locale } from "./routing";
 import { getUserLocale } from "./locale";
+import { getOrgSettings } from "@/lib/settings";
 
 // Resolves the active locale and loads its message catalog for every server
 // request. Referenced by the next-intl plugin in next.config.ts.
@@ -18,8 +19,12 @@ export default getRequestConfig(async ({ requestLocale }) => {
     requested && (locales as readonly string[]).includes(requested)
       ? (requested as Locale)
       : await getUserLocale();
+  // Global timeZone so next-intl formats dates in the org's zone (not the
+  // server's UTC) and identically on server + client (no hydration mismatch).
+  const { timezone } = await getOrgSettings();
   return {
     locale,
+    timeZone: timezone,
     messages: (await import(`../../messages/${locale}.json`)).default,
   };
 });

@@ -30,6 +30,7 @@ beforeAll(async () => {
       role: u.role,
       employeeId: u.employee!.id,
       name: u.name,
+      userId: u.id,
     };
   }
 });

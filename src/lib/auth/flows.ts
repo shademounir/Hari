@@ -11,12 +11,47 @@ import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { createAuthToken, normalizeEmail, TOKEN_TTL_MINUTES } from "@/lib/auth/tokens";
 import { sendAuthEmail, revealSecretsInUi } from "@/lib/auth/email";
+import { rateLimit, clientIp } from "@/lib/rate-limit";
 
-/** Absolute base URL for building links inside emails. */
+// Throttle auth-email issuance to stop mail-bombing a victim address and slow
+// enumeration sweeps. Applied to REAL and unknown addresses alike (below), so the
+// generic "check your email" response stays constant-shape regardless of outcome.
+const ISSUE_MAX = 5; // per (ip,email) per window
+const ISSUE_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+
+/** True when this issuance should be silently dropped (over the per-pair or the
+ *  looser per-ip cap). Returns a generic non-signal — never reveals the reason. */
+async function issuanceThrottled(email: string): Promise<boolean> {
+  let ip: string;
+  try {
+    ip = clientIp(await headers());
+  } catch {
+    // No request scope (e.g. unit tests, background jobs). Rate limiting is a
+    // request-time concern — don't throttle, and don't touch the counter table.
+    return false;
+  }
+  const [pair, perIp] = await Promise.all([
+    rateLimit("auth-issue", `${ip}:${email}`, ISSUE_MAX, ISSUE_WINDOW_MS),
+    rateLimit("auth-issue-ip", ip, ISSUE_MAX * 4, ISSUE_WINDOW_MS),
+  ]);
+  return !pair.ok || !perIp.ok;
+}
+
+/** Absolute base URL for links inside emails. These carry one-time secrets, so
+ *  the origin must not come from the request Host/X-Forwarded-Host header (an
+ *  attacker sets `Host: evil.com` and the victim's reset link points at them).
+ *  Production requires a configured AUTH_URL and fails loudly without one; the
+ *  header fallback is dev-only. */
 export async function getBaseUrl(): Promise<string> {
   const fromEnv =
     process.env.AUTH_URL || process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL;
   if (fromEnv) return fromEnv.replace(/\/$/, "");
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "AUTH_URL (or NEXTAUTH_URL) must be set in production — refusing to build " +
+        "secret-bearing email links from an untrusted Host header.",
+    );
+  }
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
   const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
@@ -34,7 +69,9 @@ async function userExists(email: string): Promise<boolean> {
 
 export async function issuePasswordReset(rawEmail: string): Promise<IssueResult> {
   const email = normalizeEmail(rawEmail);
-  if (!email || !(await userExists(email))) return { ok: true };
+  if (!email) return { ok: true };
+  if (await issuanceThrottled(email)) return { ok: true };
+  if (!(await userExists(email))) return { ok: true };
   const { secret } = await createAuthToken("PASSWORD_RESET", email);
   const base = await getBaseUrl();
   const link = `${base}/reset-password?email=${encodeURIComponent(email)}&token=${secret}`;
@@ -51,7 +88,9 @@ export async function issuePasswordReset(rawEmail: string): Promise<IssueResult>
 
 export async function issueMagicLink(rawEmail: string): Promise<IssueResult> {
   const email = normalizeEmail(rawEmail);
-  if (!email || !(await userExists(email))) return { ok: true };
+  if (!email) return { ok: true };
+  if (await issuanceThrottled(email)) return { ok: true };
+  if (!(await userExists(email))) return { ok: true };
   const { secret } = await createAuthToken("MAGIC_LINK", email);
   const base = await getBaseUrl();
   const link = `${base}/login/magic?email=${encodeURIComponent(email)}&token=${secret}`;
@@ -67,7 +106,9 @@ export async function issueMagicLink(rawEmail: string): Promise<IssueResult> {
 
 export async function issueEmailOtp(rawEmail: string): Promise<IssueResult> {
   const email = normalizeEmail(rawEmail);
-  if (!email || !(await userExists(email))) return { ok: true };
+  if (!email) return { ok: true };
+  if (await issuanceThrottled(email)) return { ok: true };
+  if (!(await userExists(email))) return { ok: true };
   const { secret } = await createAuthToken("EMAIL_OTP", email);
   await sendAuthEmail({
     to: email,

@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { searchKb } from "@/lib/kb";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const maxDuration = 30;
 
@@ -9,6 +10,9 @@ export async function GET(req: Request) {
   const session = await auth();
   if (!session?.user) {
     return new Response("Unauthorized", { status: 401 });
+  }
+  if (!(await rateLimit("kb-search", session.user.id, 60, 60_000)).ok) {
+    return new Response("Too many requests", { status: 429 });
   }
 
   const q = new URL(req.url).searchParams.get("q") ?? "";

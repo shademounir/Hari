@@ -18,6 +18,11 @@ export type GuardVerdict = { blocked: false } | { blocked: true; rule: GuardRule
  *  this long is almost always a paste-bomb or an attempt to bury an injection. */
 export const MAX_INPUT_CHARS = 8_000;
 
+/** Cap on user messages per turn. The whole client-controlled `messages[]` is
+ *  sent to the model, so an injection in an earlier message (or a paste-bomb of
+ *  many messages) has to be caught too, not just the latest message. */
+export const MAX_USER_MESSAGES = 80;
+
 // Instruction-override / jailbreak markers. Kept deliberately tight to avoid
 // false positives on legitimate questions that merely mention these words.
 const INJECTION_PATTERNS: RegExp[] = [
@@ -46,5 +51,19 @@ export function inspectUserInput(text: string): GuardVerdict {
   if (value.length > MAX_INPUT_CHARS) return { blocked: true, rule: "oversize" };
   if (anyMatch(EXFILTRATION_PATTERNS, value)) return { blocked: true, rule: "system_exfiltration" };
   if (anyMatch(INJECTION_PATTERNS, value)) return { blocked: true, rule: "prompt_injection" };
+  return { blocked: false };
+}
+
+/**
+ * Inspect every user message in the turn (not just the latest) plus the message
+ * count. Blocks on the first offender; returns the tripped rule for the caller's
+ * GUARD_BLOCK + Alert.
+ */
+export function inspectConversation(userTexts: string[]): GuardVerdict {
+  if (userTexts.length > MAX_USER_MESSAGES) return { blocked: true, rule: "oversize" };
+  for (const text of userTexts) {
+    const verdict = inspectUserInput(text);
+    if (verdict.blocked) return verdict;
+  }
   return { blocked: false };
 }

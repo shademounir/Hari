@@ -25,6 +25,15 @@ export const revealSecretsInUi =
 async function deliver(msg: AuthEmail): Promise<void> {
   // ── Plug real email in here (SMTP / Resend / SES), e.g.:
   //   if (process.env.RESEND_API_KEY) { await resend.emails.send(...); return; }
+
+  // msg.text/subject carry the reset token and OTP code, so never log them in
+  // production (they'd become live account-takeover secrets in any log sink).
+  // Prod logs metadata only; the full body is logged in dev so the flows stay
+  // demoable without a mail server (mirrors revealSecretsInUi).
+  if (isProd) {
+    console.info(`[auth-email] to=${msg.to} — delivery skipped (no transport); body suppressed`);
+    return;
+  }
   console.info(
     [`[auth-email] to=${msg.to}`, `subject: ${msg.subject}`, msg.text].join("\n  "),
   );

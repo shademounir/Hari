@@ -5,7 +5,13 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import type { Role } from "@/lib/rbac";
 import { normalizeEmail, verifyAuthToken } from "@/lib/auth/tokens";
+import { rateLimit, rateLimitPeek, clientIp } from "@/lib/rate-limit";
 import type { AuthTokenType } from "@prisma/client";
+
+// Brute-force brake on password login. Only FAILED attempts accrue, so a
+// legitimate sign-in (including the demo one-click logins) never trips it.
+const LOGIN_MAX_FAILURES = 10;
+const LOGIN_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
 
 // Google is optional: the provider (and its button) only appear when both
 // credentials are configured, so the default build needs no OAuth secrets.
@@ -29,17 +35,31 @@ const providers: NextAuthConfig["providers"] = [
       email: { label: "Email", type: "email" },
       password: { label: "Password", type: "password" },
     },
-    authorize: async (credentials) => {
+    authorize: async (credentials, request) => {
       const email = normalizeEmail(String(credentials?.email ?? ""));
       const password = String(credentials?.password ?? "");
       if (!email || !password) return null;
 
+      // Reject early (before bcrypt) once this (ip, email) has too many recent
+      // failures — throttles online brute-forcing without a DB round-trip on the
+      // password itself.
+      const rlKey = `${clientIp((request as Request | undefined)?.headers)}:${email}`;
+      if (!(await rateLimitPeek("login", rlKey, LOGIN_MAX_FAILURES, LOGIN_WINDOW_MS)).ok) {
+        return null;
+      }
+
       const user = await loadUser(email);
       // Passwordless-only accounts have no hash → credentials login can't apply.
-      if (!user?.passwordHash) return null;
+      if (!user?.passwordHash) {
+        await rateLimit("login", rlKey, LOGIN_MAX_FAILURES, LOGIN_WINDOW_MS);
+        return null;
+      }
 
       const ok = await bcrypt.compare(password, user.passwordHash);
-      if (!ok) return null;
+      if (!ok) {
+        await rateLimit("login", rlKey, LOGIN_MAX_FAILURES, LOGIN_WINDOW_MS);
+        return null;
+      }
 
       return {
         id: user.id,
