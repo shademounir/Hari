@@ -22,10 +22,39 @@ const isProd = process.env.NODE_ENV === "production";
 export const revealSecretsInUi =
   !isProd && process.env.AUTH_REVEAL_DEV_SECRETS !== "false";
 
-async function deliver(msg: AuthEmail): Promise<void> {
-  // ── Plug real email in here (SMTP / Resend / SES), e.g.:
-  //   if (process.env.RESEND_API_KEY) { await resend.emails.send(...); return; }
+/** True when SMTP is fully configured (host + auth + sender). */
+const smtpConfigured = Boolean(
+  process.env.SMTP_HOST &&
+    process.env.SMTP_USER &&
+    process.env.SMTP_PASSWORD &&
+    process.env.EMAIL_FROM,
+);
 
+async function sendViaSmtp(msg: AuthEmail): Promise<void> {
+  // Dynamic import so the mailer is only loaded when SMTP is actually used.
+  const nodemailer = await import("nodemailer");
+  const transport = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT ?? 465),
+    secure: process.env.SMTP_SECURE !== "false", // true for 465, false for 587
+    auth: { user: process.env.SMTP_USER!, pass: process.env.SMTP_PASSWORD! },
+  });
+  await transport.sendMail({
+    from: process.env.EMAIL_FROM,
+    to: msg.to,
+    subject: msg.subject,
+    text: msg.text,
+  });
+}
+
+async function deliver(msg: AuthEmail): Promise<void> {
+  // Real transport (SMTP) when configured — works in dev AND production.
+  if (smtpConfigured) {
+    await sendViaSmtp(msg);
+    return;
+  }
+
+  // No transport configured: fall back to the log.
   // msg.text/subject carry the reset token and OTP code, so never log them in
   // production (they'd become live account-takeover secrets in any log sink).
   // Prod logs metadata only; the full body is logged in dev so the flows stay
