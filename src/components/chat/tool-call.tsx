@@ -11,6 +11,7 @@ import {
   PendingApprovals,
 } from "./generative/leave";
 import { Payslip } from "./generative/payslip";
+import { DepartureRiskCard, EngagementRiskCard } from "./generative/risk";
 import { EndConversation } from "./generative/end-conversation";
 
 type ToolPart = {
@@ -120,6 +121,10 @@ function ToolOutput({
       return <ApprovalResultCard result={output.result} />;
     case "getPayslip":
       return <Payslip payslip={output.payslip} />;
+    case "predictDepartures":
+      return <DepartureRiskCard data={output} />;
+    case "getEngagementRisk":
+      return <EngagementRiskCard data={output} />;
     case "endConversation":
       return <EndConversation reason={output.reason} />;
     default:
