@@ -94,11 +94,13 @@ export default async function KbAdminPage({
                 name="q"
                 defaultValue={sp.q ?? ""}
                 placeholder={t("filterTitlePlaceholder")}
+                aria-label={t("filterTitlePlaceholder")}
                 className="h-8 w-48"
               />
               <select
                 name="status"
                 defaultValue={filters.status ?? ""}
+                aria-label={t("status")}
                 className="h-8 rounded-md border bg-background px-2 text-sm"
               >
                 <option value="">{t("allStatuses")}</option>
@@ -109,6 +111,7 @@ export default async function KbAdminPage({
               <select
                 name="collection"
                 defaultValue={filters.collectionId ?? ""}
+                aria-label={t("collection")}
                 className="h-8 rounded-md border bg-background px-2 text-sm"
               >
                 <option value="">{t("allCollections")}</option>
@@ -119,6 +122,7 @@ export default async function KbAdminPage({
               <select
                 name="sort"
                 defaultValue={filters.sort}
+                aria-label={t("sortBy")}
                 className="h-8 rounded-md border bg-background px-2 text-sm"
               >
                 <option value="recent">{t("sortRecent")}</option>

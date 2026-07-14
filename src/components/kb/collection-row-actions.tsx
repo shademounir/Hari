@@ -33,11 +33,16 @@ export function CollectionRowActions({
 
   const onConfirm = () =>
     start(async () => {
-      const fd = new FormData();
-      fd.set("id", collection.id);
-      await remove(fd);
-      toast.success(t("toastDeleted"));
-      setConfirmOpen(false);
+      try {
+        const fd = new FormData();
+        fd.set("id", collection.id);
+        await remove(fd);
+        toast.success(t("toastDeleted"));
+      } catch {
+        toast.error(t("toastError"));
+      } finally {
+        setConfirmOpen(false); // close even on failure — never leave it stuck open
+      }
     });
 
   return (

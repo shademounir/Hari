@@ -44,18 +44,19 @@ export type CollectionWithArticles = {
   articles: ArticleSummary[];
 };
 
-// Accept only safe cover sources — a same-origin object-storage path
-// (/api/kb/images/…), an external https URL, or a legacy inline data:image URL.
-// Anything else (javascript:, oversized blobs, junk) → null, so a hand-crafted
-// POST can't smuggle an unsafe value into the rendered cover.
+// Accept only safe cover sources. Covers are meant to be same-origin object-storage
+// paths (/api/kb/images/…) produced by /api/kb/upload, which rasterizes to WebP.
+// Legacy inline *raster* data: URLs are still accepted for backward compat, but two
+// things a hand-crafted POST could smuggle are rejected: SVG (can carry script) and
+// external https:// URLs (make the browser fetch a third-party host — leaks viewer
+// IPs and breaks the "covers are same-origin rasters" invariant). Anything else → null.
 const MAX_IMAGE_LEN = 1_500_000; // ~1 MB once base64-encoded (legacy data: URLs)
 export function sanitizeImage(value: string | null | undefined): string | null {
   const v = (value ?? "").trim();
   if (!v) return null;
   if (v.length > MAX_IMAGE_LEN) return null;
   if (/^\/api\/kb\/images\/[\w./-]+$/i.test(v)) return v;
-  if (/^data:image\/(png|jpeg|jpg|gif|webp|svg\+xml);/i.test(v)) return v;
-  if (/^https:\/\//i.test(v)) return v;
+  if (/^data:image\/(png|jpeg|jpg|gif|webp);/i.test(v)) return v; // raster only — no svg
   return null;
 }
 
@@ -142,10 +143,12 @@ export async function getArticle(
 /** Increment an article's view counter (best-effort; called on reader load). */
 export async function incrementViewCount(documentId: string): Promise<void> {
   try {
-    await prisma.hrDocument.update({
-      where: { id: documentId },
-      data: { viewCount: { increment: 1 } },
-    });
+    // Raw UPDATE (not prisma.update) on purpose: a Prisma `.update()` trips the
+    // model's `@updatedAt`, so counting a *view* would rewrite "Last updated" to
+    // now — the reader-facing timestamp must reflect editorial changes, not reads.
+    await prisma.$executeRaw`
+      UPDATE "HrDocument" SET "viewCount" = "viewCount" + 1 WHERE id = ${documentId}
+    `;
   } catch {
     // non-critical — never break a page render over a view count
   }
@@ -204,7 +207,9 @@ export async function searchKb(
   query: string,
   limit = 8,
 ): Promise<KbSearchResult[]> {
-  const q = query.trim();
+  // Cap length before embedding: an unbounded query is a cost/latency amplifier
+  // (one embedding call per request) with no retrieval benefit past a sentence.
+  const q = query.trim().slice(0, 200);
   if (q.length < 2) return [];
   try {
     const hits = await searchHandbook(q, limit, caller);
@@ -595,12 +600,22 @@ export async function updateDocument(
  */
 export async function publishDocument(caller: KbCaller, id: string) {
   assertManage(caller);
-  const existing = await prisma.hrDocument.update({
+  const existing = await prisma.hrDocument.findUnique({
     where: { id },
-    data: { version: { increment: 1 } },
-    select: { publishedAt: true },
+    select: { publishedAt: true, version: true },
   });
-  await ingestDocument(id);
+  if (!existing) throw new Error("Document not found");
+  // Bump version first so re-indexed chunks carry it, but roll the bump back if the
+  // embed throws — otherwise a retried publish would inflate the version each time.
+  await prisma.hrDocument.update({ where: { id }, data: { version: { increment: 1 } } });
+  try {
+    await ingestDocument(id);
+  } catch (e) {
+    await prisma.hrDocument
+      .update({ where: { id }, data: { version: existing.version } })
+      .catch(() => {});
+    throw e;
+  }
   await prisma.hrDocument.update({
     where: { id },
     data: {

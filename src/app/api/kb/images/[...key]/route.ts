@@ -12,7 +12,14 @@ export async function GET(
   { params }: { params: Promise<{ key: string[] }> },
 ) {
   const { key } = await params;
-  const objectKey = key.map((seg) => decodeURIComponent(seg)).join("/");
+  let objectKey: string;
+  try {
+    objectKey = key.map((seg) => decodeURIComponent(seg)).join("/");
+  } catch {
+    // Malformed percent-encoding (e.g. a lone "%") → same IDOR-quiet 404 as a miss,
+    // never an unhandled 500.
+    return new Response("Not found", { status: 404 });
+  }
   // Only ever serve covers/* — and never let ".." climb out of that prefix.
   if (!objectKey.startsWith("covers/") || objectKey.includes("..")) {
     return new Response("Not found", { status: 404 });

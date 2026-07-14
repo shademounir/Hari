@@ -35,7 +35,7 @@ export default async function ArticlePage({ params }: Props) {
   return (
     <>
       <PageHeader title={doc.title}>
-        <span className="hidden text-xs text-muted-foreground sm:inline">
+        <span className="block text-xs text-muted-foreground sm:inline">
           {doc.authorName && <>{t("by", { name: doc.authorName })} · </>}
           {t("lastUpdated")}: {format.dateTime(doc.updatedAt, { dateStyle: "medium" })} ·{" "}
           {t("readingTime", { min: readingMinutes(doc.content) })}

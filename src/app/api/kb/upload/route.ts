@@ -9,6 +9,9 @@ import { rateLimit } from "@/lib/rate-limit";
 export const runtime = "nodejs";
 
 const MAX_UPLOAD_BYTES = 2_000_000; // 2 MB — image-field pre-compresses rasters to WebP
+// Explicit raster allow-list. `image/*` would also admit SVG (which can carry
+// script) and exotic formats; we only ever want a raster the optimizer serves back.
+const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -27,15 +30,21 @@ export async function POST(req: Request) {
   const form = await req.formData();
   const file = form.get("file");
   if (!(file instanceof File)) return new Response("No file", { status: 400 });
-  if (!file.type.startsWith("image/")) return new Response("Unsupported type", { status: 415 });
+  if (!ALLOWED_TYPES.includes(file.type.toLowerCase())) {
+    return new Response("Unsupported type", { status: 415 });
+  }
   if (file.size > MAX_UPLOAD_BYTES) return new Response("File too large", { status: 413 });
 
-  // Always rasterize to WebP server-side: this strips any active content from an
-  // SVG (no stored XSS when the cover is served back same-origin) and guarantees
-  // the stored object is an optimizer-servable raster for next/image.
+  // Re-encode to WebP server-side so the stored object is always a clean,
+  // optimizer-servable raster. `limitInputPixels` caps the decoded size so a tiny
+  // "decompression bomb" can't balloon into hundreds of MB in the worker, and
+  // `failOn: "error"` rejects malformed input instead of guessing at it.
   let webp: Buffer;
   try {
-    webp = await sharp(Buffer.from(await file.arrayBuffer()))
+    webp = await sharp(Buffer.from(await file.arrayBuffer()), {
+      limitInputPixels: 24_000_000, // ~24 MP ceiling
+      failOn: "error",
+    })
       .rotate()
       .webp({ quality: 82 })
       .toBuffer();
