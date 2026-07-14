@@ -94,9 +94,15 @@ export function Topbar({ user }: { user: NavUser }) {
         </SheetContent>
       </Sheet>
 
-      {/* Breadcrumb */}
-      <nav aria-label={t("breadcrumb")} className="flex min-w-0 items-center gap-2 text-sm">
-        <Link href="/" className="font-semibold text-muted-foreground hover:text-foreground">
+      {/* Breadcrumb — must be able to shrink and clip: without min-w-0 + overflow
+          hidden the crumb text spills under the action cluster on narrow screens. */}
+      <nav aria-label={t("breadcrumb")} className="flex min-w-0 items-center gap-2 overflow-hidden text-sm">
+        {/* Home link is redundant on mobile (the hamburger nav has Dashboard); hide it
+            so the section name gets the width instead of truncating to "HARI / K…". */}
+        <Link
+          href="/"
+          className="hidden shrink-0 font-semibold text-muted-foreground hover:text-foreground sm:inline"
+        >
           HARI
         </Link>
         {crumbs.map((c, i) => {
@@ -104,9 +110,10 @@ export function Topbar({ user }: { user: NavUser }) {
           return (
             <span
               key={c.href}
-              className={cn("flex items-center gap-2", i >= 1 && "hidden sm:flex")}
+              className={cn("flex min-w-0 items-center gap-2", i >= 1 && "hidden sm:flex")}
             >
-              <span className="text-muted-foreground/50">/</span>
+              {/* Drop the leading "/" on mobile too, now that HARI is hidden there. */}
+              <span className={cn("text-muted-foreground/50", i === 0 && "hidden sm:inline")}>/</span>
               {last ? (
                 <span aria-current="page" className="truncate font-semibold text-foreground">
                   {c.label}
@@ -121,7 +128,7 @@ export function Topbar({ user }: { user: NavUser }) {
         })}
       </nav>
 
-      <div className="ml-auto flex items-center gap-1 md:gap-2">
+      <div className="ml-auto flex shrink-0 items-center gap-1 md:gap-2">
         <CommandSearch role={user.role} />
         <Notifications />
         <ThemeToggle />
