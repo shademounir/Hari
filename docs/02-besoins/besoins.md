@@ -16,7 +16,7 @@
 ### Congés
 - BF-08 : Tout utilisateur peut soumettre une demande de congé (`leave:request`).
 - BF-09 : Tout utilisateur consulte son propre solde et historique (`leave:read:self`).
-- BF-10 : Un manager consulte les congés de son équipe (`leave:read:team`).
+- BF-10 : Un manager consulte les congés de son équipe (via `directory:read:team` + `leave:approve`).
 - BF-11 : Un manager approuve ou rejette les demandes de son équipe (`leave:approve`).
 
 ### Fiches de paie

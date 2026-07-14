@@ -573,7 +573,7 @@
   },
   "riskCard": {
     "departureTitle": "Risque de départ",
-    "engagementTitle": "Risque d'engagement / burnout",
+    "engagementTitle": "Risque d'engagement & épuisement",
     "scopeTeam": "Équipe",
     "scopeCompany": "Entreprise",
     "atRisk": "{count} sur {total} à risque",
