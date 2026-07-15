@@ -925,7 +925,10 @@
       "requestTimeOff": "Envoi de la demande de congés",
       "listPendingApprovals": "Récupération des validations en attente",
       "approveLeave": "Traitement de la validation",
-      "getPayslip": "Récupération de la fiche de paie"
+      "getPayslip": "Récupération de la fiche de paie",
+      "predictDepartures": "Analyse du risque de départ",
+      "getEngagementRisk": "Analyse des signaux d'engagement",
+      "endConversation": "Clôture de la conversation"
     },
     "error": "Erreur de l'outil",
     "errors": {

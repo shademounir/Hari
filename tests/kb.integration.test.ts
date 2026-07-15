@@ -164,6 +164,24 @@ describe("assistant access (super-admin policy)", () => {
     expect(await getArticle(as("HR_ADMIN"), "hr-internal", "compensation-bands")).not.toBeNull();
   });
 
+  // The reader's search box is a reader surface, not the assistant. It used to
+  // inherit the assistant-access gate, so HR could open compensation-bands by URL
+  // yet never find it by searching — contradicting the line above and the policy's
+  // own promise that hidden content "stays readable in the Knowledge Base".
+  it("the reader's search finds an assistant-disabled doc the reader may open", async () => {
+    const hits = (await searchKb(as("HR_ADMIN"), "salary bands midpoint", 50)).map(
+      (h) => h.articleSlug,
+    );
+    expect(hits).toContain("compensation-bands");
+  });
+
+  it("the reader's search still enforces the tier — it drops the assistant gate, not the tier gate", async () => {
+    for (const role of ["EMPLOYEE", "MANAGER"] as Role[]) {
+      const hits = (await searchKb(as(role), "salary bands midpoint", 50)).map((h) => h.articleSlug);
+      expect(hits).not.toContain("compensation-bands");
+    }
+  });
+
   it("a per-document override hides one doc in an enabled collection", async () => {
     const id = await idBySlug("manager-playbook");
     await setDocumentAssistantAccess(SA, id, false);

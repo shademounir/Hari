@@ -2,7 +2,7 @@ import { describe, expect, it, type TestContext } from "vitest";
 import { generateText, stepCountIs, tool } from "ai";
 import { z } from "zod";
 
-import { getChatModel } from "@/lib/ai/providers";
+import { DEFAULT_MODEL_ID, getChatModel } from "@/lib/ai/providers";
 import {
   isTransientLiveError,
   withLiveRetry,
@@ -41,7 +41,7 @@ liveDescribe("OpenRouter (live)", () => {
         const { text } = await withLiveRetry(
           () =>
             generateText({
-              model: getChatModel("gpt-oss-120b"),
+              model: getChatModel(DEFAULT_MODEL_ID),
               prompt: "Reply with exactly the word: pong",
               maxRetries: 0,
             }),
@@ -68,7 +68,7 @@ liveDescribe("OpenRouter (live)", () => {
         const { steps, text } = await withLiveRetry(
           () =>
             generateText({
-              model: getChatModel("gpt-oss-120b"),
+              model: getChatModel(DEFAULT_MODEL_ID),
               stopWhen: stepCountIs(3),
               tools: {
                 getVacationDays: tool({

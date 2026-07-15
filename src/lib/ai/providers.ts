@@ -1,19 +1,22 @@
 // ─────────────────────────────────────────────────────────────────────────
-// Chat model registry. Two providers, selectable per request:
+// Chat model registry. Three providers, selectable per request:
 //   • OpenRouter (default) — free models, great for a zero-cost demo.
-//   • Vercel AI Gateway   — one key, many providers (OpenAI, Google, …).
-// A model only gets the <think>…</think> reasoning extractor when it natively
-// emits a reasoning channel (`reasoning: true`) — see getChatModel.
+//   • OpenAI direct        — OPENAI_API_KEY; paid, but steady and fast.
+//   • Vercel AI Gateway    — one key, many providers (OpenAI, Google, …).
+// Every model is wrapped with the <think>…</think> reasoning extractor; the
+// `reasoning` flag is metadata for the settings badge and does NOT gate that —
+// see getChatModel.
 // ─────────────────────────────────────────────────────────────────────────
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { createGateway } from "@ai-sdk/gateway";
+import { createOpenAI } from "@ai-sdk/openai";
 import {
   wrapLanguageModel,
   extractReasoningMiddleware,
   type LanguageModel,
 } from "ai";
 
-export type ChatProvider = "openrouter" | "gateway";
+export type ChatProvider = "openrouter" | "gateway" | "openai";
 
 export type ChatModel = {
   id: string; // stable key used by the UI selector + the request body (`modelKey`)
@@ -37,13 +40,6 @@ export const CHAT_MODELS: ChatModel[] = [
     reasoning: false,
   },
   {
-    id: "gpt-oss-120b",
-    label: "GPT-OSS 120B",
-    provider: "openrouter",
-    providerModelId: "openai/gpt-oss-120b:free",
-    reasoning: true, // emits a reasoning channel -> powers the thinking UI
-  },
-  {
     id: "nemotron-super",
     label: "Nemotron 3 Super 120B",
     provider: "openrouter",
@@ -55,6 +51,24 @@ export const CHAT_MODELS: ChatModel[] = [
     label: "OpenRouter Auto",
     provider: "openrouter",
     providerModelId: "openrouter/free", // auto-routes to an available free model
+    reasoning: false,
+  },
+  // OpenAI direct (OPENAI_API_KEY). PAID: these bill the project's own OpenAI
+  // account, so they are selectable but never the default. Unlike the free tier
+  // they don't get retired underneath us, which makes them the reliable choice
+  // for a demo that has to work on the day.
+  {
+    id: "openai-gpt-4o-mini",
+    label: "GPT-4o mini (paid)",
+    provider: "openai",
+    providerModelId: "gpt-4o-mini",
+    reasoning: false,
+  },
+  {
+    id: "openai-gpt-4.1-mini",
+    label: "GPT-4.1 mini (paid)",
+    provider: "openai",
+    providerModelId: "gpt-4.1-mini",
     reasoning: false,
   },
   {
@@ -73,11 +87,16 @@ export const CHAT_MODELS: ChatModel[] = [
   },
 ];
 
-// Default: a FREE model that reliably does BOTH tool-calling and reasoning, so the
-// tool-call UI and the thinking UI both light up out of the box at zero cost. The paid
-// "gemini-byok" entry above stays selectable, but must never be the default (it bills
-// the shared key and emits no reasoning channel).
-export const DEFAULT_MODEL_ID = "gpt-oss-120b";
+// Default: a FREE model that does tool-calling, so the tool-call UI lights up out of
+// the box at zero cost. The "(paid)" entries above stay selectable but must never be
+// the default — they bill a real account.
+//
+// "openrouter-auto" routes to whichever free model is currently available, which is
+// deliberate: this was a pinned "openai/gpt-oss-120b:free" until OpenRouter retired and
+// delisted that slug, so every default chat 404'd. Pinning one free slug makes the demo
+// hostage to that slug's lifetime; the auto-router survives a retirement. When a demo
+// must not depend on the free tier at all, set OPENAI_API_KEY and pick a paid model.
+export const DEFAULT_MODEL_ID = "openrouter-auto";
 
 // The closed vocabulary of chat error codes the server emits and the client
 // localizes (chat.errors.<code>). Single source of truth so the two sides can't
@@ -98,6 +117,7 @@ export type ChatErrorCode = (typeof CHAT_ERROR_CODES)[number];
 // the route maps to a localized message.
 let _openrouter: ReturnType<typeof createOpenRouter> | undefined;
 let _gateway: ReturnType<typeof createGateway> | undefined;
+let _openai: ReturnType<typeof createOpenAI> | undefined;
 
 function openrouterProvider() {
   if (!process.env.OPENROUTER_API_KEY) {
@@ -113,6 +133,13 @@ function gatewayProvider() {
   return (_gateway ??= createGateway({ apiKey: process.env.AI_GATEWAY_API_KEY }));
 }
 
+function openaiProvider() {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error("OPENAI_API_KEY is not set");
+  }
+  return (_openai ??= createOpenAI({ apiKey: process.env.OPENAI_API_KEY }));
+}
+
 /** Whether the Vercel AI Gateway is configured. Server-only (reads a secret env). */
 export function isGatewayConfigured(): boolean {
   return !!process.env.AI_GATEWAY_API_KEY;
@@ -123,6 +150,24 @@ export function isOpenRouterConfigured(): boolean {
   return !!process.env.OPENROUTER_API_KEY;
 }
 
+/** Whether a direct OpenAI key is configured. Server-only (reads a secret env). */
+export function isOpenAIConfigured(): boolean {
+  return !!process.env.OPENAI_API_KEY;
+}
+
+/** Is this provider usable in this env? One place, so the picker and the
+ *  resolver can never disagree about what's runnable. */
+function isConfigured(provider: ChatProvider): boolean {
+  switch (provider) {
+    case "openrouter":
+      return isOpenRouterConfigured();
+    case "gateway":
+      return isGatewayConfigured();
+    case "openai":
+      return isOpenAIConfigured();
+  }
+}
+
 /**
  * Models selectable in the current environment. A provider's models are hidden
  * when its key is absent, so the picker never offers a model that would fail at
@@ -131,9 +176,7 @@ export function isOpenRouterConfigured(): boolean {
  * Server-only — compute it in a Server Component and pass it down.
  */
 export function getAvailableChatModels(): ChatModel[] {
-  const gateway = isGatewayConfigured();
-  const openrouter = isOpenRouterConfigured();
-  return CHAT_MODELS.filter((m) => (m.provider === "gateway" ? gateway : openrouter));
+  return CHAT_MODELS.filter((m) => isConfigured(m.provider));
 }
 
 /**
@@ -155,10 +198,29 @@ function getChatModelMeta(id: string | undefined): ChatModel {
 /** Resolve a registry id to a ready-to-use LanguageModel. */
 export function getChatModel(id: string | undefined): LanguageModel {
   const meta = getChatModelMeta(id);
-  const base: LanguageModel =
-    meta.provider === "openrouter"
-      ? openrouterProvider()(meta.providerModelId)
-      : gatewayProvider()(meta.providerModelId);
+  // A switch, not a lookup table: it stays exhaustive over ChatProvider (a new
+  // provider fails the build here) and it returns the providers' concrete model
+  // types. Annotating this `LanguageModel` would widen it to `string | ...`,
+  // which wrapLanguageModel below won't take.
+  const base = (() => {
+    switch (meta.provider) {
+      case "openrouter":
+        return openrouterProvider()(meta.providerModelId);
+      case "gateway":
+        return gatewayProvider()(meta.providerModelId);
+      case "openai":
+        // .chat(), NOT the provider's default call. `openai(id)` resolves to the
+        // Responses API, which OpenAI stores server-side unless the caller opts
+        // out per request (store defaults to true there, and the SDK omits the
+        // field unless you set providerOptions). That would retain every HR turn
+        // — names, salaries, risk scores — on OpenAI for ~30 days and break the
+        // metadata-only contract this project treats as non-negotiable
+        // (SCRUM-062/063, CNDP; see lib/ai/events.ts). Chat Completions does not
+        // store by default, and opting out here rather than at each call site
+        // means a new call site can't forget.
+        return openaiProvider().chat(meta.providerModelId);
+    }
+  })();
 
   // Wrap EVERY model with the reasoning extractor. It's a no-op when no
   // <think>…</think> appears, and it guarantees any model that does emit them —

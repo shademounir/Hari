@@ -19,8 +19,8 @@ vi.mock("ai", () => ({
 const getChatModelMock = vi.fn(() => "mock-model");
 vi.mock("@/lib/ai/providers", () => ({
   getChatModel: getChatModelMock,
-  // Only an OpenRouter model is "available" in the test env (no gateway key).
-  getAvailableChatModels: vi.fn(() => [{ id: "gpt-oss-120b", provider: "openrouter" }]),
+  // Only an OpenRouter model is "available" in the test env (no gateway/OpenAI key).
+  getAvailableChatModels: vi.fn(() => [{ id: "openrouter-auto", provider: "openrouter" }]),
   CHAT_ERROR_CODES: ["auth_missing", "rate_limited", "model_unavailable", "session_expired", "network", "generic"],
 }));
 

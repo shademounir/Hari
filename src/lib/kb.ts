@@ -198,9 +198,14 @@ export type KbSearchResult = {
 
 /**
  * Semantic KB search for the reader (search box + ⌘K palette). Reuses the same
- * tier+status-filtered pgvector path as the chatbot (lib/rag.ts), so results are
- * scoped exactly like the reader/chat — a user only ever finds what they may read.
- * Returns section-level hits that deep-link to the exact anchor.
+ * tier+status-filtered pgvector path as the chatbot (lib/rag.ts), so a user only
+ * ever finds what they may read. Returns section-level hits that deep-link to the
+ * exact anchor.
+ *
+ * Retrieves on the "reader" surface: same status + tier gate as the assistant, but
+ * without the assistant-access policy, so search finds exactly what browsing shows.
+ * Hiding a collection from the AI (e.g. seeded `hr-internal`) must not make it
+ * unfindable for someone who may already open it.
  */
 export async function searchKb(
   caller: KbCaller,
@@ -212,7 +217,7 @@ export async function searchKb(
   const q = query.trim().slice(0, 200);
   if (q.length < 2) return [];
   try {
-    const hits = await searchHandbook(q, limit, caller);
+    const hits = await searchHandbook(q, limit, caller, { surface: "reader" });
     return hits.map((h) => ({
       id: h.id,
       articleTitle: h.articleTitle,
