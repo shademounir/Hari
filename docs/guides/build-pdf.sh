@@ -17,6 +17,9 @@ chrome() {
   command -v google-chrome || command -v chromium || command -v chromium-browser
 }
 BROWSER="$(chrome)" || { echo "no Chrome/Chromium on PATH" >&2; exit 1; }
+# pandoc is the likelier of the two to be missing, and set -e would otherwise
+# kill the script with no explanation at all.
+command -v pandoc >/dev/null || { echo "pandoc is not on PATH" >&2; exit 1; }
 
 targets=("${@:-knowledge-base chatbot}")
 # shellcheck disable=SC2068

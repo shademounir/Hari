@@ -3,8 +3,9 @@
 //   • OpenRouter (default) — free models, great for a zero-cost demo.
 //   • OpenAI direct        — OPENAI_API_KEY; paid, but steady and fast.
 //   • Vercel AI Gateway    — one key, many providers (OpenAI, Google, …).
-// A model only gets the <think>…</think> reasoning extractor when it natively
-// emits a reasoning channel (`reasoning: true`) — see getChatModel.
+// Every model is wrapped with the <think>…</think> reasoning extractor; the
+// `reasoning` flag is metadata for the settings badge and does NOT gate that —
+// see getChatModel.
 // ─────────────────────────────────────────────────────────────────────────
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { createGateway } from "@ai-sdk/gateway";
@@ -208,7 +209,16 @@ export function getChatModel(id: string | undefined): LanguageModel {
       case "gateway":
         return gatewayProvider()(meta.providerModelId);
       case "openai":
-        return openaiProvider()(meta.providerModelId);
+        // .chat(), NOT the provider's default call. `openai(id)` resolves to the
+        // Responses API, which OpenAI stores server-side unless the caller opts
+        // out per request (store defaults to true there, and the SDK omits the
+        // field unless you set providerOptions). That would retain every HR turn
+        // — names, salaries, risk scores — on OpenAI for ~30 days and break the
+        // metadata-only contract this project treats as non-negotiable
+        // (SCRUM-062/063, CNDP; see lib/ai/events.ts). Chat Completions does not
+        // store by default, and opting out here rather than at each call site
+        // means a new call site can't forget.
+        return openaiProvider().chat(meta.providerModelId);
     }
   })();
 
