@@ -35,12 +35,21 @@ const RRF_K = 60;
 // Candidate pool pulled from each signal before fusion (≫ k so fusion has room).
 const CANDIDATES = 30;
 
+/**
+ * Which surface is retrieving. It changes ONE thing: whether the super-admin
+ * assistant-access policy applies. Status + visibility tier are enforced for both,
+ * so a reader search can never see more than that reader may already open.
+ */
+export type RetrievalSurface = "assistant" | "reader";
+
 export async function searchHandbook(
   query: string,
   k = 4,
   caller: { role: Role },
+  opts: { surface?: RetrievalSurface } = {},
 ): Promise<HandbookHit[]> {
   const tiers = visibleDocTiers(caller.role);
+  const surface = opts.surface ?? "assistant";
 
   // The query embedding is BEST-EFFORT. If the embeddings endpoint hiccups
   // (transient 429/5xx, missing entitlement/credits, dimension mismatch), we must
@@ -63,13 +72,23 @@ export async function searchHandbook(
   // reduced to letters/digits, so the string handed to to_tsquery is injection-safe.
   const orTerms = (query.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []).filter((w) => w.length > 1);
 
-  // What the assistant may retrieve = the reader's gate (PUBLISHED + caller's
-  // visible tiers) AND the super-admin assistant-access policy. The policy is
-  // additive-only: a per-document override (true/false) wins over the collection
-  // default, NULL inherits the collection — it can hide content from the assistant
-  // but never widens access beyond status + visibility tier (see
-  // docs/architecture/knowledge-base.md). `query` is bound as a text param to
-  // websearch_to_tsquery (injection-safe).
+  // The super-admin assistant-access policy answers "what may the AI use", so it
+  // gates the assistant surface only. It is additive-only: a per-document override
+  // (true/false) wins over the collection default, NULL inherits the collection — it
+  // can hide content from the assistant but never widens access beyond status +
+  // visibility tier (see docs/architecture/knowledge-base.md).
+  //
+  // The reader's search box is NOT the assistant. Hiding a document from the AI must
+  // not make it unfindable for a human who may already open it by URL — that would
+  // contradict the policy's own promise ("stays readable in the Knowledge Base") and
+  // make the reader's search inconsistent with the reader's browse (lib/kb.ts
+  // getArticle). Tier + status still apply below, so this cannot over-expose.
+  const assistantPolicy =
+    surface === "reader"
+      ? Prisma.empty
+      : Prisma.sql`AND COALESCE(d."assistantEnabled", col."assistantEnabled") = true`;
+
+  // `query` is bound as a text param to websearch_to_tsquery (injection-safe).
   //
   // Gate the tier on the *document's* live `d.visibility` — the same column the
   // reader uses (lib/kb.ts) — NOT the denormalized `hc.visibility` copy. Re-ingest
@@ -79,7 +98,7 @@ export async function searchHandbook(
   // "HrDocument" here, so this costs nothing.
   const visible = Prisma.sql`d.status = 'PUBLISHED'
     AND d.visibility = ANY(${tiers}::"DocVisibility"[])
-    AND COALESCE(d."assistantEnabled", col."assistantEnabled") = true`;
+    ${assistantPolicy}`;
 
   const rows = vec
     ? await prisma.$queryRaw<HandbookHit[]>(
