@@ -925,7 +925,10 @@
       "requestTimeOff": "Submitting time-off request",
       "listPendingApprovals": "Fetching pending approvals",
       "approveLeave": "Processing approval",
-      "getPayslip": "Retrieving payslip"
+      "getPayslip": "Retrieving payslip",
+      "predictDepartures": "Analyzing departure risk",
+      "getEngagementRisk": "Analyzing engagement signals",
+      "endConversation": "Ending the conversation"
     },
     "error": "Tool error",
     "errors": {
