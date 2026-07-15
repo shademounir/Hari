@@ -68,12 +68,14 @@ collection, and the article carries a *Managers & above* badge.
 
 <table>
 <tr>
-<td width="50%"><img src="./img/kb-404-employee.png" alt="404 page for an Employee visiting /kb/management" width="100%"></td>
-<td width="50%"><img src="./img/kb-collection-manager.png" alt="The same URL as a Manager, showing the Manager Playbook with a Managers and above badge" width="100%"></td>
-</tr>
-<tr>
-<td>Employee: the collection does not exist, as far as this account can tell.</td>
-<td>Manager: the same URL, now readable and tier-badged.</td>
+<td width="50%">
+<img src="./img/kb-404-employee.png" alt="404 page for an Employee visiting /kb/management" width="100%">
+<em>Employee: the collection does not exist, as far as this account can tell.</em>
+</td>
+<td width="50%">
+<img src="./img/kb-collection-manager.png" alt="The same URL as a Manager, showing the Manager Playbook with a Managers and above badge" width="100%">
+<em>Manager: the same URL, now readable and tier-badged.</em>
+</td>
 </tr>
 </table>
 
@@ -105,12 +107,14 @@ message, because the row was never a candidate.
 
 <table>
 <tr>
-<td width="50%"><img src="./img/kb-search-manager.png" alt="Manager search results with Manager Playbook ranked first" width="100%"></td>
-<td width="50%"><img src="./img/kb-search-employee.png" alt="Employee search results for the same query, without the Manager Playbook" width="100%"></td>
-</tr>
-<tr>
-<td>Manager: <em>Approving Leave</em> ranks first.</td>
-<td>Employee: the same query, the same ranking, one row absent.</td>
+<td width="50%">
+<img src="./img/kb-search-manager.png" alt="Manager search results with Manager Playbook ranked first" width="100%">
+<em>Manager: Approving Leave, from the Manager Playbook, ranks first.</em>
+</td>
+<td width="50%">
+<img src="./img/kb-search-employee.png" alt="Employee search results for the same query, without the Manager Playbook" width="100%">
+<em>Employee: the same query, the same ranking, that first row absent.</em>
+</td>
 </tr>
 </table>
 

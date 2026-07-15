@@ -81,12 +81,14 @@ tools cannot deliver. The first two suggestions are shared. The last two are not
 
 <table>
 <tr>
-<td width="50%"><img src="./img/chat-empty-employee.png" alt="The Employee empty state with profile and payslip suggestions" width="100%"></td>
-<td width="50%"><img src="./img/chat-empty-manager.png" alt="The Manager empty state with directory and approvals suggestions" width="100%"></td>
-</tr>
-<tr>
-<td>Employee: <em>Show me my profile</em>, <em>Show me my latest payslip</em>.</td>
-<td>Manager: <em>Show me the team directory</em>, <em>What time-off requests are awaiting my approval?</em></td>
+<td width="50%">
+<img src="./img/chat-empty-employee.png" alt="The Employee empty state with profile and payslip suggestions" width="100%">
+<em>Employee: Show me my profile, Show me my latest payslip.</em>
+</td>
+<td width="50%">
+<img src="./img/chat-empty-manager.png" alt="The Manager empty state with directory and approvals suggestions" width="100%">
+<em>Manager: Show me the team directory, What time-off requests are awaiting my approval?</em>
+</td>
 </tr>
 </table>
 
@@ -136,12 +138,14 @@ Both screenshots below contain Yassine Bouzid.
 
 <table>
 <tr>
-<td width="50%"><img src="./img/chat-directory-manager.png" alt="Directory cards for a Manager, without salary" width="100%"></td>
-<td width="50%"><img src="./img/chat-directory-hr.png" alt="Directory cards for an HR Admin, showing salary" width="100%"></td>
-</tr>
-<tr>
-<td>Manager: own team. Name, title, department, location, email.</td>
-<td>HR Admin: whole company, and <em>MAD 175,000 / yr</em> on the same person.</td>
+<td width="50%">
+<img src="./img/chat-directory-manager.png" alt="Directory cards for a Manager, without salary" width="100%">
+<em>Manager: own team. Name, title, department, location, email, and no pay.</em>
+</td>
+<td width="50%">
+<img src="./img/chat-directory-hr.png" alt="Directory cards for an HR Admin, showing salary" width="100%">
+<em>HR Admin: the whole company, and MAD 175,000 / yr on that same person.</em>
+</td>
 </tr>
 </table>
 
@@ -199,3 +203,9 @@ The screenshots show `openrouter-auto`, the default. It routes to whichever free
 currently available, so the exact wording of any answer will differ from run to run; the
 cards, the scoping, and the citations will not. Model choice affects phrasing, never
 permissions.
+
+If a demonstration has to be reliable on the day, set `OPENAI_API_KEY` and pick one of the
+GPT models marked "(paid)" in the picker. They bill a real account, which is why they are
+not the default, but they cannot be retired from under you. The free model this project
+originally pinned was withdrawn by its provider, which is the failure that option exists to
+avoid.
