@@ -5,10 +5,11 @@ import { requireUser } from "@/lib/session";
 import { can } from "@/lib/rbac";
 import { getCollection } from "@/lib/kb";
 import { PageHeader } from "@/components/layout/page-header";
+import { SetBreadcrumbLabels } from "@/components/layout/breadcrumb-labels";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Badge } from "@/components/ui/badge";
 import { CollectionCover } from "@/components/kb/collection-cover";
-import { ChevronRight, FileText, Plus, Settings2 } from "lucide-react";
+import { FileText, Plus, Settings2 } from "lucide-react";
 
 type Props = { params: Promise<{ collection: string }> };
 
@@ -28,7 +29,21 @@ export default async function CollectionPage({ params }: Props) {
 
   return (
     <>
-      <PageHeader title={col.name} description={col.description ?? undefined}>
+      {/* The top bar only sees slugs. Register this collection plus every article
+          it links to, so their crumbs are right on arrival. */}
+      <SetBreadcrumbLabels
+        labels={{
+          [`/kb/${col.slug}`]: col.name,
+          ...Object.fromEntries(col.articles.map((a) => [`/kb/${col.slug}/${a.slug}`, a.title])),
+        }}
+      />
+
+      {/* Constrained to match the article grid below it. */}
+      <PageHeader
+        title={col.name}
+        description={col.description ?? undefined}
+        className="mx-auto max-w-4xl"
+      >
         {canManage && (
           <ButtonLink href="/kb/admin" size="sm" variant="outline">
             <Settings2 className="size-4" /> {t("manage")}
@@ -37,17 +52,6 @@ export default async function CollectionPage({ params }: Props) {
       </PageHeader>
 
       <div className="mx-auto max-w-4xl space-y-6 p-4 md:p-8">
-        <nav
-          aria-label={t("breadcrumb")}
-          className="flex items-center gap-1 text-xs text-muted-foreground"
-        >
-          <Link href="/kb" className="hover:text-foreground hover:underline">
-            {t("title")}
-          </Link>
-          <ChevronRight className="size-3" />
-          <span className="text-foreground">{col.name}</span>
-        </nav>
-
         {/* Decorative cover — alt="" so screen readers skip it. */}
         {col.image && (
           <CollectionCover

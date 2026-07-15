@@ -5,7 +5,8 @@ import { useTranslations } from "next-intl";
 import { ImagePlus, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const MAX_BYTES = 1_000_000; // 1 MB source cap (before client-side compression)
+const MAX_SOURCE_BYTES = 15_000_000; // generous source cap — big photos compress way down
+const MAX_STORED_BYTES = 1_000_000; // 1 MB cap enforced on the COMPRESSED upload (matches the hint)
 const MAX_COVER_WIDTH = 1280; // covers render small — cap the uploaded resolution
 const WEBP_QUALITY = 0.82;
 const RASTER_TYPES = ["image/png", "image/jpeg", "image/webp"];
@@ -52,7 +53,7 @@ export function ImageField({ defaultValue }: { defaultValue?: string | null }) {
       setError(t("imageInvalid"));
       return;
     }
-    if (file.size > MAX_BYTES) {
+    if (file.size > MAX_SOURCE_BYTES) {
       setError(t("imageTooLarge"));
       return;
     }
@@ -60,6 +61,12 @@ export function ImageField({ defaultValue }: { defaultValue?: string | null }) {
     setUploading(true);
     try {
       const blob = await toUploadBlob(file);
+      // Enforce the cap on the COMPRESSED result, not the source: a 3 MB photo that
+      // shrinks to ~150 KB should be accepted; a still-too-large blob is rejected.
+      if (blob.size > MAX_STORED_BYTES) {
+        setError(t("imageTooLarge"));
+        return; // finally{} clears `uploading`
+      }
       const fd = new FormData();
       fd.append("file", blob, blob === file ? file.name : "cover.webp");
       const res = await fetch("/api/kb/upload", { method: "POST", body: fd });

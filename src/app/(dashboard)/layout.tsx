@@ -4,6 +4,7 @@ import { getOrgSettings } from "@/lib/settings";
 import { OrgSettingsProvider } from "@/components/org-settings-provider";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
+import { BreadcrumbLabelProvider } from "@/components/layout/breadcrumb-labels";
 
 export default async function DashboardLayout({
   children,
@@ -17,26 +18,30 @@ export default async function DashboardLayout({
 
   return (
     <OrgSettingsProvider value={orgSettings}>
-      <div className="flex h-dvh overflow-hidden">
-        <a
-          href="#main"
-          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:text-primary-foreground"
-        >
-          {t("skipToContent")}
-        </a>
-        <Sidebar user={nav} />
-        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          <Topbar user={nav} />
-          <main
-            id="main"
-            tabIndex={0}
-            aria-label={t("mainContent")}
-            className="flex-1 overflow-y-auto bg-muted/30"
+      {/* Lets pages hand the breadcrumb the real names behind their dynamic
+          segments — the layout only ever sees the slug. */}
+      <BreadcrumbLabelProvider>
+        <div className="flex h-dvh overflow-hidden">
+          <a
+            href="#main"
+            className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:text-primary-foreground"
           >
-            {children}
-          </main>
+            {t("skipToContent")}
+          </a>
+          <Sidebar user={nav} />
+          <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+            <Topbar user={nav} />
+            <main
+              id="main"
+              tabIndex={0}
+              aria-label={t("mainContent")}
+              className="flex-1 overflow-y-auto bg-muted/30"
+            >
+              {children}
+            </main>
+          </div>
         </div>
-      </div>
+      </BreadcrumbLabelProvider>
     </OrgSettingsProvider>
   );
 }

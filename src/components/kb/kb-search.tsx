@@ -9,9 +9,10 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { KbSearchResult } from "@/lib/kb";
 
-// ⌘K / button-triggered semantic search palette. Debounced fetch to
-// /api/kb/search (tier-scoped server-side); arrow keys + Enter to navigate;
-// results deep-link to the exact section anchor.
+// Button-triggered semantic search palette (⌘K is owned by the app-wide command
+// palette, so this no longer binds it — one shortcut, no double-open). Debounced
+// fetch to /api/kb/search (tier-scoped server-side); arrow keys + Enter to
+// navigate; results deep-link to the exact section anchor.
 export function KbSearch() {
   const t = useTranslations("kb");
   const router = useRouter();
@@ -22,17 +23,6 @@ export function KbSearch() {
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setOpen(true);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
   // Reset the palette on close in the open-change handler (not an effect) so we
   // don't setState while merely reacting to the `open` flag. Routed through here
   // by every close path: Escape/backdrop, selecting a result (go), and ⌘K toggle.
@@ -41,13 +31,14 @@ export function KbSearch() {
     if (!next) {
       setQ("");
       setActive(0);
+      setResults([]);
     }
   };
 
   useEffect(() => {
     if (!open) return;
     const query = q.trim();
-    if (query.length < 2) return; // too short to search; the render shows the hint
+    if (query.length < 2) return; // too short to search; stale results are cleared in onQueryChange
     // Debounce the fetch; loading flips inside the callback so there's no
     // setState synchronously in the effect body.
     const id = setTimeout(async () => {
@@ -90,9 +81,6 @@ export function KbSearch() {
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Trigger render={<Button size="sm" variant="outline" />}>
         <Search className="size-4" /> {t("searchLabel")}
-        <kbd className="ml-1 hidden rounded border bg-muted px-1 text-[10px] text-muted-foreground sm:inline">
-          ⌘K
-        </kbd>
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/30 transition-opacity data-ending-style:opacity-0 data-starting-style:opacity-0" />
@@ -107,7 +95,17 @@ export function KbSearch() {
               ref={inputRef}
               autoFocus
               value={q}
-              onChange={(e) => setQ(e.target.value)}
+              onChange={(e) => {
+                const next = e.target.value;
+                setQ(next);
+                // Dropping below 2 chars clears stale results immediately (in the
+                // handler, not the effect), so the palette never shows results for
+                // an effectively empty query.
+                if (next.trim().length < 2) {
+                  setResults([]);
+                  setActive(0);
+                }
+              }}
               onKeyDown={onInputKey}
               placeholder={t("searchPlaceholder")}
               className="w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"

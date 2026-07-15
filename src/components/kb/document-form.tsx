@@ -107,7 +107,10 @@ export async function DocumentForm({
         aria-label={t("fieldTitle")}
         placeholder={t("fieldTitle")}
         // pl matches BlockNote's 54px content gutter so the title aligns with the body text.
-        className="w-full border-0 bg-transparent pl-[54px] pr-0 text-3xl font-bold tracking-tight outline-none placeholder:text-muted-foreground/40 focus:ring-0"
+        // No outline-none here: the global `:focus-visible { outline }` rule (globals.css)
+        // is the keyboard-focus indicator for raw fields like this. The old
+        // `outline-none focus:ring-0` suppressed it, leaving no focus ring at all.
+        className="w-full rounded-md border-0 bg-transparent pl-[54px] pr-0 text-3xl font-bold tracking-tight placeholder:text-muted-foreground/60"
       />
       <ArticleEditor name="content" defaultValue={defaults.content ?? ""} />
       <p className="pl-[54px] text-xs text-muted-foreground">{t("fieldContentHint")}</p>

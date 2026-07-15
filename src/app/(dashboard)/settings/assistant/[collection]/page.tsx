@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { requireUser } from "@/lib/session";
 import { getAssistantCollection, listAssistantDocuments } from "@/lib/kb";
 import { setDocumentAssistantAction } from "../../actions";
+import { SetBreadcrumbLabels } from "@/components/layout/breadcrumb-labels";
 import { AssistantDocumentsManager } from "@/components/kb/assistant-documents-manager";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +31,10 @@ export default async function AssistantDocumentsPage({ params, searchParams }: P
 
   return (
     <Card>
+      {/* This route is keyed by collection id, so the breadcrumb would otherwise
+          read "Edit" (its fallback for an opaque id) on a page that edits nothing. */}
+      <SetBreadcrumbLabels labels={{ [`/settings/assistant/${col.id}`]: col.name }} />
+
       <CardHeader>
         <Link
           href="/settings/assistant"

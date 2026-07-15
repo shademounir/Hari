@@ -36,8 +36,10 @@ const heading = (Tag: "h2" | "h3", cls: string) => {
 };
 
 const components = {
+  // Render an authored H1 as an <h2> so a body heading never becomes a second
+  // top-level heading competing with the page title (the article's sole <h1>).
   h1: ({ children }: { children?: ReactNode }) => (
-    <h1 className="mb-2 mt-6 text-2xl font-semibold first:mt-0">{children}</h1>
+    <h2 className="mb-2 mt-6 text-2xl font-semibold first:mt-0">{children}</h2>
   ),
   h2: heading("h2", "mb-2 mt-7 text-xl font-semibold first:mt-0"),
   h3: heading("h3", "mb-1.5 mt-6 text-lg font-semibold"),
@@ -53,16 +55,20 @@ const components = {
     <strong className="font-semibold">{children}</strong>
   ),
   em: ({ children }: { children?: ReactNode }) => <em className="italic">{children}</em>,
-  a: ({ href, children }: { href?: string; children?: ReactNode }) => (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="font-medium text-primary underline underline-offset-2"
-    >
-      {children}
-    </a>
-  ),
+  a: ({ href, children }: { href?: string; children?: ReactNode }) => {
+    // Only absolute external links open in a new tab; internal and #anchor links
+    // navigate in place (WCAG 3.2.5 — don't spawn windows for same-site links).
+    const external = !!href && /^https?:\/\//i.test(href);
+    return (
+      <a
+        href={href}
+        {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+        className="font-medium text-primary underline underline-offset-2"
+      >
+        {children}
+      </a>
+    );
+  },
   blockquote: ({ children }: { children?: ReactNode }) => (
     <blockquote className="my-3 border-l-2 pl-4 text-muted-foreground">{children}</blockquote>
   ),

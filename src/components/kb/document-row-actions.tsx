@@ -40,11 +40,18 @@ export function DocumentRowActions({
 
   const run = (action: ServerAction, message: string, after?: () => void) =>
     start(async () => {
-      const fd = new FormData();
-      fd.set("id", doc.id);
-      await action(fd);
-      toast.success(message);
-      after?.();
+      try {
+        const fd = new FormData();
+        fd.set("id", doc.id);
+        await action(fd);
+        toast.success(message);
+      } catch {
+        toast.error(t("toastError"));
+      } finally {
+        // Always run `after` (closes the confirm dialog) so a failed delete can't
+        // leave the dialog stuck open with no feedback.
+        after?.();
+      }
     });
 
   return (

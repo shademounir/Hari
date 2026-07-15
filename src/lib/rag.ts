@@ -70,8 +70,15 @@ export async function searchHandbook(
   // but never widens access beyond status + visibility tier (see
   // docs/architecture/knowledge-base.md). `query` is bound as a text param to
   // websearch_to_tsquery (injection-safe).
+  //
+  // Gate the tier on the *document's* live `d.visibility` — the same column the
+  // reader uses (lib/kb.ts) — NOT the denormalized `hc.visibility` copy. Re-ingest
+  // isn't atomic with a visibility edit, so a chunk's copy can transiently (or, if a
+  // re-embed fails, persistently) lag the document; reading `d.visibility` keeps
+  // chat/search and the reader gate on exactly the same value. We already join
+  // "HrDocument" here, so this costs nothing.
   const visible = Prisma.sql`d.status = 'PUBLISHED'
-    AND hc.visibility = ANY(${tiers}::"DocVisibility"[])
+    AND d.visibility = ANY(${tiers}::"DocVisibility"[])
     AND COALESCE(d."assistantEnabled", col."assistantEnabled") = true`;
 
   const rows = vec

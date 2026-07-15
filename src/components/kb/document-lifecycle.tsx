@@ -29,10 +29,15 @@ export function DocumentLifecycle({
 
   const run = (action: ServerAction, message: string) =>
     start(async () => {
-      const fd = new FormData();
-      fd.set("id", id);
-      await action(fd);
-      toast.success(message);
+      try {
+        const fd = new FormData();
+        fd.set("id", id);
+        await action(fd);
+        toast.success(message);
+      } catch {
+        // Surface the failure instead of silently skipping the success toast.
+        toast.error(t("toastError"));
+      }
     });
 
   return (
