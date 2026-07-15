@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/session";
 import { can } from "@/lib/rbac";
 import { listCollectionsWithArticles } from "@/lib/kb";
 import { PageHeader } from "@/components/layout/page-header";
+import { SetBreadcrumbLabels } from "@/components/layout/breadcrumb-labels";
 import { ButtonLink } from "@/components/ui/button-link";
 import { KbSearch } from "@/components/kb/kb-search";
 import { CollectionCover } from "@/components/kb/collection-cover";
@@ -17,7 +18,15 @@ export default async function KnowledgeBasePage() {
 
   return (
     <>
-      <PageHeader title={t("title")} description={t("description")}>
+      {/* Every collection linked from this page, so its breadcrumb is already
+          correct the moment you land on it rather than correcting after. */}
+      <SetBreadcrumbLabels
+        labels={Object.fromEntries(collections.map((c) => [`/kb/${c.slug}`, c.name]))}
+      />
+
+      {/* The reader (index → collection → article) shares one width, so browsing
+          in doesn't reflow the page around you. */}
+      <PageHeader title={t("title")} description={t("description")} className="mx-auto max-w-4xl">
         <div className="flex items-center gap-2">
           <KbSearch />
           {canManage && (
@@ -28,7 +37,7 @@ export default async function KnowledgeBasePage() {
         </div>
       </PageHeader>
 
-      <div className="p-4 md:p-8">
+      <div className="mx-auto max-w-4xl p-4 md:p-8">
         {collections.length === 0 ? (
           <p className="py-12 text-center text-sm text-muted-foreground">{t("emptyReader")}</p>
         ) : (

@@ -106,6 +106,17 @@ export const NAV_ITEMS: NavItem[] = [
   },
 ];
 
+// URL prefixes that exist only as structure — no page is served at them, because
+// they only ever appear inside a longer path (/kb/admin/documents is reachable
+// only as /kb/admin/documents/new or /kb/admin/documents/<id>). The breadcrumb
+// renders these as plain text: linking them would walk the user into a 404.
+// `tests/nav-items.test.ts` checks this against the real route tree, so adding a
+// page here can't silently leave a crumb dead.
+export const NON_ROUTE_PATHS: ReadonlySet<string> = new Set([
+  "/kb/admin/collections",
+  "/kb/admin/documents",
+]);
+
 // First path segment ("" for "/", "chat", "kb", "analytics" for a nested route …)
 // → nav label key, for the breadcrumb. Uses the FIRST segment so nested routes
 // (e.g. /analytics/predictions) resolve to their nav entry. Derived from

@@ -25,10 +25,14 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { CommandSearch } from "@/components/layout/command-search";
 import { Notifications } from "@/components/layout/notifications";
-import { NAV_ITEMS, SEGMENT_TO_KEY } from "@/lib/nav-items";
+import { NAV_ITEMS, NON_ROUTE_PATHS, SEGMENT_TO_KEY } from "@/lib/nav-items";
+import { useBreadcrumbLabels } from "@/components/layout/breadcrumb-labels";
 import { logout } from "@/lib/auth-actions";
 
-// Turn a dynamic path segment (e.g. "engineering-handbook") into a readable label.
+// Last-resort label for a dynamic segment: only ever shown for a record whose
+// page hasn't registered its real name (see `breadcrumb-labels.tsx`). A slug
+// can't be reversed into a title, so this stays a plain de-slugify rather than
+// guessing at title case — "hr-internal" is "HR Internal", not "Hr Internal".
 function humanize(segment: string) {
   const s = decodeURIComponent(segment).replace(/[-_]/g, " ");
   return s.charAt(0).toUpperCase() + s.slice(1);
@@ -45,18 +49,20 @@ export function Topbar({ user }: { user: NavUser }) {
   const t = useTranslations("nav");
   const tRoles = useTranslations("roles");
   const tSettings = useTranslations("settings");
+  const labels = useBreadcrumbLabels();
   const [open, setOpen] = useState(false);
 
   const roleLabel = tRoles(user.role);
 
   // Depth-aware breadcrumb built from the shared nav source: top-level page plus
-  // any sub-segments (settings sub-pages get their real label; dynamic slugs are
-  // humanized). No non-navigable role crumb.
+  // any sub-segments. Each sub-segment takes the best label available, in order:
+  // its Settings/nav entry, the real record name a page registered for it, then
+  // the humanized slug. No non-navigable role crumb.
   const segments = pathname.split("/").filter(Boolean);
   const topKey = SEGMENT_TO_KEY[segments[0] ?? ""] ?? "dashboard";
   const topItem = NAV_ITEMS.find((i) => i.key === topKey);
-  const crumbs: { label: string; href: string }[] = [
-    { label: t(topKey), href: topItem?.href ?? "/" },
+  const crumbs: { label: string; href: string; navigable: boolean }[] = [
+    { label: t(topKey), href: topItem?.href ?? "/", navigable: true },
   ];
   let acc = topItem?.href ?? "/";
   for (const seg of segments.slice(1)) {
@@ -66,10 +72,8 @@ export function Topbar({ user }: { user: NavUser }) {
       ? child.ns === "nav"
         ? t(child.key)
         : tSettings(child.key)
-      : OPAQUE_ID.test(seg)
-        ? t("edit")
-        : humanize(seg);
-    crumbs.push({ label: childLabel, href: acc });
+      : (labels[acc] ?? (OPAQUE_ID.test(seg) ? t("edit") : humanize(seg)));
+    crumbs.push({ label: childLabel, href: acc, navigable: !NON_ROUTE_PATHS.has(acc) });
   }
 
   return (
@@ -118,10 +122,12 @@ export function Topbar({ user }: { user: NavUser }) {
                 <span aria-current="page" className="truncate font-semibold text-foreground">
                   {c.label}
                 </span>
-              ) : (
+              ) : c.navigable ? (
                 <Link href={c.href} className="truncate text-muted-foreground hover:text-foreground">
                   {c.label}
                 </Link>
+              ) : (
+                <span className="truncate text-muted-foreground">{c.label}</span>
               )}
             </span>
           );
