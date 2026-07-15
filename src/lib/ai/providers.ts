@@ -73,11 +73,15 @@ export const CHAT_MODELS: ChatModel[] = [
   },
 ];
 
-// Default: a FREE model that reliably does BOTH tool-calling and reasoning, so the
-// tool-call UI and the thinking UI both light up out of the box at zero cost. The paid
-// "gemini-byok" entry above stays selectable, but must never be the default (it bills
-// the shared key and emits no reasoning channel).
-export const DEFAULT_MODEL_ID = "gpt-oss-120b";
+// Default: a FREE model that does tool-calling, so the tool-call UI lights up out of
+// the box at zero cost. The paid "gemini-byok" entry above stays selectable, but must
+// never be the default (it bills the shared key).
+//
+// "openrouter-auto" routes to whichever free model is currently available, which is
+// deliberate: this was "gpt-oss-120b" until OpenRouter retired `openai/gpt-oss-120b:free`
+// and delisted the slug, so every default chat 404'd. Pinning one free slug makes the
+// demo hostage to that slug's lifetime; the auto-router survives a retirement.
+export const DEFAULT_MODEL_ID = "openrouter-auto";
 
 // The closed vocabulary of chat error codes the server emits and the client
 // localizes (chat.errors.<code>). Single source of truth so the two sides can't
