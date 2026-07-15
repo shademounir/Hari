@@ -209,3 +209,9 @@ GPT models marked "(paid)" in the picker. They bill a real account, which is why
 not the default, but they cannot be retired from under you. The free model this project
 originally pinned was withdrawn by its provider, which is the failure that option exists to
 avoid.
+
+![The model picker, with OpenRouter Auto selected as the default and the paid models listed below it](./img/chat-model-picker.png)
+
+A provider's models only appear once its key is set, so this list is also a readout of how
+the environment is configured. The two "(paid)" GPT entries are present here because
+`OPENAI_API_KEY` is; without it the picker shows OpenRouter alone.
