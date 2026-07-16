@@ -1438,6 +1438,7 @@
       "self_forbidden": "You can't change your own role or deactivate yourself. Ask another admin.",
       "would_lock_out": "This is the last active person who can reach settings. Give someone else that access first.",
       "manager_cycle": "That would make someone their own manager, directly or up the chain.",
+      "target_outranks": "This person has access you don't, so you can't change their role or deactivate them.",
       "internal": "Something went wrong. Try again."
     },
     "save": "Save changes",

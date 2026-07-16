@@ -159,6 +159,7 @@ export default async function UsersSettingsPage({
                       name={u.name}
                       active={u.active}
                       isSelf={u.isSelf}
+                      manageable={u.manageable}
                       pendingInvite={u.active && u.pendingInvite}
                     />
                   </TableCell>

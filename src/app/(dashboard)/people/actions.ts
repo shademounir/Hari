@@ -9,6 +9,7 @@ import {
   inviteUser,
   resendInvite,
   setUserActive,
+  updateUser,
   updateUserProfile,
   type UserWriteResult,
 } from "@/lib/users";
@@ -44,6 +45,10 @@ const ProfileInput = z.object({
   salary: z.number().int().min(0).max(100_000_000).nullish(),
 });
 
+// Profile + role together — the edit form saves both in one atomic call, so a
+// refused role change can't leave a half-written profile behind.
+const SaveUserInput = ProfileInput.extend({ role: z.string().min(1).max(32) });
+
 export type UserActionResult = UserWriteResult;
 
 // The directory, the org chart and the nav all read this data.
@@ -65,6 +70,15 @@ export async function updateUserProfileAction(input: unknown): Promise<UserActio
   const parsed = ProfileInput.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
   const res = await updateUserProfile(actorOf(user), parsed.data);
+  if (res.ok) refresh();
+  return res;
+}
+
+export async function saveUserAction(input: unknown): Promise<UserActionResult> {
+  const user = await requireUser();
+  const parsed = SaveUserInput.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const res = await updateUser(actorOf(user), parsed.data);
   if (res.ok) refresh();
   return res;
 }

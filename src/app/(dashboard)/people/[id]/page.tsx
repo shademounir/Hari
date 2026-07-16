@@ -57,6 +57,7 @@ export default async function EditUserPage({ params }: { params: Promise<{ id: s
           employmentTypes={EMPLOYMENT_TYPES}
           canSetSalary={can(user, "salary:read:all")}
           isSelf={target.isSelf}
+          manageable={target.manageable}
         />
       </CardContent>
     </Card>

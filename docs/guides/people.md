@@ -103,6 +103,7 @@ be spent on changing a password.
 | You try to | It answers | Because |
 | --- | --- | --- |
 | Assign a role wider than your own | `escalation` | otherwise HR mints a Super Admin |
+| Re-role or deactivate someone who outranks you | `target_outranks` | you can only manage people whose access you already hold |
 | Change your own role | `self_forbidden` | ask another admin; nobody promotes themselves |
 | Deactivate yourself | `self_forbidden` | the same reason, and it locks you out |
 | Demote or disable the last active admin | `would_lock_out` | `/settings` would have no key holder |
@@ -113,8 +114,9 @@ be spent on changing a password.
 Two of those are worth expanding.
 
 **Salary follows the read rule.** A caller without `salary:read:all` never sees the field and
-cannot set it. It is left out of the update entirely rather than written as zero — so someone
-who was never allowed to see a number cannot erase it either.
+cannot set it. On an edit it is left out of the write entirely rather than written as zero — so
+someone who was never allowed to see a number cannot erase it either; a new hire they invite is
+simply created at zero, for whoever *can* see pay to fill in later.
 
 **The manager check walks the chain.** The org chart is self-referential and nothing else
 prevented a loop; an undetected one would hang every manager-scoped query in the app.

@@ -33,6 +33,7 @@ export function UserRowActions({
   name,
   active,
   isSelf,
+  manageable,
   pendingInvite,
 }: {
   userId: string;
@@ -40,6 +41,8 @@ export function UserRowActions({
   active: boolean;
   /** You can't deactivate yourself — the server refuses it too. */
   isSelf: boolean;
+  /** False when this person outranks you — deactivation is refused server-side. */
+  manageable: boolean;
   pendingInvite: boolean;
 }) {
   const t = useTranslations("users");
@@ -92,19 +95,19 @@ export function UserRowActions({
           {active ? (
             <DropdownMenuItem
               variant="destructive"
-              disabled={isSelf || pending}
+              disabled={isSelf || !manageable || pending}
               onClick={() => setConfirmOpen(true)}
             >
               {t("deactivate")}
             </DropdownMenuItem>
           ) : (
-            <DropdownMenuItem disabled={pending} onClick={() => onSetActive(true)}>
+            <DropdownMenuItem disabled={!manageable || pending} onClick={() => onSetActive(true)}>
               {t("reactivate")}
             </DropdownMenuItem>
           )}
-          {isSelf && active && (
+          {active && (isSelf || !manageable) && (
             <p className="max-w-56 px-2 py-1.5 text-xs text-muted-foreground">
-              {t("userError.self_forbidden")}
+              {t(isSelf ? "userError.self_forbidden" : "userError.target_outranks")}
             </p>
           )}
         </DropdownMenuContent>

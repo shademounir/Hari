@@ -14,6 +14,7 @@ import {
   inviteUser,
   listUsers,
   setUserActive,
+  updateUser,
   updateUserProfile,
 } from "@/lib/users";
 
@@ -170,6 +171,34 @@ describe("guardrail: no self-modification", () => {
   });
 });
 
+describe("guardrail: you can't manage someone who outranks you", () => {
+  it("HR cannot demote or deactivate a Super Admin — checked before the lockout rule", async () => {
+    // usr_admin is SUPER_ADMIN (holds admin:settings, which HR lacks). HR gets a
+    // clear `target_outranks`, not `would_lock_out`: you can't touch the person's
+    // role at all, regardless of how many admins remain.
+    expect(await changeUserRole(hr, "usr_admin", "EMPLOYEE")).toEqual({
+      ok: false,
+      error: "target_outranks",
+    });
+    expect(await setUserActive(hr, "usr_admin", false)).toEqual({
+      ok: false,
+      error: "target_outranks",
+    });
+    const row = await prisma.user.findUnique({ where: { id: "usr_admin" } });
+    expect(row?.role).toBe("SUPER_ADMIN");
+    expect(row?.active).toBe(true);
+  });
+
+  it("HR CAN manage a peer (another HR admin) — equal access is within reach", async () => {
+    // usr_rh is HR_ADMIN; HR's own perms ⊇ HR_ADMIN's, so the subset holds. Assert
+    // the guard doesn't fire here (the write itself would then hit self/lockout in
+    // other cases; this just confirms `target_outranks` is not raised for a peer).
+    await inviteUser(hr, invite); // an EMPLOYEE HR clearly outranks
+    const u = await prisma.user.findUnique({ where: { email: EMAIL }, select: { id: true } });
+    expect(await changeUserRole(hr, u!.id, "MANAGER")).toEqual({ ok: true, id: u!.id });
+  });
+});
+
 describe("guardrail: the last admin standing", () => {
   it("cannot be demoted or deactivated", async () => {
     // usr_admin is the only SUPER_ADMIN in the seed, and admin:settings is the
@@ -288,6 +317,72 @@ describe("org chart integrity", () => {
         data: { managerId: report!.managerId },
       });
     }
+  });
+});
+
+describe("atomic save (updateUser): profile + role never half-write", () => {
+  const editBase = {
+    name: "Renamed Person",
+    title: "Senior Analyst",
+    department: "Finance",
+    location: "Casablanca",
+    employmentType: "FULL_TIME" as const,
+  };
+
+  it("a refused role change writes NOTHING — no half-saved profile", async () => {
+    await inviteUser(hr, invite);
+    const u = await prisma.user.findUnique({
+      where: { email: EMAIL },
+      include: { employee: true },
+    });
+    // Role escalation is refused; the name/title in the same payload must NOT persist.
+    const res = await updateUser(hr, { userId: u!.id, role: "SUPER_ADMIN", ...editBase });
+    expect(res).toEqual({ ok: false, error: "escalation" });
+
+    const after = await prisma.user.findUnique({
+      where: { id: u!.id },
+      include: { employee: true },
+    });
+    expect(after?.name).toBe("Test Invitee"); // unchanged
+    expect(after?.employee?.title).toBe("Analyst"); // unchanged
+    expect(after?.role).toBe("EMPLOYEE");
+  });
+
+  it("a valid combined save applies both and records USER_ROLE_CHANGED", async () => {
+    await inviteUser(hr, invite);
+    const u = await prisma.user.findUnique({ where: { email: EMAIL }, select: { id: true } });
+    const res = await updateUser(hr, { userId: u!.id, role: "MANAGER", ...editBase });
+    expect(res).toEqual({ ok: true, id: u!.id });
+
+    const after = await prisma.user.findUnique({
+      where: { id: u!.id },
+      include: { employee: true },
+    });
+    expect(after?.name).toBe("Renamed Person");
+    expect(after?.employee?.title).toBe("Senior Analyst");
+    expect(after?.role).toBe("MANAGER");
+
+    const actions = await prisma.auditLog.findMany({
+      where: { actorId: "test-hr", targetId: u!.id },
+      select: { action: true },
+    });
+    const kinds = actions.map((a) => a.action);
+    expect(kinds).toContain("USER_UPDATED");
+    expect(kinds).toContain("USER_ROLE_CHANGED");
+  });
+
+  it("a same-role save records only USER_UPDATED", async () => {
+    await inviteUser(hr, invite);
+    const u = await prisma.user.findUnique({ where: { email: EMAIL }, select: { id: true } });
+    await prisma.auditLog.deleteMany({ where: { actorId: "test-hr", targetId: u!.id } });
+    const res = await updateUser(hr, { userId: u!.id, role: "EMPLOYEE", ...editBase });
+    expect(res.ok).toBe(true);
+
+    const actions = await prisma.auditLog.findMany({
+      where: { actorId: "test-hr", targetId: u!.id },
+      select: { action: true },
+    });
+    expect(actions.map((a) => a.action)).toEqual(["USER_UPDATED"]);
   });
 });
 

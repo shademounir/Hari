@@ -9,8 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   inviteUserAction,
-  updateUserProfileAction,
-  changeUserRoleAction,
+  saveUserAction,
   type UserActionResult,
 } from "@/app/(dashboard)/people/actions";
 
@@ -43,6 +42,12 @@ export function UserForm({
   canSetSalary,
   /** True when editing yourself: your own role is not yours to change. */
   isSelf = false,
+  /**
+   * False when this person outranks the caller — their role holds access the
+   * caller lacks. The role select is then locked (the server refuses it too).
+   * Always true on the invite form (there is no target yet).
+   */
+  manageable = true,
 }: {
   values: UserFormValues;
   roles: RoleOption[];
@@ -50,6 +55,7 @@ export function UserForm({
   employmentTypes: EmploymentType[];
   canSetSalary: boolean;
   isSelf?: boolean;
+  manageable?: boolean;
 }) {
   const t = useTranslations("users");
   // The same labels the directory renders — "full time" was a toLowerCase() of the
@@ -91,20 +97,12 @@ export function UserForm({
         handle(res, t("invited"), (id) => router.push(`/people/${id}`));
         return;
       }
-      // Profile and role are separate writes: they carry different rules (the role
-      // change alone can escalate privilege or lock everyone out), and the audit
-      // trail records them as different actions.
-      const profile = await updateUserProfileAction({ userId: values.id!, ...base });
-      if (!profile.ok) {
-        handle(profile, "");
-        return;
-      }
-      if (v.role !== values.role) {
-        const roleRes = await changeUserRoleAction(values.id!, v.role);
-        handle(roleRes, t("roleChanged"));
-        return;
-      }
-      handle(profile, t("profileSaved"));
+      // Profile and role save together in one atomic action: a refused role change
+      // must not leave a half-written profile behind. The server still records the
+      // role change as its own audit action.
+      const roleChanged = v.role !== values.role;
+      const res = await saveUserAction({ userId: values.id!, role: v.role, ...base });
+      handle(res, roleChanged ? t("roleChanged") : t("profileSaved"));
     });
   }
 
@@ -141,7 +139,9 @@ export function UserForm({
             className={SELECT}
             value={v.role}
             onChange={(e) => set("role", e.target.value)}
-            disabled={pending || isSelf}
+            // Locked for your own row, and for anyone who outranks you (their role
+            // holds access you lack) — the server refuses both anyway.
+            disabled={pending || isSelf || !manageable}
           >
             {roles.map((r) => (
               // A role granting more than the caller holds is offered but disabled:
@@ -154,6 +154,10 @@ export function UserForm({
           {isSelf ? (
             <span className="block text-xs text-muted-foreground">
               {t("userError.self_forbidden")}
+            </span>
+          ) : !manageable ? (
+            <span className="block text-xs text-muted-foreground">
+              {t("userError.target_outranks")}
             </span>
           ) : (
             // A disabled <option> is invisible until the dropdown is opened, and

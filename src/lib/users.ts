@@ -4,7 +4,7 @@ import type { EmploymentStatus, EmploymentType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { recordAudit } from "@/lib/audit";
 import { can, type Actor, type Role } from "@/lib/rbac";
-import { getRbacMatrix } from "@/lib/rbac-server";
+import { getRbacMatrix, type RbacMatrix } from "@/lib/rbac-server";
 import { normalizeEmail } from "@/lib/auth/tokens";
 import { issueInvite } from "@/lib/auth/flows";
 
@@ -52,6 +52,12 @@ export type UserListEntry = {
   status: EmploymentStatus | null;
   avatarUrl: string | null;
   isSelf: boolean;
+  /**
+   * May the caller re-role or deactivate this person? False when the target's
+   * current role grants access the caller lacks (you can't manage someone who
+   * outranks you). The UI disables those controls; the server enforces it too.
+   */
+  manageable: boolean;
 };
 
 export type UserWriteError =
@@ -64,6 +70,10 @@ export type UserWriteError =
   | "self_forbidden"
   | "would_lock_out"
   | "manager_cycle"
+  // The target holds access the caller doesn't — you can't re-role or deactivate
+  // someone who outranks you (HR can't touch a Super Admin). Separate from
+  // `escalation`, which is about the role you'd ASSIGN; this is about the person.
+  | "target_outranks"
   | "internal";
 
 export type UserWriteResult = { ok: true; id: string } | { ok: false; error: UserWriteError };
@@ -90,23 +100,26 @@ export async function listUsers(caller: Actor, filter: UserFilter = {}): Promise
       : {}),
   };
 
-  const rows = await prisma.user.findMany({
-    where,
-    orderBy: [{ active: "desc" }, { name: "asc" }],
-    take: 200,
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      active: true,
-      emailVerified: true,
-      passwordHash: true,
-      employee: {
-        select: { id: true, title: true, department: true, status: true, avatarUrl: true },
+  const [matrix, rows] = await Promise.all([
+    getRbacMatrix(),
+    prisma.user.findMany({
+      where,
+      orderBy: [{ active: "desc" }, { name: "asc" }],
+      take: 200,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        active: true,
+        emailVerified: true,
+        passwordHash: true,
+        employee: {
+          select: { id: true, title: true, department: true, status: true, avatarUrl: true },
+        },
       },
-    },
-  });
+    }),
+  ]);
 
   return rows.map((u) => ({
     id: u.id,
@@ -121,6 +134,7 @@ export async function listUsers(caller: Actor, filter: UserFilter = {}): Promise
     status: u.employee?.status ?? null,
     avatarUrl: u.employee?.avatarUrl ?? null,
     isSelf: u.id === caller.userId,
+    manageable: roleWithinReach(matrix, caller, u.role),
   }));
 }
 
@@ -135,19 +149,22 @@ export type UserDetail = UserListEntry & {
 
 export async function getUserDetail(caller: Actor, id: string): Promise<UserDetail | null> {
   if (!can(caller, MANAGE)) return null;
-  const u = await prisma.user.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      active: true,
-      emailVerified: true,
-      passwordHash: true,
-      employee: true,
-    },
-  });
+  const [matrix, u] = await Promise.all([
+    getRbacMatrix(),
+    prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        active: true,
+        emailVerified: true,
+        passwordHash: true,
+        employee: true,
+      },
+    }),
+  ]);
   if (!u) return null;
 
   // Same rule as the directory: compensation is stripped server-side unless the
@@ -171,10 +188,26 @@ export async function getUserDetail(caller: Actor, id: string): Promise<UserDeta
     startDate: u.employee?.startDate ?? null,
     salary: seesSalary ? (u.employee?.salary ?? null) : null,
     isSelf: u.id === caller.userId,
+    manageable: roleWithinReach(matrix, caller, u.role),
   };
 }
 
 // ── Guards ───────────────────────────────────────────────────────────────
+
+/**
+ * Is `role` within `caller`'s reach — i.e. does it grant nothing the caller
+ * lacks? The one subset predicate behind BOTH guards below:
+ *   • assignment  — you may only put someone INTO a role you could hold yourself;
+ *   • management  — you may only re-role/deactivate someone whose CURRENT role
+ *     you could hold yourself (so HR can't touch a Super Admin).
+ * An unknown slug is out of reach (fail closed). Pure — the caller passes the
+ * already-loaded matrix, so per-row use in `listUsers` costs no extra query.
+ */
+function roleWithinReach(matrix: RbacMatrix, caller: Actor, role: Role): boolean {
+  const target = matrix.bySlug[role];
+  if (!target) return false;
+  return target.permissions.every((p) => can(caller, p));
+}
 
 /**
  * May `caller` put someone into `role`? Only if that role grants nothing the
@@ -182,10 +215,17 @@ export async function getUserDetail(caller: Actor, id: string): Promise<UserDeta
  * could assign SUPER_ADMIN and escalate through a second account.
  */
 async function canAssignRole(caller: Actor, role: Role): Promise<boolean> {
-  const matrix = await getRbacMatrix();
-  const target = matrix.bySlug[role];
-  if (!target) return false;
-  return target.permissions.every((p) => can(caller, p));
+  return roleWithinReach(await getRbacMatrix(), caller, role);
+}
+
+/**
+ * May `caller` re-role or deactivate a user whose CURRENT role is `role`? Same
+ * subset rule as assignment, applied to the person being acted on. Without it,
+ * `employee:manage` (HR) could demote or disable a Super Admin — separation of
+ * duties only holds in the direction the caller can't out-reach.
+ */
+async function canManageUser(caller: Actor, role: Role): Promise<boolean> {
+  return roleWithinReach(await getRbacMatrix(), caller, role);
 }
 
 /**
@@ -377,6 +417,85 @@ export async function updateUserProfile(
   return { ok: true, id: target.id };
 }
 
+export type UpdateUserInput = ProfileInput & { role: Role };
+
+/**
+ * Profile + role in ONE atomic save — what the edit form calls. Splitting them
+ * into two sequential actions let a refused role change land AFTER the profile
+ * had already committed (a half-save with a `USER_UPDATED` row but no role
+ * change). Here every rule is checked BEFORE anything is written, both writes
+ * share one `$transaction`, and the two audit actions are still recorded
+ * separately (a role change is `USER_ROLE_CHANGED`, not folded into `USER_UPDATED`).
+ */
+export async function updateUser(caller: Actor, input: UpdateUserInput): Promise<UserWriteResult> {
+  if (!can(caller, MANAGE)) return { ok: false, error: "forbidden" };
+
+  const target = await prisma.user.findUnique({
+    where: { id: input.userId },
+    select: { id: true, role: true, employee: { select: { id: true } } },
+  });
+  if (!target) return { ok: false, error: "not_found" };
+  const name = input.name.trim();
+  if (!name) return { ok: false, error: "invalid" };
+
+  const roleChanging = input.role !== target.role;
+  if (roleChanging) {
+    // Same guard set as changeUserRole, run up front so a refusal writes nothing.
+    if (target.id === caller.userId) return { ok: false, error: "self_forbidden" };
+    if (!(await canManageUser(caller, target.role))) return { ok: false, error: "target_outranks" };
+    if (!(await canAssignRole(caller, input.role))) {
+      const matrix = await getRbacMatrix();
+      return { ok: false, error: matrix.bySlug[input.role] ? "escalation" : "unknown_role" };
+    }
+    if (await lastAdminStandingAfter(target.id, { role: input.role })) {
+      return { ok: false, error: "would_lock_out" };
+    }
+  }
+
+  const employeeId = target.employee?.id;
+  if (employeeId && (await wouldCycle(employeeId, input.managerId || null))) {
+    return { ok: false, error: "manager_cycle" };
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: target.id },
+        data: { name, ...(roleChanging ? { role: input.role } : {}) },
+      });
+      if (employeeId) {
+        await tx.employee.update({
+          where: { id: employeeId },
+          data: {
+            title: input.title.trim() || undefined,
+            department: input.department.trim() || undefined,
+            location: input.location.trim() || undefined,
+            employmentType: input.employmentType,
+            managerId: input.managerId || null,
+            ...(can(caller, "salary:read:all") && input.salary != null
+              ? { salary: Math.max(0, Math.trunc(input.salary)) }
+              : {}),
+          },
+        });
+      }
+    });
+  } catch (err) {
+    console.error("[users] update failed:", err);
+    return { ok: false, error: "internal" };
+  }
+
+  await recordAudit(caller, { action: "USER_UPDATED", targetType: "User", targetId: target.id });
+  if (roleChanging) {
+    await recordAudit(caller, {
+      action: "USER_ROLE_CHANGED",
+      targetType: "User",
+      targetId: target.id,
+      meta: { from: target.role, to: input.role },
+    });
+  }
+  return { ok: true, id: target.id };
+}
+
 export async function changeUserRole(
   caller: Actor,
   userId: string,
@@ -391,6 +510,12 @@ export async function changeUserRole(
   if (!current) return { ok: false, error: "not_found" };
   if (current.role === role) return { ok: true, id: userId };
 
+  // You can't re-role someone who already outranks you (their CURRENT role grants
+  // access you lack) — checked before the target role, so HR gets a clear
+  // "outranked" over a misleading "escalation" when touching a Super Admin.
+  if (!(await canManageUser(caller, current.role))) {
+    return { ok: false, error: "target_outranks" };
+  }
   if (!(await canAssignRole(caller, role))) {
     const matrix = await getRbacMatrix();
     return { ok: false, error: matrix.bySlug[role] ? "escalation" : "unknown_role" };
@@ -424,9 +549,16 @@ export async function setUserActive(
   if (!can(caller, MANAGE)) return { ok: false, error: "forbidden" };
   if (userId === caller.userId) return { ok: false, error: "self_forbidden" };
 
-  const current = await prisma.user.findUnique({ where: { id: userId }, select: { active: true } });
+  const current = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { active: true, role: true },
+  });
   if (!current) return { ok: false, error: "not_found" };
   if (current.active === active) return { ok: true, id: userId };
+  // Can't switch off (or back on) someone who outranks you.
+  if (!(await canManageUser(caller, current.role))) {
+    return { ok: false, error: "target_outranks" };
+  }
   if (!active && (await lastAdminStandingAfter(userId, { active: false }))) {
     return { ok: false, error: "would_lock_out" };
   }
@@ -457,9 +589,12 @@ export async function resendInvite(caller: Actor, userId: string): Promise<UserW
   if (!can(caller, MANAGE)) return { ok: false, error: "forbidden" };
   const u = await prisma.user.findUnique({
     where: { id: userId },
-    select: { email: true, active: true },
+    select: { email: true, active: true, passwordHash: true, emailVerified: true },
   });
-  if (!u?.active) return { ok: false, error: "not_found" };
+  // Only for an OUTSTANDING invite: no password AND no confirmed email (the same
+  // `pendingInvite` predicate the roster shows). Re-issuing a set-password link to
+  // an account that already has one would be a reset nobody asked for.
+  if (!u?.active || u.passwordHash || u.emailVerified) return { ok: false, error: "not_found" };
   await issueInvite(u.email);
   await recordAudit(caller, {
     action: "USER_INVITED",

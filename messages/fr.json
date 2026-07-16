@@ -1438,6 +1438,7 @@
       "self_forbidden": "Vous ne pouvez pas changer votre propre rôle ni vous désactiver. Demandez à un autre administrateur.",
       "would_lock_out": "C'est la dernière personne active pouvant accéder aux paramètres. Donnez d'abord cet accès à quelqu'un d'autre.",
       "manager_cycle": "Cela rendrait quelqu'un son propre responsable, directement ou en remontant la hiérarchie.",
+      "target_outranks": "Cette personne a des accès que vous n'avez pas : vous ne pouvez pas changer son rôle ni la désactiver.",
       "internal": "Une erreur est survenue. Réessayez."
     },
     "save": "Enregistrer les modifications",
