@@ -9,7 +9,7 @@ import { ResetForm } from "./reset-form";
 export default async function ResetPasswordPage({
   searchParams,
 }: {
-  searchParams: Promise<{ email?: string; token?: string }>;
+  searchParams: Promise<{ email?: string; token?: string; kind?: string }>;
 }) {
   // Bounce an already-signed-in visitor to the dashboard — but ask lib/session,
   // not auth(). A deactivated (or deleted) user still holds a VALID JWT: auth()
@@ -17,7 +17,10 @@ export default async function ResetPasswordPage({
   // caller and send them back here — an infinite redirect. The resolved caller is
   // the only honest answer to "are you signed in".
   if (await getApiCaller()) redirect("/");
-  const { email = "", token = "" } = await searchParams;
+  const { email = "", token = "", kind } = await searchParams;
+  // An invite and a reset share the one-time-token mechanic but not the story:
+  // one is "welcome, pick a password", the other "you asked to change yours".
+  const invite = kind === "INVITE";
   const t = await getTranslations("auth");
 
   const invalid = !email || !token;
@@ -30,12 +33,16 @@ export default async function ResetPasswordPage({
       <div className="w-full max-w-sm space-y-6">
         <HariLogo />
         <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">{t("resetTitle")}</h1>
+          <h1 className="text-2xl font-semibold">{invite ? t("welcomeTitle") : t("resetTitle")}</h1>
           <p className="text-sm text-muted-foreground">
-            {invalid ? t("resetMissingParams") : t("resetDescription")}
+            {invalid
+              ? t("resetMissingParams")
+              : invite
+                ? t("welcomeDescription")
+                : t("resetDescription")}
           </p>
         </div>
-        {!invalid && <ResetForm email={email} token={token} />}
+        {!invalid && <ResetForm email={email} token={token} invite={invite} />}
         <p className="text-center text-sm">
           <Link href="/login" className="text-primary underline">
             {t("backToLogin")}

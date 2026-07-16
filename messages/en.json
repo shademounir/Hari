@@ -558,7 +558,9 @@
     },
     "permissionsColumn": "Permissions",
     "usersColumn": "People",
-    "roleColumn": "Role"
+    "roleColumn": "Role",
+    "navUsers": "People",
+    "cardUsersDesc": "Invite people, change roles, and deactivate accounts."
   },
   "chat": {
     "assistant": "AI Assistant",
@@ -1079,7 +1081,11 @@
     "linkInvalid": "This link is invalid or has already been used.",
     "linkExpired": "This link has expired. Please request a new one.",
     "passwordTooShort": "Password must be at least 8 characters.",
-    "passwordMismatch": "The two passwords don't match."
+    "passwordMismatch": "The two passwords don't match.",
+    "welcomeTitle": "Welcome to HARI",
+    "welcomeDescription": "Choose a password to finish setting up your account.",
+    "welcomeSubmit": "Set password and sign in",
+    "welcomeBanner": "Your account is ready. Sign in with your new password."
   },
   "kb": {
     "title": "Knowledge Base",
@@ -1371,5 +1377,62 @@
         "CONTRACTOR": "contractor"
       }
     }
+  },
+  "users": {
+    "title": "People",
+    "description": "Invite people, set what they can do, and switch accounts off.",
+    "invite": "Invite person",
+    "inviteTitle": "Invite someone",
+    "inviteDescription": "Creates the account and emails a link to set a password. They can't sign in until they do.",
+    "sendInvite": "Send invite",
+    "invited": "Invite sent",
+    "resendInvite": "Resend invite",
+    "inviteResent": "Invite sent again",
+    "pendingInvite": "Invite pending",
+    "editPerson": "Edit person",
+    "name": "Name",
+    "email": "Email",
+    "emailHint": "They sign in with this. It can't be changed here.",
+    "role": "Role",
+    "jobTitle": "Job title",
+    "department": "Department",
+    "location": "Location",
+    "employmentType": "Employment type",
+    "manager": "Manager",
+    "noManager": "No manager",
+    "salary": "Salary",
+    "salaryHidden": "Only people who can view compensation can set this.",
+    "startDate": "Start date",
+    "state": "Status",
+    "active": "Active",
+    "inactive": "Deactivated",
+    "deactivate": "Deactivate",
+    "reactivate": "Reactivate",
+    "deactivated": "Account deactivated",
+    "reactivated": "Account reactivated",
+    "deactivateConfirm": "Deactivate {name}?",
+    "deactivateBody": "They'll be signed out on their next click and won't be able to sign back in. Their record stays; you can reactivate any time.",
+    "roleChanged": "Role changed",
+    "profileSaved": "Changes saved",
+    "you": "You",
+    "searchPlaceholder": "Search by name or email",
+    "allRoles": "All roles",
+    "allStates": "Active and deactivated",
+    "filter": "Filter",
+    "noUsers": "Nobody matches those filters.",
+    "clearFilters": "Clear filters",
+    "userError": {
+      "forbidden": "You don't have permission to manage people.",
+      "invalid": "Check the fields and try again.",
+      "not_found": "That person no longer exists.",
+      "email_taken": "Someone already uses that email address.",
+      "unknown_role": "That role no longer exists.",
+      "escalation": "You can only assign a role whose permissions you hold yourself.",
+      "self_forbidden": "You can't change your own role or deactivate yourself. Ask another admin.",
+      "would_lock_out": "This is the last active person who can reach settings. Give someone else that access first.",
+      "manager_cycle": "That would make someone their own manager, directly or up the chain.",
+      "internal": "Something went wrong. Try again."
+    },
+    "save": "Save changes"
   }
 }

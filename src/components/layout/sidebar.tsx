@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { ChevronRight } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, initialsOf } from "@/lib/utils";
 import { can, type Permission, type Role } from "@/lib/rbac";
 import { NAV_ITEMS } from "@/lib/nav-items";
 import { useRoleLabel } from "@/components/role-labels-provider";
@@ -20,15 +20,6 @@ export type NavUser = {
   role: Role;
   permissions: readonly Permission[];
 };
-
-function initialsOf(name: string) {
-  return name
-    .split(" ")
-    .map((s) => s[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-}
 
 // Shared nav body — desktop rail + mobile sheet. `onNavigate` closes the sheet.
 export function NavBody({

@@ -558,7 +558,9 @@
     },
     "permissionsColumn": "Permissions",
     "usersColumn": "Personnes",
-    "roleColumn": "Rôle"
+    "roleColumn": "Rôle",
+    "navUsers": "Personnes",
+    "cardUsersDesc": "Invitez des personnes, changez les rôles et désactivez des comptes."
   },
   "chat": {
     "assistant": "Assistant IA",
@@ -1079,7 +1081,11 @@
     "linkInvalid": "Ce lien est invalide ou a déjà été utilisé.",
     "linkExpired": "Ce lien a expiré. Veuillez en demander un nouveau.",
     "passwordTooShort": "Le mot de passe doit contenir au moins 8 caractères.",
-    "passwordMismatch": "Les deux mots de passe ne correspondent pas."
+    "passwordMismatch": "Les deux mots de passe ne correspondent pas.",
+    "welcomeTitle": "Bienvenue sur HARI",
+    "welcomeDescription": "Choisissez un mot de passe pour finaliser votre compte.",
+    "welcomeSubmit": "Définir le mot de passe et se connecter",
+    "welcomeBanner": "Votre compte est prêt. Connectez-vous avec votre nouveau mot de passe."
   },
   "kb": {
     "title": "Base de connaissances",
@@ -1371,5 +1377,62 @@
         "CONTRACTOR": "de prestation (contractuel)"
       }
     }
+  },
+  "users": {
+    "title": "Personnes",
+    "description": "Invitez des personnes, définissez ce qu'elles peuvent faire, et désactivez des comptes.",
+    "invite": "Inviter une personne",
+    "inviteTitle": "Inviter quelqu'un",
+    "inviteDescription": "Crée le compte et envoie un lien pour définir un mot de passe. La connexion est impossible avant.",
+    "sendInvite": "Envoyer l'invitation",
+    "invited": "Invitation envoyée",
+    "resendInvite": "Renvoyer l'invitation",
+    "inviteResent": "Invitation renvoyée",
+    "pendingInvite": "Invitation en attente",
+    "editPerson": "Modifier la personne",
+    "name": "Nom",
+    "email": "E-mail",
+    "emailHint": "Sert à se connecter. Non modifiable ici.",
+    "role": "Rôle",
+    "jobTitle": "Intitulé du poste",
+    "department": "Département",
+    "location": "Lieu",
+    "employmentType": "Type de contrat",
+    "manager": "Responsable",
+    "noManager": "Aucun responsable",
+    "salary": "Salaire",
+    "salaryHidden": "Seules les personnes pouvant voir la rémunération peuvent le définir.",
+    "startDate": "Date d'arrivée",
+    "state": "Statut",
+    "active": "Actif",
+    "inactive": "Désactivé",
+    "deactivate": "Désactiver",
+    "reactivate": "Réactiver",
+    "deactivated": "Compte désactivé",
+    "reactivated": "Compte réactivé",
+    "deactivateConfirm": "Désactiver {name} ?",
+    "deactivateBody": "La personne sera déconnectée dès son prochain clic et ne pourra plus se reconnecter. Sa fiche est conservée ; vous pouvez réactiver à tout moment.",
+    "roleChanged": "Rôle modifié",
+    "profileSaved": "Modifications enregistrées",
+    "you": "Vous",
+    "searchPlaceholder": "Rechercher par nom ou e-mail",
+    "allRoles": "Tous les rôles",
+    "allStates": "Actifs et désactivés",
+    "filter": "Filtrer",
+    "noUsers": "Personne ne correspond à ces filtres.",
+    "clearFilters": "Effacer les filtres",
+    "userError": {
+      "forbidden": "Vous n'avez pas la permission de gérer les personnes.",
+      "invalid": "Vérifiez les champs et réessayez.",
+      "not_found": "Cette personne n'existe plus.",
+      "email_taken": "Cette adresse e-mail est déjà utilisée.",
+      "unknown_role": "Ce rôle n'existe plus.",
+      "escalation": "Vous ne pouvez attribuer qu'un rôle dont vous détenez vous-même les permissions.",
+      "self_forbidden": "Vous ne pouvez pas changer votre propre rôle ni vous désactiver. Demandez à un autre administrateur.",
+      "would_lock_out": "C'est la dernière personne active pouvant accéder aux paramètres. Donnez d'abord cet accès à quelqu'un d'autre.",
+      "manager_cycle": "Cela rendrait quelqu'un son propre responsable, directement ou en remontant la hiérarchie.",
+      "internal": "Une erreur est survenue. Réessayez."
+    },
+    "save": "Enregistrer les modifications"
   }
 }
