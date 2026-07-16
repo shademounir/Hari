@@ -6,7 +6,7 @@ import { PERMISSIONS, permissionDomain, type Permission } from "@/lib/rbac";
 import { getRbacMatrix, getRoleLabels } from "@/lib/rbac-server";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button-link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -42,14 +42,14 @@ export default async function PermissionsSettingsPage() {
 
   return (
     <Card>
-      <CardHeader className="flex-row items-start justify-between gap-4">
-        <div className="space-y-1">
-          <CardTitle>{t("permissionMatrix")}</CardTitle>
-          <p className="text-sm text-muted-foreground">{t("description")}</p>
-        </div>
-        <ButtonLink href="/settings/roles" variant="outline" size="sm">
-          {t("manageRoles")}
-        </ButtonLink>
+      <CardHeader>
+        <CardTitle>{t("permissionMatrix")}</CardTitle>
+        <p className="text-sm text-muted-foreground">{t("description")}</p>
+        <CardAction>
+          <ButtonLink href="/settings/roles" variant="outline" size="sm">
+            {t("manageRoles")}
+          </ButtonLink>
+        </CardAction>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto rounded-lg border">
