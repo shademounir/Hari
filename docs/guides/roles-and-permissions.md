@@ -1,14 +1,12 @@
-# Roles & permissions: the matrix is the configuration
+# Roles & permissions: editing what each role can do
 
-HARI has one permission matrix. It gates the sidebar, the pages, every database
-read, and which tools the AI assistant is even shown. Until recently you could look at
-it and nothing else: `/settings/permissions` rendered a grid of ticks and crosses computed
-from four hardcoded arrays. Changing a permission meant editing `lib/rbac.ts` and
-redeploying.
+HARI has one permission matrix. It gates the sidebar, the pages, every database read, and
+which tools the AI assistant is even shown. A Super Admin edits that matrix at runtime:
+`/settings/roles` changes what any role may do and defines roles beyond the four that ship,
+and `/settings/permissions` shows every role's permissions side by side.
 
-It is now data. A Super Admin edits what any role may do, and defines roles beyond the four
-that ship. This guide shows what that actually looks like, and, more importantly, what it
-refuses to let you do.
+This guide shows how that editing works, and, more importantly, what it refuses to let you
+do.
 
 Every screenshot was taken from a running instance against the seeded demo data, signed in
 as the demo account named in the caption.
@@ -52,8 +50,8 @@ has to remember. There is nowhere to type it.
 
 ## The matrix, at a glance
 
-`/settings/permissions` still shows every role beside every other, which no per-role editor
-can. It now reads the effective matrix, so it cannot disagree with what the app enforces.
+`/settings/permissions` shows every role beside every other, which no per-role editor can.
+It reads the effective matrix, so it cannot disagree with what the app enforces.
 
 The 27 permissions read `domain:action:scope`, so the page groups them by domain: 15
 labelled clusters instead of one long list. Nothing maintains that grouping; it is already

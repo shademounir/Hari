@@ -1,14 +1,10 @@
-# People: who exists, and what they may be
+# People: inviting, editing, and deactivating accounts
 
-Before this, HARI had no way to add a person. Across the whole application there were
-exactly two writes to the identity tables: a password reset, and the offboarding archive.
-Neither touched a role. Everyone in the demo existed because the seed script created them,
-and `employee:manage` (a permission whose own label reads *"Manage employee records"*)
-gated the offboarding pages and nothing else. The matrix advertised a capability the app did
-not have.
+`/people` is HR's admin for the people in the org: it invites new accounts, edits an
+employee's profile and role, and switches a login off. Provisioning is server-side and
+permission-gated, so an account exists only because someone with the right role made it.
 
-It has it now: `/people` is HR's admin for inviting, editing, re-roling and switching off
-accounts. This guide shows what each role can do there, and what the server refuses.
+This guide shows what each role can do there, and what the server refuses.
 
 Every screenshot was taken from a running instance against the seeded demo data, signed in
 as the demo account named in the caption.
