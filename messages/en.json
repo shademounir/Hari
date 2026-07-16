@@ -8,7 +8,8 @@
     "none": "—",
     "cancel": "Cancel",
     "decisionNote": "Decision note",
-    "close": "Close"
+    "close": "Close",
+    "actions": "Actions"
   },
   "languageSwitcher": {
     "label": "Language",

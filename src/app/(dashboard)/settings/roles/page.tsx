@@ -24,6 +24,7 @@ import { RoleRowActions } from "@/components/settings/role-row-actions";
 export default async function RolesSettingsPage() {
   const user = await requireUser();
   const t = await getTranslations("settings");
+  const tCommon = await getTranslations("common");
 
   const tRoles = await getTranslations("roles");
   const [roles, labels, descriptions] = await Promise.all([
@@ -55,7 +56,9 @@ export default async function RolesSettingsPage() {
                 <TableHead className="min-w-[16rem]">{t("roleColumn")}</TableHead>
                 <TableHead>{t("permissionsColumn")}</TableHead>
                 <TableHead>{t("usersColumn")}</TableHead>
-                <TableHead className="w-12" />
+                <TableHead className="w-12">
+                  <span className="sr-only">{tCommon("actions")}</span>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

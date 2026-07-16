@@ -132,7 +132,12 @@
   --accent: oklch(0.3 0.05 255);
   --accent-foreground: oklch(0.97 0.005 247);
   --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
+  /* Dark mode's --destructive is a LIGHT red (L=0.704), so near-white text on
+     it lands at 2.8:1 — below WCAG AA. Flip to the dark ink, exactly as
+     --primary-foreground above does for the same reason (primary is a light
+     blue here). The only consumer is the notification count badge; the
+     destructive button variant uses `bg-destructive/10 text-destructive`. */
+  --destructive-foreground: oklch(0.16 0.03 264);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.65 0.18 258);

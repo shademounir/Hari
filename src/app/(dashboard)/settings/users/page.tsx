@@ -41,6 +41,7 @@ export default async function UsersSettingsPage({
 
   const t = await getTranslations("users");
   const tSettings = await getTranslations("settings");
+  const tCommon = await getTranslations("common");
   const [matrix, labels, users] = await Promise.all([
     getRbacMatrix(),
     getRoleLabels(await getTranslations("roles")),
@@ -107,7 +108,9 @@ export default async function UsersSettingsPage({
                 <TableHead>{t("role")}</TableHead>
                 <TableHead>{t("department")}</TableHead>
                 <TableHead>{t("state")}</TableHead>
-                <TableHead className="w-12" />
+                <TableHead className="w-12">
+                  <span className="sr-only">{tCommon("actions")}</span>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
