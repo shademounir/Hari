@@ -77,11 +77,24 @@ can't drift. The `@/*` → `./src/*` alias lives only in `tsconfig.json`; tests 
 ## Architecture — the invariants that span files
 
 ### One permission matrix, one data layer, one toolset (the core safety story)
-`src/lib/rbac.ts` (`ROLES`, the `PERMISSIONS` list, cumulative `ROLE_PERMISSIONS`, `can()`,
-`visibleDocTiers()`) is the **single source of truth** for authorization — pure data + pure
-functions, client- and server-safe. Roles are strictly nested: `EMPLOYEE ⊂ MANAGER ⊂ HR_ADMIN ⊂
-SUPER_ADMIN` (each built by spreading the lower role's array; `admin:settings` is the only thing
-separating Super Admin from HR). The matrix gates four surfaces identically so rules can't drift:
+**Roles are data; permissions are code.** `src/lib/rbac.ts` holds the permission *vocabulary*
+(`PERMISSIONS`, `Permission`), the built-in *defaults* (`DEFAULT_ROLE_PERMISSIONS`), `can()` and
+`visibleDocTiers()` — pure data + pure functions, client- and server-safe. The **effective** matrix
+is resolved from the `Role` table by `src/lib/rbac-server.ts` (`getRbacMatrix`) and edited by a
+super admin at `/settings/roles`; a built-in row stores `permissions = NULL`, meaning "use the code
+defaults", so `rbac.ts` stays the one source of truth for the shipped matrix. Resolution only
+narrows: unknown permission strings are dropped (`isPermission`), an unknown role slug gets nothing.
+Keeping `Permission` a compile-time union is why an admin **cannot invent a permission through a
+form** — that, not vigilance, is what preserves the `engagement:read:self` prohibition.
+
+`can(subject, permission)` takes a **`Subject`** (`{ role, permissions }`) with its permissions
+already resolved, not a role slug — it must stay synchronous (it runs inside client renders and
+Prisma where-builders). `Caller`, `ToolCaller`, `KbCaller`, `Actor` are all Subjects.
+
+The built-in defaults are strictly nested (`EMPLOYEE ⊂ MANAGER ⊂ HR_ADMIN ⊂ SUPER_ADMIN`;
+`admin:settings` is the only thing separating Super Admin from HR) and `tests/rbac.test.ts` pins
+that — but nesting is **not** a global rule any more: a custom role breaks containment by design.
+The matrix gates four surfaces identically so rules can't drift:
 
 1. **UI** — `src/lib/nav-items.ts` `NAV_ITEMS` (one nav source for sidebar + ⌘K + breadcrumb) hides
    links via `can()`; columns/cards gate too.
@@ -108,16 +121,25 @@ server-side unless `salary:read:all`. **Full contract + add-a-tool checklist:**
 `docs/architecture/authorization-invariants.md`.
 
 > Doc drift: `docs/secu/SCRUM-096` and the French `besoins.md` predate the code (older permission
-> set, a `{ denied }` card contract). Treat `rbac.ts` + README/code as source of truth.
+> set, a `{ denied }` card contract). Treat `rbac.ts` + README/code as source of truth. SCRUM-096's
+> claim that role changes are journalled as `ROLE_CHANGED` is now true in spirit — the action is
+> `USER_ROLE_CHANGED`.
 
 ### Auth — Auth.js v5, JWT sessions (`src/lib/auth.ts`, `src/lib/session.ts`)
-JWT strategy (Credentials providers can't use DB sessions). `role`+`employeeId` ride on the JWT and
-project onto `session.user` with no DB round-trip, so RBAC scopes per-request. **There is NO
-middleware** — auth is enforced per-page/route by `requireUser()` (redirects to `/login`) or
-`await auth()`; the `(dashboard)` layout is the umbrella gate and each API route re-checks. Sign-in
+JWT strategy (Credentials providers can't use DB sessions). **The token carries IDENTITY ONLY**
+(`sub`): role and permissions are resolved from the database on every request by `requireUser()` /
+`getApiCaller()` in `lib/session.ts`, deduped by React `cache()`. A role claim on a 30-day token
+can't be revoked — `updateAge` re-signs without re-running `authorize`, so a stale role is copied
+forward and a demotion would take up to a month. `role`/`employeeId` are deliberately **absent from
+the Session type**, so reading a stale one is a compile error. A deactivated user (`User.active`) is
+ejected on their next request and refused at every sign-in door. **There is NO middleware** — auth is
+enforced per-page/route by `requireUser()` (redirects to `/login`); the `(dashboard)` layout is the
+umbrella gate and each API route re-checks with `getApiCaller()` → 401. Sign-in
 methods (password via bcrypt, passwordless magic link + email OTP, Google OAuth env-gated by
 `AUTH_GOOGLE_ID/SECRET`, password reset) all resolve to **pre-provisioned** users — **sign-in never
-creates an account** (Google's callback rejects unknown emails). One-time secrets
+creates an account** (Google's callback rejects unknown emails). Provisioning is HR's, server-side
+and gated: `/settings/users/new` (`employee:manage`) creates the User+Employee and mails an `INVITE`
+token; the invite only opens a door to an account that already exists. One-time secrets
 (`src/lib/auth/tokens.ts`, `flows.ts`, `email.ts`) share one `AuthToken` table: SHA-256 hash only,
 single-use, short per-type TTL, constant-time compare, OTP lockout after repeated failures,
 anti-enumeration (always a generic `{ ok }`), issuance rate-limited. Secret-bearing emails derive
@@ -200,7 +222,11 @@ scorer.**
 - **KPI dashboards** (`lib/kpi/`): resolve scope once via `hr.ts` `getTeamScope`, then compose
   KPIs/trends/anomaly/capacity; DB helpers never compute their own scope.
 - Config-override rows (`PredictiveWeightConfig` / `EngagementSignalConfig`, version 0 = built-in
-  defaults) are validated key-by-key so a partial JSON row can't NaN a score.
+  defaults) are validated key-by-key so a partial JSON row can't NaN a score. `Role.permissions`
+  (NULL = built-in defaults) follows the same discipline — iterate over what the CODE knows, never
+  over what the row claims — but it is a **security** table, not a tuning one: a bad row there
+  degrades a score, a bad row here is a privilege escalation. Its extra rules (no escalation, no
+  lockout, no self-modification) live in `lib/roles.ts` / `lib/users.ts`.
 
 ### Leave, documents, audit, onboarding/offboarding, rate limiting, cron
 - **Leave**: balance deduction happens in EXACTLY one place — `bulkDecideLeaveRequests` (`hr.ts`),
@@ -217,6 +243,10 @@ scorer.**
 - **Audit** (`lib/audit.ts`): metadata-only trail (actor id/role, action, target ids, small code
   `meta`) for actions `AiEvent` doesn't cover (alert triage, document validate/reject, offboarding);
   best-effort, `alerts:read`-gated.
+- **Roles & users**: `lib/roles.ts` (`admin:settings` — define roles, edit the matrix) and
+  `lib/users.ts` (`employee:manage` — invite, edit, re-role, deactivate). Deactivation
+  (`User.active`) switches the LOGIN off; archiving the PERSON stays offboarding's job. Self-service
+  name/avatar is `lib/profile.ts` (`profile:edit:self`).
 - **Offboarding** (`lib/offboarding.ts`, `employee:manage`): completion **archives** the employee
   (status → TERMINATED, **never delete**) atomically in a `$transaction`. Onboarding
   (`lib/onboarding.ts`) is a self-service checklist seeded lazily/idempotently; step keys are stable

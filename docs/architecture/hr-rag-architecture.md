@@ -155,7 +155,7 @@ Key properties (all in `seedHandbook`):
 
 ```mermaid
 flowchart LR
-    Q["User question"] --> PERM{"can(role,<br/>handbook:read)?"}
+    Q["User question"] --> PERM{"can(caller,<br/>handbook:read)?"}
     PERM -- no --> DENY["{ denied: true } — no DB access"]
     PERM -- yes --> E["embedText(query)<br/>OpenRouter (384d)"]
     E --> V["toVectorLiteral()<br/>→ '[0.1,0.2,…]'"]

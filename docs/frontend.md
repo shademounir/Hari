@@ -63,7 +63,10 @@ The dashboard shell is `src/app/(dashboard)/layout.tsx`:
   hardcode `p-8` alone; it's cramped on phones.
 - Put wide content (tables, code blocks, diagrams) in an `overflow-x-auto`
   container so the page itself never scrolls sideways.
-- Gate anything role-specific with `can(role, …)` from `lib/rbac.ts` on the server.
+- Gate anything role-specific with `can(caller, …)` from `lib/rbac.ts` on the server —
+  `caller` being the resolved `{ role, permissions }` from `requireUser()`. Client
+  components take the caller's permissions as a prop (see `NavUser`); a role slug alone
+  no longer says what it may do.
   The sidebar already hides links a role can't use.
 - **No hardcoded user-facing text.** Every label, placeholder, and `aria-label` goes
   through a translation key in `messages/{en,fr}.json` via `t("…")`. See

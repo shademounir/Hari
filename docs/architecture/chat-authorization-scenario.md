@@ -26,7 +26,7 @@ Authorization is server-side, enforced at two levels (see
   `TOOL_CATALOGUE`), so an out-of-scope tool is never injected and the model can't
   call or be tricked into it.
 - **Per-tool checks (defense in depth).** Each tool still re-checks
-  `can(role, permission)` before any DB access, reads go through the role-scoped
+  `can(caller, permission)` before any DB access, reads go through the role-scoped
   `lib/hr.ts`, and every model-supplied id is authorized against the caller's scope.
   Where a parameter would only ever be out of scope for a role, it's dropped from
   that role's schema (a non-elevated `getPayslip`, for example, has no `employeeId`

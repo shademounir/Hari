@@ -166,12 +166,12 @@ sequenceDiagram
 
     U->>C: type "how many vacation days?"
     C->>R: POST messages + modelId
-    R->>A: auth() → session.role, employeeId
+    R->>A: getApiCaller() → { role, permissions, employeeId }
     R->>M: streamText(system, messages, tools)
     M-->>R: reasoning tokens
     R-->>C: stream reasoning → "Thinking…" panel
     M->>T: tool call: getLeaveBalance()
-    T->>T: can(role, "leave:read:self")?
+    T->>T: can(caller, "leave:read:self")?
     T->>DB: scoped query (own balances)
     DB-->>T: rows
     T-->>M: tool result (JSON)
@@ -195,23 +195,36 @@ which the assistant works around silently: the UI shows nothing, and there's no 
 
 ### Role-based access control
 
-One matrix, three enforcement points. Defined once in `lib/rbac.ts`:
+One matrix, three enforcement points — and it's **editable**. Roles are rows in the database; a
+super admin edits what each one may do (and defines new ones) at `/settings/roles`.
 
 ```mermaid
 flowchart LR
-    M["ROLE_PERMISSIONS matrix<br/>(lib/rbac.ts)"]
-    M --> UI["UI gating<br/>sidebar items, columns, cards"]
-    M --> DATA["Data layer<br/>lib/hr.ts scopes every query"]
-    M --> TOOLS["AI tools<br/>withPermission() wrapper"]
-
-    subgraph Roles["Roles (nested)"]
-      E[Employee] --> MA[Manager] --> H[HR Admin] --> S[Super Admin]
-    end
-    Roles -.feeds.-> M
+    CODE["PERMISSIONS vocabulary<br/>+ built-in defaults<br/>(lib/rbac.ts)"]
+    DB[("Role table<br/>NULL = use the defaults")]
+    CODE --> R
+    DB --> R
+    R["Effective matrix<br/>getRbacMatrix() — lib/rbac-server.ts"]
+    R --> C["caller = { role, permissions }<br/>resolved per request"]
+    C --> UI["UI gating<br/>sidebar items, columns, cards"]
+    C --> DATA["Data layer<br/>lib/hr.ts scopes every query"]
+    C --> TOOLS["AI tools<br/>buildHrTools() + withPermission()"]
 ```
 
-Permissions are **strictly nested** (Employee ⊂ Manager ⊂ HR Admin ⊂ Super Admin) — verified by a
-unit test. The Settings page renders the full matrix live.
+**Roles are data; permissions are code.** Every permission is read by a literal somewhere that
+enforces it, so one no code reads would enforce nothing. Keeping `Permission` a compile-time union
+means an admin can pick from the list but never *invent* one — which is what makes the
+`engagement:read:self` prohibition (an employee may never see their own burnout score) hold by
+construction rather than by vigilance. Resolution only ever narrows: unknown strings are dropped, an
+unknown role gets nothing.
+
+The four built-in roles are strictly nested (Employee ⊂ Manager ⊂ HR Admin ⊂ Super Admin) and a unit
+test pins that; a custom role breaks containment by design, so nesting is advisory rather than a
+rule. `/settings/permissions` renders the effective matrix live.
+
+Editing it is guarded, because a bad row here is a privilege escalation rather than a bad number:
+you can only grant what you already hold, you can't change your own role, and nothing may leave zero
+active users able to reach settings. Full contract: `docs/architecture/authorization-invariants.md`.
 
 ### Data model
 
@@ -318,7 +331,10 @@ hr-boilerplate/
 │  │  ├─ layout/               # sidebar, page header
 │  │  └─ chat/                 # message, reasoning, tool-call, generative/*
 │  └─ lib/
-│     ├─ rbac.ts               # permission matrix + can()  [core]
+│     ├─ rbac.ts               # permission vocabulary + built-in defaults + can()  [core]
+│     ├─ rbac-server.ts        # effective matrix, resolved from the Role table  [core]
+│     ├─ roles.ts              # role admin (admin:settings)
+│     ├─ users.ts              # user admin (employee:manage)
 │     ├─ auth.ts / session.ts  # Auth.js config + server-side session helpers
 │     ├─ hr.ts                 # role-scoped data access, shared by UI + AI  [core]
 │     ├─ rag.ts                # vector search
@@ -335,10 +351,13 @@ hr-boilerplate/
 
 This starter models the patterns a real HR app needs:
 
-1. **Server-side authorization, always.** Every page and every tool re-checks the session on the
-   server (`auth()` via `lib/session.ts`). The client-supplied role is never trusted for access decisions.
-2. **One permission source of truth.** `lib/rbac.ts` defines the matrix; UI, data layer, and AI
-   tools all consult it. There is no second place where rules can drift.
+1. **Server-side authorization, always.** Every page and every tool resolves the caller on the
+   server (`requireUser()` / `getApiCaller()` in `lib/session.ts`). The JWT carries identity only —
+   role and permissions are read from the database per request, so a demotion takes effect on the
+   next click rather than whenever the token expires.
+2. **One permission source of truth.** `lib/rbac.ts` defines the vocabulary and the defaults;
+   `lib/rbac-server.ts` resolves the effective matrix; UI, data layer, and AI tools all consult that
+   one result. There is no second place where rules can drift.
 3. **Role-scoped data access.** `lib/hr.ts` adds `WHERE` clauses based on role, so an employee's
    directory query returns only themselves — the filter is in the query, not in the UI.
 4. **Field-level redaction.** Sensitive fields (salary) are stripped server-side unless the role
@@ -398,8 +417,11 @@ CI (`.github/workflows/test.yml`) runs the deterministic suite on every push/PR 
 ## Customizing
 
 - **Add a model:** append to `CHAT_MODELS` in `lib/ai/providers.ts`. Free OpenRouter ids end in `:free`.
-- **Add a permission:** add to `PERMISSIONS` in `lib/rbac.ts`, assign it to roles, use it via
-  `can()` / `withPermission()`.
+- **Add a permission:** add to `PERMISSIONS` in `lib/rbac.ts`, add it to the built-in roles in
+  `DEFAULT_ROLE_PERMISSIONS`, add a `permissions.<key>` label to **both** message catalogs, and use
+  it via `can()` / `withPermission()`. It appears in the role editor automatically.
+- **Add a role:** you don't — a super admin creates one at `/settings/roles`. Only the four
+  built-ins live in code, as the defaults everything falls back to.
 - **Add a tool:** add a `tool({...})` in `lib/ai/tools.ts` (wrap `execute` with `withPermission`),
   then a renderer in `components/chat/tool-call.tsx`.
 - **Change the handbook:** edit `prisma/handbook.ts`, then `npm run db:reset` (the seed skips when
