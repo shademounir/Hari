@@ -76,7 +76,7 @@ export default async function PermissionsSettingsPage() {
             </TableHeader>
             <TableBody>
               {[...groups].map(([domain, permissions]) => (
-                // One labelled block per domain, so 26 rows read as 8 ideas.
+                // One labelled block per domain, so 27 permissions read as 15 ideas.
                 <Fragment key={domain}>
                   <TableRow className="bg-muted/50 hover:bg-muted/50">
                     <TableCell

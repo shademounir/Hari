@@ -198,7 +198,14 @@ export function RoleEditor({ role, grantable, defaultsFor }: Props) {
               variant="ghost"
               size="sm"
               disabled={pending}
-              onClick={() => setSelected(new Set(PERMISSIONS.filter((p) => grantableSet.has(p))))}
+              // Union, not replace: keep anything already ticked (incl. a
+              // permission the caller can't grant but the role already holds) and
+              // add every grantable one — "select all" must never silently revoke.
+              onClick={() =>
+                setSelected(
+                  (prev) => new Set([...prev, ...PERMISSIONS.filter((p) => grantableSet.has(p))]),
+                )
+              }
             >
               {t("selectAll")}
             </Button>
