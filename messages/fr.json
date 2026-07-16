@@ -1441,7 +1441,8 @@
       "internal": "Une erreur est survenue. Réessayez."
     },
     "save": "Enregistrer les modifications",
-    "roleLimited": "Certains rôles sont grisés : vous ne pouvez attribuer qu'un rôle dont vous détenez vous-même les permissions."
+    "roleLimited": "Certains rôles sont grisés : vous ne pouvez attribuer qu'un rôle dont vous détenez vous-même les permissions.",
+    "roster": "Tout le monde"
   },
   "profile": {
     "title": "Votre profil",

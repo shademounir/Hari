@@ -52,8 +52,9 @@ export default async function UsersSettingsPage({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t("title")}</CardTitle>
-        <p className="text-sm text-muted-foreground">{t("description")}</p>
+        {/* The section <h1> and description live in the layout; repeating them here
+            would say the same thing twice, one line apart. */}
+        <CardTitle>{t("roster")}</CardTitle>
         <CardAction>
           <ButtonLink href="/people/new" size="sm">
             <UserPlus aria-hidden className="size-4" />

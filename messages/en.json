@@ -1441,7 +1441,8 @@
       "internal": "Something went wrong. Try again."
     },
     "save": "Save changes",
-    "roleLimited": "Some roles are greyed out: you can only assign a role whose permissions you hold yourself."
+    "roleLimited": "Some roles are greyed out: you can only assign a role whose permissions you hold yourself.",
+    "roster": "Everyone"
   },
   "profile": {
     "title": "Your profile",
