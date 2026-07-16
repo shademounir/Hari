@@ -21,6 +21,7 @@ export default async function DashboardLayout({
     email: user.email,
     role: user.role,
     permissions: user.permissions,
+    avatarUrl: user.avatarUrl,
   };
   const t = await getTranslations("nav");
   const orgSettings = await getOrgSettings();

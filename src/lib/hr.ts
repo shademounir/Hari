@@ -29,6 +29,7 @@ export type DirectoryEntry = {
   department: string;
   location: string;
   role: Role;
+  avatarUrl: string | null;
   managerName: string | null;
   isSelf: boolean;
   salary: number | null; // null unless caller may read compensation
@@ -119,6 +120,7 @@ export async function getEmployeeDirectory(
     department: e.department,
     location: e.location,
     role: e.user.role as Role,
+    avatarUrl: e.avatarUrl,
     managerName: e.manager?.user.name ?? null,
     isSelf: e.id === caller.employeeId,
     salary: seesSalary ? e.salary : null,

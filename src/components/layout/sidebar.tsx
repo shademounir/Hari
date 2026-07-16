@@ -9,7 +9,7 @@ import { cn, initialsOf } from "@/lib/utils";
 import { can, type Permission, type Role } from "@/lib/rbac";
 import { NAV_ITEMS } from "@/lib/nav-items";
 import { useRoleLabel } from "@/components/role-labels-provider";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { HariMark } from "@/components/brand/logo";
 
 // Carries the caller's RESOLVED permissions, not just a role slug: the matrix is
@@ -19,6 +19,8 @@ export type NavUser = {
   email: string;
   role: Role;
   permissions: readonly Permission[];
+  /** Same-origin proxy path, or null → initials. */
+  avatarUrl: string | null;
 };
 
 // Shared nav body — desktop rail + mobile sheet. `onNavigate` closes the sheet.
@@ -138,6 +140,7 @@ export function NavBody({
       <div className="p-3">
         <div className="flex items-center gap-3 rounded-xl bg-white/5 p-3 ring-1 ring-white/10">
           <Avatar className="size-9">
+            {user.avatarUrl && <AvatarImage src={user.avatarUrl} alt="" />}
             <AvatarFallback className="bg-brand-gradient text-xs font-semibold text-on-navy">
               {initialsOf(user.name)}
             </AvatarFallback>

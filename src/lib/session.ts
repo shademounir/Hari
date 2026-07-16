@@ -16,6 +16,8 @@ export type SessionUser = {
   role: Role;
   employeeId: string | null;
   permissions: readonly Permission[];
+  /** Same-origin avatar proxy path, or null → render initials. */
+  avatarUrl: string | null;
 };
 
 /**
@@ -44,7 +46,9 @@ const loadCaller = cache(async (): Promise<SessionUser | null> => {
       email: true,
       role: true,
       active: true,
-      employee: { select: { id: true } },
+      // avatarUrl rides along on the join we already do — the sidebar shows it
+      // on every page, so fetching it separately would just be a second query.
+      employee: { select: { id: true, avatarUrl: true } },
     },
   });
   // Deleted or deactivated → no caller. Fail closed.
@@ -56,6 +60,7 @@ const loadCaller = cache(async (): Promise<SessionUser | null> => {
     email: row.email,
     role: row.role,
     employeeId: row.employee?.id ?? null,
+    avatarUrl: row.employee?.avatarUrl ?? null,
     permissions: await permissionsForRole(row.role),
   };
 });

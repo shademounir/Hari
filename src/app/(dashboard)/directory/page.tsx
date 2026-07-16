@@ -7,6 +7,8 @@ import { formatCurrency } from "@/lib/utils";
 import { getOrgSettings } from "@/lib/settings";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { initialsOf } from "@/lib/utils";
 import {
   Table,
   TableBody,
@@ -99,6 +101,10 @@ export default async function DirectoryPage({ searchParams }: Props) {
                 <TableRow key={e.id}>
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
+                      <Avatar className="size-7">
+                        {e.avatarUrl && <AvatarImage src={e.avatarUrl} alt="" />}
+                        <AvatarFallback className="text-[10px]">{initialsOf(e.name)}</AvatarFallback>
+                      </Avatar>
                       {e.name}
                       {e.isSelf && <Badge variant="outline">{tc("you")}</Badge>}
                       {isManagerScope && !e.isSelf && (

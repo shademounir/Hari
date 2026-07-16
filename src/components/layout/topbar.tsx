@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useRoleLabel } from "@/components/role-labels-provider";
-import { Menu, ChevronDown, LogOut } from "lucide-react";
+import { Menu, ChevronDown, LogOut, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -54,18 +54,29 @@ export function Topbar({ user }: { user: NavUser }) {
   const [open, setOpen] = useState(false);
 
   const roleLabel = roleLabelOf(user.role);
+  const tProfile = useTranslations("profile");
 
   // Depth-aware breadcrumb built from the shared nav source: top-level page plus
   // any sub-segments. Each sub-segment takes the best label available, in order:
   // its Settings/nav entry, the real record name a page registered for it, then
   // the humanized slug. No non-navigable role crumb.
   const segments = pathname.split("/").filter(Boolean);
-  const topKey = SEGMENT_TO_KEY[segments[0] ?? ""] ?? "dashboard";
-  const topItem = NAV_ITEMS.find((i) => i.key === topKey);
+  const topKey = SEGMENT_TO_KEY[segments[0] ?? ""];
+  const topItem = topKey ? NAV_ITEMS.find((i) => i.key === topKey) : undefined;
+
+  // A page outside the primary nav — /profile, reached from the account menu
+  // rather than the sidebar. It used to fall back to "dashboard", which labelled
+  // it as a page it isn't; take its registered label (or the humanized slug) and
+  // say what it actually is.
+  const topHref = topItem?.href ?? `/${segments[0] ?? ""}`;
   const crumbs: { label: string; href: string; navigable: boolean }[] = [
-    { label: t(topKey), href: topItem?.href ?? "/", navigable: true },
+    {
+      label: topKey ? t(topKey) : (labels[topHref] ?? humanize(segments[0] ?? "")),
+      href: topItem?.href ?? topHref,
+      navigable: true,
+    },
   ];
-  let acc = topItem?.href ?? "/";
+  let acc = topItem?.href ?? topHref;
   for (const seg of segments.slice(1)) {
     acc = `${acc === "/" ? "" : acc}/${seg}`;
     const child = topItem?.children?.find((c) => c.href === acc);
@@ -157,6 +168,10 @@ export function Topbar({ user }: { user: NavUser }) {
               <p className="truncate text-sm font-medium text-foreground">{user.name}</p>
               <p className="truncate text-xs text-muted-foreground">{user.email}</p>
             </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem render={<Link href="/profile" />}>
+              <UserRound className="size-4" /> {tProfile("nav")}
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" onClick={() => logout()}>
               <LogOut className="size-4" /> {t("signOut")}

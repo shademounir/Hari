@@ -1434,5 +1434,36 @@
       "internal": "Une erreur est survenue. Réessayez."
     },
     "save": "Enregistrer les modifications"
+  },
+  "profile": {
+    "title": "Votre profil",
+    "description": "Ce que vos collègues voient de vous.",
+    "nav": "Votre profil",
+    "photo": "Photo",
+    "addPhoto": "Ajouter une photo",
+    "changePhoto": "Changer la photo",
+    "removePhoto": "Retirer",
+    "photoHint": "Une image carrée fonctionne le mieux. Elle est recadrée en cercle et visible uniquement par vos collègues.",
+    "imageInvalid": "Ce fichier n'est pas une image.",
+    "imageTooLarge": "Cette image est trop lourde, même après compression. Essayez-en une plus petite.",
+    "imageUploadFailed": "L'envoi n'a pas abouti. Réessayez.",
+    "name": "Nom affiché",
+    "email": "E-mail",
+    "emailHint": "Sert à vous connecter.",
+    "save": "Enregistrer les modifications",
+    "saved": "Modifications enregistrées",
+    "employmentTitle": "Votre poste",
+    "employmentHint": "Les RH tiennent ces informations à jour. Contactez-les si quelque chose semble incorrect.",
+    "jobTitle": "Intitulé du poste",
+    "department": "Département",
+    "location": "Lieu",
+    "manager": "Responsable",
+    "startDate": "Arrivée",
+    "notSet": "Non renseigné",
+    "error": {
+      "forbidden": "Vous n'avez pas la permission de modifier votre profil.",
+      "invalid": "Vérifiez votre nom et réessayez.",
+      "internal": "Une erreur est survenue. Réessayez."
+    }
   }
 }

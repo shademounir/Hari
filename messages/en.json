@@ -1434,5 +1434,36 @@
       "internal": "Something went wrong. Try again."
     },
     "save": "Save changes"
+  },
+  "profile": {
+    "title": "Your profile",
+    "description": "How you appear to your colleagues.",
+    "nav": "Your profile",
+    "photo": "Photo",
+    "addPhoto": "Add a photo",
+    "changePhoto": "Change photo",
+    "removePhoto": "Remove",
+    "photoHint": "A square image works best. It's cropped to a circle and only visible to colleagues.",
+    "imageInvalid": "That file isn't an image.",
+    "imageTooLarge": "That image is too large, even after compression. Try a smaller one.",
+    "imageUploadFailed": "The upload didn't go through. Try again.",
+    "name": "Display name",
+    "email": "Email",
+    "emailHint": "You sign in with this.",
+    "save": "Save changes",
+    "saved": "Changes saved",
+    "employmentTitle": "Your role at work",
+    "employmentHint": "HR keeps these up to date. Ask them if something looks wrong.",
+    "jobTitle": "Job title",
+    "department": "Department",
+    "location": "Location",
+    "manager": "Manager",
+    "startDate": "Started",
+    "notSet": "Not set",
+    "error": {
+      "forbidden": "You don't have permission to edit your profile.",
+      "invalid": "Check your name and try again.",
+      "internal": "Something went wrong. Try again."
+    }
   }
 }
