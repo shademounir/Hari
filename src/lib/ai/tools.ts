@@ -87,6 +87,37 @@ function withPermission<I, O>(
   };
 }
 
+// Some tools serve a whole scope family — the directory tool works for
+// `directory:read:self|team|all`, the payslip tool for `payslip:read:self|any`
+// — and the SCOPE is decided inside (directoryWhere, getPayslip), not by which
+// one permission is held. Gating them on the narrowest (`:self`) assumed the
+// built-in nesting; a custom role with only `directory:read:all` would see the
+// whole directory in the UI yet be refused here. This runs if the caller holds
+// ANY of the family, matching what `buildHrTools` advertises for these tools.
+function withAnyPermission<I, O>(
+  caller: ToolCaller,
+  permissions: readonly Permission[],
+  fn: (input: I) => Promise<O>,
+): (input: I) => Promise<O | Refusal | Failure> {
+  const held = permissions.find((p) => can(caller, p));
+  if (!held) {
+    const label = PERMISSION_LABELS[permissions[0]];
+    return async () => refused(`That action isn't available to your role (needs "${label}").`);
+  }
+  return withPermission(caller, held, fn);
+}
+
+// The scope families the two multi-scope tools accept (see withAnyPermission).
+const DIRECTORY_READS = [
+  "directory:read:self",
+  "directory:read:team",
+  "directory:read:all",
+] as const satisfies readonly Permission[];
+const PAYSLIP_READS = [
+  "payslip:read:self",
+  "payslip:read:any",
+] as const satisfies readonly Permission[];
+
 // Case-insensitive enum: models sometimes emit "vacation"/"approve" — uppercase
 // before validating so we don't hand the user a spurious tool error.
 function ciEnum<const T extends [string, ...string[]]>(values: T) {
@@ -289,7 +320,7 @@ function buildAllHrTools(caller: ToolCaller, timezone = "UTC") {
           .nullish()
           .describe("Optional case-insensitive substring to filter by."),
       }),
-      execute: withPermission(caller, "directory:read:self", async ({ filter }) => {
+      execute: withAnyPermission(caller, DIRECTORY_READS, async ({ filter }) => {
         const people = filterDirectory(await getEmployeeDirectory(caller), filter);
         return { count: people.length, people };
       }),
@@ -443,9 +474,9 @@ function buildAllHrTools(caller: ToolCaller, timezone = "UTC") {
               .nullish()
               .describe("An employeeId returned by getEmployeeDirectory — omit for your own."),
           }),
-          // Wrapped in withPermission like every other data tool (defense in depth);
-          // the data layer additionally enforces the self-vs-any distinction.
-          execute: withPermission(caller, "payslip:read:self", async ({ employeeId }) => {
+          // Any payslip-read permission unlocks the tool (defense in depth); the
+          // data layer additionally enforces the self-vs-any distinction.
+          execute: withAnyPermission(caller, PAYSLIP_READS, async ({ employeeId }) => {
             const result = await getPayslip(caller, employeeId);
             if (result.ok) return { payslip: result.payslip };
             return refused("No payslip found for an employee you can view.");
@@ -455,7 +486,7 @@ function buildAllHrTools(caller: ToolCaller, timezone = "UTC") {
           description:
             "Get the current user's own PAY summary: gross pay, tax, and net pay (money only — NOT vacation or leave balances; use getLeaveBalances for those).",
           inputSchema: z.object({}),
-          execute: withPermission(caller, "payslip:read:self", async () => {
+          execute: withAnyPermission(caller, PAYSLIP_READS, async () => {
             const result = await getPayslip(caller); // self only — no target accepted
             if (result.ok) return { payslip: result.payslip };
             return refused("No payslip is linked to your account.");
@@ -622,21 +653,37 @@ export const TOOL_CATALOGUE = [
   { name: "endConversation", permission: null }, // safety valve — every role
 
   { name: "searchHandbook", permission: "handbook:read" },
-  { name: "getEmployeeDirectory", permission: "directory:read:self" },
+  // Any directory-read scope is offered the tool; the SCOPE (self/team/company)
+  // is decided inside by directoryWhere. Gating on the narrowest `:self` alone
+  // would refuse a custom role holding only `directory:read:all` a lookup its own
+  // UI already allows.
+  { name: "getEmployeeDirectory", permission: DIRECTORY_READS },
   { name: "getLeaveBalances", permission: "leave:read:self" },
   { name: "requestTimeOff", permission: "leave:request" },
   { name: "listPendingApprovals", permission: "leave:approve" },
   { name: "approveLeave", permission: "leave:approve" },
-  // `payslip:read:self` gates ADVERTISING the tool; the elevated variant's
-  // `employeeId` target is unlocked separately by `payslip:read:any` (above).
-  { name: "getPayslip", permission: "payslip:read:self" },
+  // Any payslip-read scope; the elevated variant's `employeeId` target is unlocked
+  // separately by `payslip:read:any` inside the tool.
+  { name: "getPayslip", permission: PAYSLIP_READS },
   { name: "predictDepartures", permission: "predictions:read" },
   { name: "getEngagementRisk", permission: "engagement:read:team" },
-] as const satisfies readonly { name: ToolName; permission: Permission | null }[];
+] as const satisfies readonly {
+  name: ToolName;
+  permission: Permission | readonly Permission[] | null;
+}[];
 
-/** Does this subject get the catalogue entry? `null` permission = always (utility). */
-function subjectHasTool(subject: Subject, permission: Permission | null): boolean {
-  return permission === null || can(subject, permission);
+/**
+ * Does this subject get the catalogue entry? `null` = always (utility); an array
+ * = ANY-of (the tool serves a whole scope family, gated inside — see
+ * withAnyPermission); a single permission = that one.
+ */
+function subjectHasTool(
+  subject: Subject,
+  permission: Permission | readonly Permission[] | null,
+): boolean {
+  if (permission === null) return true;
+  if (Array.isArray(permission)) return permission.some((p) => can(subject, p));
+  return can(subject, permission as Permission);
 }
 
 /**

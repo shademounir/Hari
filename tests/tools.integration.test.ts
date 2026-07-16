@@ -284,6 +284,32 @@ describe("tool catalogue — irrelevant tools aren't injected per role", () => {
   });
 });
 
+describe("multi-scope tools follow ANY directory/payslip read (custom roles)", () => {
+  // A custom role can hold `directory:read:all` WITHOUT the narrow `:self` — the
+  // built-ins nest, custom roles need not. The tool's scope is decided inside
+  // (directoryWhere / getPayslip), so it must be offered on any read in the family;
+  // gating on `:self` alone would let such a role browse the whole directory in the
+  // UI while the assistant refused it.
+  it("a role with only directory:read:all is offered getEmployeeDirectory", () => {
+    expect(toolsForSubject({ role: "AUDITOR", permissions: ["directory:read:all"] })).toContain(
+      "getEmployeeDirectory",
+    );
+  });
+
+  it("a role with only payslip:read:any is offered getPayslip", () => {
+    expect(toolsForSubject({ role: "PAYROLL", permissions: ["payslip:read:any"] })).toContain(
+      "getPayslip",
+    );
+  });
+
+  it("and the directory tool actually runs (not refused) for a directory:read:all-only caller", async () => {
+    const caller: ToolCaller = { ...callers.hr, role: "AUDITOR", permissions: ["directory:read:all"] };
+    const out = await call(buildHrTools(caller).getEmployeeDirectory, {});
+    expect(out.refused).toBeUndefined();
+    expect(out.count).toBeGreaterThan(0);
+  });
+});
+
 describe("calendar utilities — deterministic date math", () => {
   it("getDateInfo returns the correct weekday and weekend flag", async () => {
     const tools = buildHrTools(callers.employee);
