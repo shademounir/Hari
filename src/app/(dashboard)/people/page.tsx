@@ -20,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { UserRowActions } from "@/components/settings/user-row-actions";
+import { UserRowActions } from "@/components/people/user-row-actions";
 import { initialsOf } from "@/lib/utils";
 
 // `employee:manage`, not `admin:settings`: managing PEOPLE is HR's job, while
@@ -55,7 +55,7 @@ export default async function UsersSettingsPage({
         <CardTitle>{t("title")}</CardTitle>
         <p className="text-sm text-muted-foreground">{t("description")}</p>
         <CardAction>
-          <ButtonLink href="/settings/users/new" size="sm">
+          <ButtonLink href="/people/new" size="sm">
             <UserPlus aria-hidden className="size-4" />
             {t("invite")}
           </ButtonLink>
@@ -125,7 +125,7 @@ export default async function UsersSettingsPage({
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <Link
-                            href={`/settings/users/${u.id}`}
+                            href={`/people/${u.id}`}
                             className="rounded-sm font-medium underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                           >
                             {u.name}
@@ -168,7 +168,7 @@ export default async function UsersSettingsPage({
                   <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
                     {t("noUsers")}{" "}
                     {filtered && (
-                      <Link href="/settings/users" className="text-primary underline">
+                      <Link href="/people" className="text-primary underline">
                         {t("clearFilters")}
                       </Link>
                     )}

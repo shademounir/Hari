@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   Bot,
   Users,
+  Contact,
   CalendarDays,
   ClipboardCheck,
   UserMinus,
@@ -27,6 +28,7 @@ export type NavKey =
   | "dashboard"
   | "assistant"
   | "directory"
+  | "people"
   | "team"
   | "hrActivity"
   | "predictions"
@@ -66,6 +68,10 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/", key: "dashboard", icon: LayoutDashboard },
   { href: "/chat", key: "assistant", icon: Bot },
   { href: "/directory", key: "directory", icon: Users },
+  // HR's people admin. Top-level rather than under /settings, whose layout is an
+  // `admin:settings` umbrella — managing people is HR's job, and defining what a
+  // role MAY DO is the super admin's. Same gate as Offboarding.
+  { href: "/people", key: "people", icon: Contact, permission: "employee:manage" },
   {
     href: "/team",
     key: "team",

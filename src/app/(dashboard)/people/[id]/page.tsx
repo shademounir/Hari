@@ -5,7 +5,7 @@ import { can } from "@/lib/rbac";
 import { getUserDetail, listManagerOptions } from "@/lib/users";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { UserForm } from "@/components/settings/user-form";
+import { UserForm } from "@/components/people/user-form";
 import { EMPLOYMENT_TYPES, roleOptionsFor } from "../_shared";
 
 export default async function EditUserPage({ params }: { params: Promise<{ id: string }> }) {

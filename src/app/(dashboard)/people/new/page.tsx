@@ -4,7 +4,7 @@ import { actorOf, requireUser } from "@/lib/session";
 import { can } from "@/lib/rbac";
 import { listManagerOptions } from "@/lib/users";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { UserForm } from "@/components/settings/user-form";
+import { UserForm } from "@/components/people/user-form";
 import { EMPLOYMENT_TYPES, roleOptionsFor } from "../_shared";
 
 export default async function InviteUserPage() {

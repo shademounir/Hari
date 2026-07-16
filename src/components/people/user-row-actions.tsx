@@ -26,7 +26,7 @@ import {
   resendInviteAction,
   setUserActiveAction,
   type UserActionResult,
-} from "@/app/(dashboard)/settings/users/actions";
+} from "@/app/(dashboard)/people/actions";
 
 export function UserRowActions({
   userId,
@@ -75,7 +75,7 @@ export function UserRowActions({
           <MoreHorizontal aria-hidden className="size-4" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem render={<Link href={`/settings/users/${userId}`} />}>
+          <DropdownMenuItem render={<Link href={`/people/${userId}`} />}>
             {t("editPerson")}
           </DropdownMenuItem>
           {pendingInvite && (

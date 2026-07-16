@@ -1,7 +1,7 @@
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { NON_ROUTE_PATHS } from "@/lib/nav-items";
+import { NAV_ITEMS, NON_ROUTE_PATHS } from "@/lib/nav-items";
 
 const ROUTES_ROOT = join(process.cwd(), "src/app/(dashboard)");
 
@@ -43,5 +43,38 @@ describe("NON_ROUTE_PATHS", () => {
   it("lists no path that is not a breadcrumb ancestor at all", () => {
     const reachable = new Set([...served].flatMap(ancestors));
     expect([...NON_ROUTE_PATHS].filter((p) => !reachable.has(p))).toEqual([]);
+  });
+});
+
+describe("route gates match the layout that wraps them", () => {
+  const served = servedPaths(ROUTES_ROOT);
+
+  it("nothing HR needs lives under /settings, whose layout is an admin:settings umbrella", () => {
+    // The bug this pins: the people admin gated itself on `employee:manage`, but
+    // sat at /settings/users — and (dashboard)/settings/layout.tsx redirects
+    // anyone without `admin:settings`. So HR, the exact role it was written for,
+    // was bounced to "/" and the page's own gate was dead code. A page's gate
+    // can never be WIDER than the layout above it; the layout always wins.
+    const settingsPages = served.filter((p) => p.startsWith("/settings"));
+    expect(settingsPages.length).toBeGreaterThan(0);
+
+    // Every nav entry pointing into /settings must be admin:settings-gated (or
+    // inherit that from the /settings parent), never a broader permission.
+    const strays = NAV_ITEMS.flatMap((i) => [i, ...(i.children ?? [])])
+      .filter((i) => i.href.startsWith("/settings"))
+      .filter((i) => i.permission && i.permission !== "admin:settings");
+    expect(strays.map((s) => `${s.href} (${s.permission})`)).toEqual([]);
+  });
+
+  it("the people admin is reachable by the role that owns it", () => {
+    // /people is HR's, gated like /offboarding — the other employee:manage
+    // surface — and deliberately outside the settings shell.
+    const people = NAV_ITEMS.find((i) => i.href === "/people");
+    expect(people?.permission).toBe("employee:manage");
+    expect(served).toContain("/people");
+    expect(served.some((p) => p.startsWith("/settings/users"))).toBe(false);
+
+    const offboarding = NAV_ITEMS.find((i) => i.href === "/offboarding");
+    expect(people?.permission).toBe(offboarding?.permission);
   });
 });

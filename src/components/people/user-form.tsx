@@ -12,7 +12,7 @@ import {
   updateUserProfileAction,
   changeUserRoleAction,
   type UserActionResult,
-} from "@/app/(dashboard)/settings/users/actions";
+} from "@/app/(dashboard)/people/actions";
 
 export type RoleOption = { slug: string; label: string; assignable: boolean };
 export type ManagerOption = { id: string; name: string; title: string };
@@ -85,7 +85,7 @@ export function UserForm({
     start(async () => {
       if (creating) {
         const res = await inviteUserAction({ ...base, email: v.email, role: v.role });
-        handle(res, t("invited"), (id) => router.push(`/settings/users/${id}`));
+        handle(res, t("invited"), (id) => router.push(`/people/${id}`));
         return;
       }
       // Profile and role are separate writes: they carry different rules (the role
@@ -148,10 +148,16 @@ export function UserForm({
               </option>
             ))}
           </select>
-          {isSelf && (
+          {isSelf ? (
             <span className="block text-xs text-muted-foreground">
               {t("userError.self_forbidden")}
             </span>
+          ) : (
+            // A disabled <option> is invisible until the dropdown is opened, and
+            // silent even then. Say the rule where the choice is made.
+            roles.some((r) => !r.assignable) && (
+              <span className="block text-xs text-muted-foreground">{t("roleLimited")}</span>
+            )
           )}
         </label>
 

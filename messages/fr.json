@@ -20,6 +20,7 @@
     "dashboard": "Tableau de bord",
     "assistant": "Assistant IA",
     "directory": "Annuaire",
+    "people": "Personnes",
     "team": "Mon équipe",
     "hrActivity": "Activité RH",
     "predictions": "Prédictions",
@@ -566,8 +567,6 @@
     "permissionsColumn": "Permissions",
     "usersColumn": "Personnes",
     "roleColumn": "Rôle",
-    "navUsers": "Personnes",
-    "cardUsersDesc": "Invitez des personnes, changez les rôles et désactivez des comptes.",
     "builtInCopyHint": "HARI fournit le nom et la description de ce rôle, traduits. Ce que vous modifiez ici, ce sont ses permissions."
   },
   "chat": {
@@ -1441,7 +1440,8 @@
       "manager_cycle": "Cela rendrait quelqu'un son propre responsable, directement ou en remontant la hiérarchie.",
       "internal": "Une erreur est survenue. Réessayez."
     },
-    "save": "Enregistrer les modifications"
+    "save": "Enregistrer les modifications",
+    "roleLimited": "Certains rôles sont grisés : vous ne pouvez attribuer qu'un rôle dont vous détenez vous-même les permissions."
   },
   "profile": {
     "title": "Votre profil",

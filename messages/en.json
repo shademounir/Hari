@@ -20,6 +20,7 @@
     "dashboard": "Dashboard",
     "assistant": "AI Assistant",
     "directory": "Directory",
+    "people": "People",
     "team": "My Team",
     "hrActivity": "HR Activity",
     "predictions": "Predictions",
@@ -566,8 +567,6 @@
     "permissionsColumn": "Permissions",
     "usersColumn": "People",
     "roleColumn": "Role",
-    "navUsers": "People",
-    "cardUsersDesc": "Invite people, change roles, and deactivate accounts.",
     "builtInCopyHint": "HARI ships this role's name and description, translated. What you change here is what it can do."
   },
   "chat": {
@@ -1441,7 +1440,8 @@
       "manager_cycle": "That would make someone their own manager, directly or up the chain.",
       "internal": "Something went wrong. Try again."
     },
-    "save": "Save changes"
+    "save": "Save changes",
+    "roleLimited": "Some roles are greyed out: you can only assign a role whose permissions you hold yourself."
   },
   "profile": {
     "title": "Your profile",

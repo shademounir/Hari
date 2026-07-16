@@ -3,7 +3,7 @@ import { EmploymentType } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 import { can, type Subject } from "@/lib/rbac";
 import { getRbacMatrix, getRoleLabels } from "@/lib/rbac-server";
-import type { RoleOption } from "@/components/settings/user-form";
+import type { RoleOption } from "@/components/people/user-form";
 
 export const EMPLOYMENT_TYPES = Object.values(EmploymentType);
 
