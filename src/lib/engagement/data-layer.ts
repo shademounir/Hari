@@ -19,7 +19,8 @@ import "server-only";
 import type { LeaveType, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { createAlert } from "@/lib/alerts";
-import { can, type Role } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
+import type { Caller } from "@/lib/hr";
 import {
   computeEngagement,
   DEFAULT_ENGAGEMENT_CONFIG,
@@ -489,14 +490,11 @@ export type EngagementBoardRow = {
  *   2. SELF-EXCLUSION — the caller's OWN row is removed unconditionally, so no one
  *      (not even HR) can read their own engagement score through this path.
  */
-export async function getEngagementBoard(caller: {
-  role: Role;
-  employeeId: string | null;
-}): Promise<EngagementBoardRow[]> {
+export async function getEngagementBoard(caller: Caller): Promise<EngagementBoardRow[]> {
   let scope: Prisma.EmployeeWhereInput;
-  if (can(caller.role, "engagement:read:all")) {
+  if (can(caller, "engagement:read:all")) {
     scope = { status: "ACTIVE" };
-  } else if (can(caller.role, "engagement:read:team") && caller.employeeId) {
+  } else if (can(caller, "engagement:read:team") && caller.employeeId) {
     scope = { status: "ACTIVE", managerId: caller.employeeId };
   } else {
     return [];
@@ -573,14 +571,11 @@ export type EngagementDashboardRow = {
   history: number[]; // trailing ~4 weeks of scores, chronological (for the sparkline)
 };
 
-export async function getEngagementDashboard(caller: {
-  role: Role;
-  employeeId: string | null;
-}): Promise<EngagementDashboardRow[]> {
+export async function getEngagementDashboard(caller: Caller): Promise<EngagementDashboardRow[]> {
   let scope: Prisma.EmployeeWhereInput;
-  if (can(caller.role, "engagement:read:all")) {
+  if (can(caller, "engagement:read:all")) {
     scope = { status: "ACTIVE" };
-  } else if (can(caller.role, "engagement:read:team") && caller.employeeId) {
+  } else if (can(caller, "engagement:read:team") && caller.employeeId) {
     scope = { status: "ACTIVE", managerId: caller.employeeId };
   } else {
     return [];

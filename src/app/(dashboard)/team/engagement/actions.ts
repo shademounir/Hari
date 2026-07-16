@@ -54,7 +54,7 @@ const QualitativeSchema = z.object({
  */
 export async function saveQualitativeSignalAction(input: QualitativeInput): Promise<QualitativeResult> {
   const user = await requireUser();
-  if (!can(user.role, "engagement:input")) return { ok: false, error: "forbidden" };
+  if (!can(user, "engagement:input")) return { ok: false, error: "forbidden" };
 
   const parsed = QualitativeSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
@@ -65,7 +65,7 @@ export async function saveQualitativeSignalAction(input: QualitativeInput): Prom
   // Ownership: HR/Admin (engagement:read:all) may rate anyone; a manager only their reports.
   const target = await prisma.employee.findUnique({ where: { id: employeeId }, select: { managerId: true } });
   if (!target) return { ok: false, error: "invalid" };
-  const owns = can(user.role, "engagement:read:all") || target.managerId === user.employeeId;
+  const owns = can(user, "engagement:read:all") || target.managerId === user.employeeId;
   if (!owns) return { ok: false, error: "forbidden" };
 
   try {
@@ -126,7 +126,7 @@ const AgendaInputSchema = z.object({
  */
 export async function generateSupportAgendaAction(input: AgendaInput): Promise<AgendaResult> {
   const user = await requireUser();
-  if (!can(user.role, "engagement:read:team")) return { ok: false, error: "forbidden" };
+  if (!can(user, "engagement:read:team")) return { ok: false, error: "forbidden" };
 
   const parsed = AgendaInputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };

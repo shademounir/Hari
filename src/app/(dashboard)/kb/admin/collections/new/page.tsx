@@ -8,7 +8,7 @@ import { createCollectionAction } from "../../actions";
 
 export default async function NewCollectionPage() {
   const user = await requireUser();
-  if (!can(user.role, "kb:manage")) redirect("/");
+  if (!can(user, "kb:manage")) redirect("/");
   const t = await getTranslations("kb");
 
   return (

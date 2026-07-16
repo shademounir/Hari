@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 
 import { prisma } from "@/lib/prisma";
 import { can } from "@/lib/rbac";
-import { requireUser } from "@/lib/session";
+import { actorOf, requireUser } from "@/lib/session";
 import { getUserLocale } from "@/i18n/locale";
 import {
   generateWorkCertificate,
@@ -16,7 +16,7 @@ import {
 export async function requestWorkCertificate() {
   const user = await requireUser();
 
-  if (!can(user.role, "documents:request")) {
+  if (!can(user, "documents:request")) {
     redirect("/");
   }
 
@@ -45,7 +45,7 @@ export async function requestWorkCertificate() {
  */
 export async function generateDocumentAction(id: string): Promise<FulfillResult> {
   const user = await requireUser();
-  const result = await generateWorkCertificate({ userId: user.id, role: user.role }, id);
+  const result = await generateWorkCertificate(actorOf(user), id);
   if (result.ok) revalidatePath("/documents");
   return result;
 }
@@ -53,7 +53,7 @@ export async function generateDocumentAction(id: string): Promise<FulfillResult>
 /** HR rejects a request with a note. Gated inside `rejectDocumentRequest`. */
 export async function rejectDocumentAction(id: string, note: string): Promise<FulfillResult> {
   const user = await requireUser();
-  const result = await rejectDocumentRequest({ userId: user.id, role: user.role }, id, note);
+  const result = await rejectDocumentRequest(actorOf(user), id, note);
   if (result.ok) revalidatePath("/documents");
   return result;
 }

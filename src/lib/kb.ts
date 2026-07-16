@@ -4,15 +4,15 @@
 // (else null → notFound). Admin fns: require kb:manage, see every status.
 import { DocStatus, DocVisibility } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { can, visibleDocTiers, type Role } from "@/lib/rbac";
+import { can, visibleDocTiers, type Subject } from "@/lib/rbac";
 import { slugify } from "@/lib/kb/markdown";
 import { ingestDocument, removeDocumentChunks } from "@/lib/kb/ingest";
 import { searchHandbook } from "@/lib/rag";
 import { deleteObject, keyFromCoverUrl } from "@/lib/storage";
 
 // `id` is the signed-in user's id — used to stamp authorship on admin mutations.
-// Reader functions only need `role`.
-export type KbCaller = { role: Role; id?: string };
+// Reader functions only need the resolved permissions the Subject carries.
+export type KbCaller = Subject & { id?: string };
 
 const VISIBILITIES = Object.values(DocVisibility);
 const STATUSES = Object.values(DocStatus);
@@ -64,7 +64,7 @@ export function sanitizeImage(value: string | null | undefined): string | null {
 export async function listCollectionsWithArticles(
   caller: KbCaller,
 ): Promise<CollectionWithArticles[]> {
-  const tiers = visibleDocTiers(caller.role);
+  const tiers = visibleDocTiers(caller);
   const collections = await prisma.kbCollection.findMany({
     orderBy: [{ order: "asc" }, { name: "asc" }],
     include: {
@@ -111,7 +111,7 @@ export async function getArticle(
   collectionSlug: string,
   articleSlug: string,
 ): Promise<ArticleDetail | null> {
-  const tiers = visibleDocTiers(caller.role);
+  const tiers = visibleDocTiers(caller);
   const doc = await prisma.hrDocument.findFirst({
     where: {
       slug: articleSlug,
@@ -163,7 +163,7 @@ export async function getCollection(
   caller: KbCaller,
   slug: string,
 ): Promise<CollectionWithArticles | null> {
-  const tiers = visibleDocTiers(caller.role);
+  const tiers = visibleDocTiers(caller);
   const c = await prisma.kbCollection.findUnique({
     where: { slug },
     include: {
@@ -240,7 +240,7 @@ export async function getRelatedArticles(
   excludeId: string,
   limit = 5,
 ): Promise<ArticleSummary[]> {
-  const tiers = visibleDocTiers(caller.role);
+  const tiers = visibleDocTiers(caller);
   return prisma.hrDocument.findMany({
     where: {
       status: "PUBLISHED",
@@ -265,7 +265,7 @@ export async function submitArticleFeedback(
   helpful: boolean,
 ): Promise<boolean> {
   if (!caller.id) return false;
-  const tiers = visibleDocTiers(caller.role);
+  const tiers = visibleDocTiers(caller);
   const doc = await prisma.hrDocument.findFirst({
     where: { id: documentId, status: "PUBLISHED", visibility: { in: tiers } },
     select: { id: true },
@@ -296,7 +296,7 @@ export async function getUserFeedback(
 
 /** Throws if the caller may not manage the KB. Every admin fn calls this first. */
 function assertManage(caller: KbCaller): void {
-  if (!can(caller.role, "kb:manage")) {
+  if (!can(caller, "kb:manage")) {
     throw new Error("Forbidden: kb:manage required");
   }
 }
@@ -310,9 +310,9 @@ export type DocStatusCounts = { DRAFT: number; PUBLISHED: number; ARCHIVED: numb
  * Zeroed, never thrown, unless the caller may read the dashboard — mirrors
  * `getAlertStatusCounts`'s gate-and-zero shape.
  */
-export async function getDocumentStatusCounts(caller: { role: Role }): Promise<DocStatusCounts> {
+export async function getDocumentStatusCounts(caller: Subject): Promise<DocStatusCounts> {
   const counts: DocStatusCounts = { DRAFT: 0, PUBLISHED: 0, ARCHIVED: 0, all: 0 };
-  if (!can(caller.role, "dashboard:read:company")) return counts;
+  if (!can(caller, "dashboard:read:company")) return counts;
   const grouped = await prisma.hrDocument.groupBy({ by: ["status"], _count: { _all: true } });
   for (const g of grouped) {
     counts[g.status] = g._count._all;
@@ -533,7 +533,7 @@ export async function createDocument(
   },
 ) {
   assertManage(caller);
-  const canSetAssistant = can(caller.role, "admin:settings");
+  const canSetAssistant = can(caller, "admin:settings");
   return prisma.hrDocument.create({
     data: {
       slug: await uniqueSlug("hrDocument", input.slug || input.title),
@@ -579,7 +579,7 @@ export async function updateDocument(
 
   const isPublished = existing.status === "PUBLISHED";
   const setAssistant =
-    input.assistantOverride !== undefined && can(caller.role, "admin:settings");
+    input.assistantOverride !== undefined && can(caller, "admin:settings");
   const updated = await prisma.hrDocument.update({
     where: { id },
     data: {
@@ -660,7 +660,7 @@ export async function deleteDocument(caller: KbCaller, id: string) {
 
 /** Throws unless the caller may configure assistant access. */
 function assertConfigureAssistant(caller: KbCaller): void {
-  if (!can(caller.role, "admin:settings")) {
+  if (!can(caller, "admin:settings")) {
     throw new Error("Forbidden: admin:settings required");
   }
 }

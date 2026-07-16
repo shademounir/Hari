@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getTranslations, getLocale } from "next-intl/server";
 import { Users, CalendarX2, TrendingDown, Wallet, Timer } from "lucide-react";
 import { requireUser } from "@/lib/session";
+import { getRoleLabels } from "@/lib/rbac-server";
 import { can } from "@/lib/rbac";
 import { getOrgSettings } from "@/lib/settings";
 import { formatCurrency } from "@/lib/utils";
@@ -27,7 +28,7 @@ export default async function AnalyticsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const user = await requireUser();
-  if (!can(user.role, "analytics:full")) redirect("/");
+  if (!can(user, "analytics:full")) redirect("/");
 
   const sp = new URLSearchParams();
   for (const [k, v] of Object.entries(await searchParams)) if (typeof v === "string") sp.set(k, v);
@@ -46,9 +47,10 @@ export default async function AnalyticsPage({
   ]);
   const tSalary = await getTranslations("hrAnalytics.salaryBand");
   const tTenure = await getTranslations("hrAnalytics.tenure");
-  const tRole = await getTranslations("roles");
+  // Diversity is broken down by role ("level"), which may include custom roles.
+  const roleLabels = await getRoleLabels(await getTranslations("roles"));
 
-  const model = await getHrAnalyticsCached({ role: user.role, employeeId: user.employeeId }, filters);
+  const model = await getHrAnalyticsCached(user, filters);
   if (!model) redirect("/");
 
   const money = (v: number) => formatCurrency(v, org.currency, locale);
@@ -185,7 +187,7 @@ export default async function AnalyticsPage({
             <CategoryBarChart
               stacked
               data={diversity.genderByLevel.map((r) => ({
-                label: tRole(r.level),
+                label: roleLabels[r.level] ?? r.level,
                 female: r.female,
                 male: r.male,
                 other: r.other,

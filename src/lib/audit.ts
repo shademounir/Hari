@@ -14,9 +14,9 @@
 // Reads are permission-checked server-side (`alerts:read` → Admin/HR).
 // ─────────────────────────────────────────────────────────────────────────
 import { AuditAction } from "@prisma/client";
-import type { Prisma, Role } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { can } from "@/lib/rbac";
+import { can, type Role, type Subject } from "@/lib/rbac";
 
 /** All audit actions, for the console's filter UI. Runtime enum values. */
 export const AUDIT_ACTIONS = Object.values(AuditAction) as AuditAction[];
@@ -26,7 +26,11 @@ export function asAuditAction(v: string | null | undefined): AuditAction | undef
   return v && (AUDIT_ACTIONS as string[]).includes(v) ? (v as AuditAction) : undefined;
 }
 
-/** The signed-in user performing the action being recorded. */
+/**
+ * The signed-in user performing the action being recorded. `role` is written to
+ * the trail as a SNAPSHOT of the slug — no permission check happens on write, so
+ * this deliberately does not need a resolved permission set.
+ */
 export type AuditActor = { userId: string; role: Role };
 
 export type RecordAuditInput = {
@@ -109,11 +113,11 @@ const toEntry = (
  * action or the acting user.
  */
 export async function getAuditLog(
-  actor: { role: Role },
+  actor: Subject,
   filter?: { action?: AuditAction; actorId?: string },
   limit = 100,
 ): Promise<AuditEntry[]> {
-  if (!can(actor.role, "alerts:read")) return [];
+  if (!can(actor, "alerts:read")) return [];
   const rows = await prisma.auditLog.findMany({
     where: {
       ...(filter?.action ? { action: filter.action } : {}),

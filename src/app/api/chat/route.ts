@@ -8,7 +8,7 @@ import {
   type UIMessage,
 } from "ai";
 import { randomUUID } from "node:crypto";
-import { auth } from "@/lib/auth";
+import { getApiCaller } from "@/lib/session";
 import { getChatModel, getAvailableChatModels, type ChatErrorCode } from "@/lib/ai/providers";
 import { buildHrTools } from "@/lib/ai/tools";
 import { recordAiEvent, type RecordAiEventInput } from "@/lib/ai/events";
@@ -17,7 +17,7 @@ import { inspectConversation } from "@/lib/ai/guardrails";
 import { rateLimit } from "@/lib/rate-limit";
 import { classifyRequest } from "@/lib/ai/classify";
 import { prisma } from "@/lib/prisma";
-import { ROLE_LABELS } from "@/lib/rbac";
+import { getRbacMatrix, roleLabelFrom } from "@/lib/rbac-server";
 import { localeConfig } from "@/i18n/routing";
 import { getOrgSettings } from "@/lib/settings";
 import { isoDateInTimeZone } from "@/lib/datetime";
@@ -87,8 +87,8 @@ export function chatErrorCode(error: unknown): ChatErrorCode {
 }
 
 export async function POST(req: Request) {
-  const session = await auth();
-  if (!session?.user) {
+  const signedIn = await getApiCaller();
+  if (!signedIn) {
     // Body becomes useChat's error.message; emit the stable code so the client
     // shows a "your session expired — sign in again" banner, not the generic one.
     return new Response("session_expired", { status: 401 });
@@ -101,10 +101,11 @@ export async function POST(req: Request) {
   };
 
   const caller = {
-    role: session.user.role,
-    employeeId: session.user.employeeId,
-    name: session.user.name ?? "the user",
-    userId: session.user.id,
+    role: signedIn.role,
+    permissions: signedIn.permissions,
+    employeeId: signedIn.employeeId,
+    name: signedIn.name || "the user",
+    userId: signedIn.id,
   };
 
   // Opaque id grouping this chat's events (client-generated, reset on New Chat).
@@ -116,7 +117,7 @@ export async function POST(req: Request) {
     rawConversationId.length <= 100
       ? rawConversationId
       : randomUUID();
-  const userId = session.user.id;
+  const userId = signedIn.id;
   // Per-user rate limit — a stable code the client localizes (chat.errors.rate_limited).
   if (!(await rateLimit("chat", userId, CHAT_MAX_PER_MIN, 60_000)).ok) {
     return new Response("rate_limited", { status: 429 });
@@ -176,6 +177,10 @@ export async function POST(req: Request) {
   // is also threaded into the tools so getCurrentDateTime can't contradict it.
   const { currency, timezone } = await getOrgSettings();
 
+  // The caller's role may be a custom one, so its display label comes from the
+  // live matrix rather than a static map. Prompt-only — never an enforcement point.
+  const roleLabel = roleLabelFrom(await getRbacMatrix(), caller.role);
+
   const tools = buildHrTools(caller, { timezone });
 
   // Capabilities == the tools actually injected for this caller, so the prompt
@@ -204,7 +209,7 @@ Always respond to the user in ${language}, regardless of the language these inst
 The current date and time is ${currentDateTime} (today's date in YYYY-MM-DD is ${isoDate}), in the organization's timezone ${timezone}. Use this as the source of truth for "today" — work out any relative date ("next Monday", "tomorrow", "in two weeks") from it and confirm the exact calendar date with the user.
 All monetary amounts in this organization are already in ${currency}; never convert to or assume another currency. When you mention an amount in prose, state it in ${currency} — a plain number with the currency is fine, and the result cards format amounts for you.
 
-The signed-in user is ${caller.name}, role: ${ROLE_LABELS[caller.role]}.
+The signed-in user is ${caller.name}, role: ${roleLabel}.
 
 You have EXACTLY these tools — they are the full extent of what you can do:
 ${capabilities}

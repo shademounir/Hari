@@ -9,5 +9,5 @@ import { submitArticleFeedback } from "@/lib/kb";
 // avoid a false "thanks".
 export async function articleFeedbackAction(documentId: string, helpful: boolean): Promise<boolean> {
   const user = await requireUser();
-  return submitArticleFeedback({ role: user.role, id: user.id }, documentId, helpful);
+  return submitArticleFeedback(user, documentId, helpful);
 }

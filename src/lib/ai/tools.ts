@@ -14,7 +14,7 @@
 import { tool } from "ai";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { can, PERMISSION_LABELS, type Permission, type Role } from "@/lib/rbac";
+import { can, PERMISSION_LABELS, type Permission, type Subject } from "@/lib/rbac";
 import {
   getEmployeeDirectory,
   filterDirectory,
@@ -33,8 +33,11 @@ import {
 import { getEngagementBoard } from "@/lib/engagement/data-layer";
 import { isoDateInTimeZone } from "@/lib/datetime";
 
-export type ToolCaller = {
-  role: Role;
+// The acting identity, resolved once per turn in api/chat/route.ts from the
+// session + the live RBAC matrix and closed over by every tool. It IS a Subject,
+// so the per-tool can() checks read an already-resolved permission set — and a
+// permission revoked in the editor stops advertising its tools on the next turn.
+export type ToolCaller = Subject & {
   employeeId: string | null;
   name: string;
   // The signed-in user's id — needed to attribute audit-trail entries for write
@@ -68,7 +71,7 @@ function withPermission<I, O>(
   fn: (input: I) => Promise<O>,
 ): (input: I) => Promise<O | Refusal | Failure> {
   return async (input: I) => {
-    if (!can(caller.role, permission)) {
+    if (!can(caller, permission)) {
       return refused(`That action isn't available to your role (needs "${PERMISSION_LABELS[permission]}").`);
     }
     // Throw-guard (defense in depth): an unexpected throw (e.g. a DB error) must
@@ -144,7 +147,7 @@ function buildAllHrTools(caller: ToolCaller, timezone = "UTC") {
   // Only callers who can read anyone's pay get a target parameter; everyone else
   // gets a self-only payslip tool with no `employeeId` field — so the agent
   // can't even attempt to query another person's payslip.
-  const canReadAnyPayslip = can(caller.role, "payslip:read:any");
+  const canReadAnyPayslip = can(caller, "payslip:read:any");
 
   // Running citation counter, shared across every searchHandbook call in THIS
   // request (the tools object lives for the whole multi-step stream). It makes
@@ -378,7 +381,7 @@ function buildAllHrTools(caller: ToolCaller, timezone = "UTC") {
         // tool, but a requestId outside their team is still refused here.) Guard the
         // null case explicitly: a caller with no employeeId must never match a
         // report whose managerId is also null (`null !== null` is false).
-        const companyWide = can(caller.role, "directory:read:all");
+        const companyWide = can(caller, "directory:read:all");
         if (!companyWide && (!caller.employeeId || req.employee.managerId !== caller.employeeId)) {
           return refused("That request is for someone outside your team, so you can't action it.");
         }
@@ -397,11 +400,7 @@ function buildAllHrTools(caller: ToolCaller, timezone = "UTC") {
         // so the status flip, the balance deduction, and the scope check can never
         // diverge by channel. It re-checks scope + PENDING atomically and deducts
         // the balance on approval (idempotent under races).
-        const ok = await decideLeaveRequest(
-          { role: caller.role, employeeId: caller.employeeId },
-          requestId,
-          status,
-        );
+        const ok = await decideLeaveRequest(caller, requestId, status);
         if (!ok) {
           // Lost a race, or scope narrowed between the read above and the write.
           return fail("request_not_pending", "That request could no longer be actioned.");
@@ -484,7 +483,7 @@ function buildAllHrTools(caller: ToolCaller, timezone = "UTC") {
           .describe("How many top-risk people to return (default 3)."),
       }),
       execute: withPermission(caller, "predictions:read", async ({ limit }) => {
-        const anonymized = !can(caller.role, "directory:read:all"); // managers → anonymized
+        const anonymized = !can(caller, "directory:read:all"); // managers → anonymized
         const candidates = await getPredictionCandidates(caller);
         if (candidates.length === 0) {
           return { scope: anonymized ? "team" : "company", anonymized, totalEvaluated: 0, highRiskCount: 0, atRisk: [] };
@@ -552,7 +551,7 @@ function buildAllHrTools(caller: ToolCaller, timezone = "UTC") {
         }
 
         const board = await getEngagementBoard(caller); // scope-enforced + self-excluded
-        const companyWide = can(caller.role, "engagement:read:all");
+        const companyWide = can(caller, "engagement:read:all");
         const scope = companyWide ? "company" : "team";
 
         // Managers get AGGREGATE, anonymized team insight only — never a per-person
@@ -635,14 +634,19 @@ export const TOOL_CATALOGUE = [
   { name: "getEngagementRisk", permission: "engagement:read:team" },
 ] as const satisfies readonly { name: ToolName; permission: Permission | null }[];
 
-/** Does this role get the catalogue entry? `null` permission = always (utility). */
-function roleHasTool(role: Role, permission: Permission | null): boolean {
-  return permission === null || can(role, permission);
+/** Does this subject get the catalogue entry? `null` permission = always (utility). */
+function subjectHasTool(subject: Subject, permission: Permission | null): boolean {
+  return permission === null || can(subject, permission);
 }
 
-/** Tool names a role is offered — handy for the settings UI and tests. */
-export function toolsForRole(role: Role): ToolName[] {
-  return TOOL_CATALOGUE.filter((t) => roleHasTool(role, t.permission)).map((t) => t.name);
+/**
+ * Tool names a subject is offered — handy for the settings UI and tests. Takes a
+ * resolved Subject rather than a role slug, so it reflects the LIVE matrix: a
+ * custom role holding `leave:approve` is offered `approveLeave`, and revoking a
+ * permission stops advertising its tools on the next turn.
+ */
+export function toolsForSubject(subject: Subject): ToolName[] {
+  return TOOL_CATALOGUE.filter((t) => subjectHasTool(subject, t.permission)).map((t) => t.name);
 }
 
 /**
@@ -657,7 +661,7 @@ export function buildHrTools(
   opts: { timezone?: string } = {},
 ): Partial<AllHrTools> {
   const all = buildAllHrTools(caller, opts.timezone);
-  const allowed = TOOL_CATALOGUE.filter((t) => roleHasTool(caller.role, t.permission)).map(
+  const allowed = TOOL_CATALOGUE.filter((t) => subjectHasTool(caller, t.permission)).map(
     (t) => [t.name, all[t.name]] as const,
   );
   return Object.fromEntries(allowed) as Partial<AllHrTools>;

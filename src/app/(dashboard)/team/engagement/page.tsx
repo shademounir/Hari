@@ -42,15 +42,15 @@ type Props = {
 // RBAC scope (a manager's own reports).
 export default async function TeamEngagementPage({ searchParams }: Props) {
   const user = await requireUser();
-  if (!can(user.role, "engagement:read:team")) redirect("/");
+  if (!can(user, "engagement:read:team")) redirect("/");
 
-  const caller = { role: user.role, employeeId: user.employeeId };
+  const caller = user;
   const t = await getTranslations("engagement");
   const params = await searchParams;
   const now = new Date();
 
   const all = await getEngagementDashboard(caller);
-  const canInput = can(user.role, "engagement:input");
+  const canInput = can(user, "engagement:input");
 
   // Filter option sources (within scope).
   const departments = [...new Set(all.map((r) => r.department))].sort();

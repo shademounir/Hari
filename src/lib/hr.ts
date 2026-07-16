@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { can, type Permission, type Role } from "@/lib/rbac";
+import { can, type Permission, type Role, type Subject } from "@/lib/rbac";
 import type {
   AiEventKind,
   EmploymentStatus,
@@ -14,10 +14,12 @@ import type {
   LeaveType,
 } from "@prisma/client";
 
-// The caller's identity — `role` + `employeeId` — taken straight from the
-// session (both set at sign-in; see lib/auth.ts). Every data-layer entry point
-// takes a Caller so it can scope reads/writes to what that role may see.
-export type Caller = { role: Role; employeeId: string | null };
+// The caller's identity — resolved server-side per request from the session +
+// the RBAC matrix (see lib/session.ts `requireUser`), never from client input.
+// It IS a Subject, so `can(caller, …)` reads the already-resolved permission set
+// and stays synchronous. Every data-layer entry point takes a Caller so it can
+// scope reads/writes to what that caller may see.
+export type Caller = Subject & { employeeId: string | null };
 
 export type DirectoryEntry = {
   id: string;
@@ -43,8 +45,8 @@ export type DirectoryEntry = {
  * would also hide e.g. a TERMINATED employee's payslip from HR).
  */
 function directoryWhere(caller: Caller): Prisma.EmployeeWhereInput {
-  if (can(caller.role, "directory:read:all")) return {};
-  if (can(caller.role, "directory:read:team")) {
+  if (can(caller, "directory:read:all")) return {};
+  if (can(caller, "directory:read:team")) {
     // Self + direct reports.
     return {
       OR: [
@@ -83,7 +85,7 @@ export async function getEmployeeDirectory(
   caller: Caller,
   filters: DirectoryFilters = {},
 ): Promise<DirectoryEntry[]> {
-  const seesSalary = can(caller.role, "salary:read:all");
+  const seesSalary = can(caller, "salary:read:all");
 
   const and: Prisma.EmployeeWhereInput[] = [
     directoryWhere(caller), // role scope — always first
@@ -224,9 +226,9 @@ export async function getMyLeaveRequests(employeeId: string): Promise<LeaveReque
 
 /** Pending requests the caller is allowed to approve (their reports / everyone). */
 export async function getPendingApprovals(caller: Caller): Promise<LeaveRequestView[]> {
-  if (!can(caller.role, "leave:approve")) return [];
+  if (!can(caller, "leave:approve")) return [];
 
-  const where = can(caller.role, "directory:read:all")
+  const where = can(caller, "directory:read:all")
     ? { status: "PENDING" as const }
     : {
       status: "PENDING" as const,
@@ -268,7 +270,7 @@ export async function getPayslip(
 ): Promise<PayslipResult> {
   const wantsOther = !!targetId && targetId !== caller.employeeId;
   const permission: Permission = wantsOther ? "payslip:read:any" : "payslip:read:self";
-  if (!can(caller.role, permission)) return { ok: false, reason: "denied", permission };
+  if (!can(caller, permission)) return { ok: false, reason: "denied", permission };
 
   const resolvedId = wantsOther ? targetId! : caller.employeeId;
   if (!resolvedId) return { ok: false, reason: "not_found" };
@@ -318,7 +320,7 @@ export type TeamScope = {
 };
 
 export async function getTeamScope(caller: Caller): Promise<TeamScope> {
-  if (!can(caller.role, "dashboard:read:team")) return { employeeIds: [], userIds: [] };
+  if (!can(caller, "dashboard:read:team")) return { employeeIds: [], userIds: [] };
   const rows = await prisma.employee.findMany({
     where: directoryWhere(caller), // ← the ONE source of scope
     select: { id: true, userId: true },
@@ -352,7 +354,7 @@ export async function getTeamKpis(
   opts: { scope?: TeamScope; now?: Date } = {},
 ): Promise<TeamKpis> {
   const empty: TeamKpis = { headcount: 0, pendingRequests: 0, aiTurns7d: 0, aiRefusals7d: 0 };
-  if (!can(caller.role, "dashboard:read:team")) return empty;
+  if (!can(caller, "dashboard:read:team")) return empty;
 
   // Scope + clock are threaded in from getTeamDashboard: scope avoids re-running
   // the directoryWhere query, and a shared `now` keeps the value and its sparkline
@@ -366,7 +368,7 @@ export async function getTeamKpis(
     // company-wide, so its KPI must count company-wide or the card and the
     // approvals table disagree.
     prisma.leaveRequest.count({
-      where: can(caller.role, "directory:read:all")
+      where: can(caller, "directory:read:all")
         ? { status: "PENDING" }
         : { status: "PENDING", employee: { managerId: caller.employeeId ?? "__none__" } },
     }),
@@ -489,7 +491,7 @@ export async function bulkDecideLeaveRequests(
   decision: LeaveDecision,
   note?: string | null,
 ): Promise<number> {
-  if (!can(caller.role, "leave:approve") || !caller.employeeId) return 0;
+  if (!can(caller, "leave:approve") || !caller.employeeId) return 0;
   if (requestIds.length === 0) return 0;
 
   const approverId = caller.employeeId;
@@ -497,7 +499,7 @@ export async function bulkDecideLeaveRequests(
   const scope: Prisma.LeaveRequestWhereInput = {
     id: { in: requestIds },
     status: "PENDING",
-    ...(can(caller.role, "directory:read:all")
+    ...(can(caller, "directory:read:all")
       ? {}
       : { employee: { managerId: approverId } }),
   };

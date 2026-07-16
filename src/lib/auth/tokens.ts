@@ -23,6 +23,10 @@ export const TOKEN_TTL_MINUTES: Record<AuthTokenType, number> = {
   PASSWORD_RESET: 30,
   MAGIC_LINK: 15,
   EMAIL_OTP: 10,
+  // An invited account's first-password link. Far longer than a reset: the
+  // recipient isn't waiting at their desk when HR provisions them, and a
+  // same-day expiry would just mean re-inviting everyone hired on a Friday.
+  INVITE: 60 * 24 * 7, // 7 days
 };
 
 export const OTP_LENGTH = 6;

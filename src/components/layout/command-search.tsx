@@ -11,14 +11,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { can, type Role } from "@/lib/rbac";
+import { can, type Subject } from "@/lib/rbac";
 import { NAV_ITEMS } from "@/lib/nav-items";
 
 // Command palette: click the search box or press ⌘K / Ctrl+K, type to filter the
 // pages you can see, ↑/↓ to move, Enter to navigate. Built on the Base UI Dialog
 // primitive (focus trap, scroll lock, focus restore, Escape) with a WAI-ARIA
 // combobox/listbox for screen readers.
-export function CommandSearch({ role }: { role: Role }) {
+// Takes the caller as a Subject: ⌘K must offer exactly the pages the sidebar
+// shows, and both now read the resolved permission set rather than a role slug.
+export function CommandSearch({ caller }: { caller: Subject }) {
   const router = useRouter();
   const t = useTranslations("nav");
   const tSettings = useTranslations("settings");
@@ -29,10 +31,10 @@ export function CommandSearch({ role }: { role: Role }) {
 
   // Flatten nav parents + their permission-visible children so nested pages
   // (Team Analytics, Predictions, Settings sub-pages) stay searchable in ⌘K.
-  const pages = NAV_ITEMS.filter((p) => !p.permission || can(role, p.permission)).flatMap((p) => {
+  const pages = NAV_ITEMS.filter((p) => !p.permission || can(caller, p.permission)).flatMap((p) => {
     const parent = { href: p.href, icon: p.icon, label: t(p.key) };
     const kids = (p.children ?? [])
-      .filter((c) => !c.permission || can(role, c.permission))
+      .filter((c) => !c.permission || can(caller, c.permission))
       .map((c) => ({ href: c.href, icon: p.icon, label: c.ns === "nav" ? t(c.key) : tSettings(c.key) }));
     return [parent, ...kids];
   });

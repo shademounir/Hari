@@ -17,13 +17,14 @@ import type { GeneratedDocumentStatus, GeneratedDocumentType } from "@prisma/cli
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { can } from "@/lib/rbac";
-import type { Role } from "@/lib/rbac";
+import type { Actor } from "@/lib/rbac";
 import { putDocument } from "@/lib/storage";
 import { recordAudit } from "@/lib/audit";
 import { generateWorkCertificatePdf, type WorkCertificateCopy } from "@/lib/pdf/work-certificate";
 import { locales, defaultLocale, localeConfig, type Locale } from "@/i18n/routing";
 
-export type DocumentActor = { userId: string; role: Role };
+/** Who requested / validated / downloaded a document. */
+export type DocumentActor = Actor;
 
 const COMPANY_NAME = process.env.COMPANY_NAME || "HARI";
 
@@ -88,7 +89,7 @@ export type QueueDocument = {
  * document history (SCRUM-083): every status is included, not just pending ones.
  */
 export async function listDocumentQueue(actor: DocumentActor): Promise<QueueDocument[]> {
-  if (!can(actor.role, "documents:download:any")) return [];
+  if (!can(actor, "documents:download:any")) return [];
   const rows = await prisma.generatedDocument.findMany({
     orderBy: [{ requestedAt: "desc" }],
     select: {
@@ -165,7 +166,7 @@ export async function generateWorkCertificate(
   actor: DocumentActor,
   id: string,
 ): Promise<FulfillResult> {
-  if (!can(actor.role, "documents:download:any")) return { ok: false, reason: "forbidden" };
+  if (!can(actor, "documents:download:any")) return { ok: false, reason: "forbidden" };
 
   const doc = await prisma.generatedDocument.findUnique({
     where: { id },
@@ -228,7 +229,7 @@ export async function rejectDocumentRequest(
   id: string,
   note: string,
 ): Promise<FulfillResult> {
-  if (!can(actor.role, "documents:download:any")) return { ok: false, reason: "forbidden" };
+  if (!can(actor, "documents:download:any")) return { ok: false, reason: "forbidden" };
   const doc = await prisma.generatedDocument.findUnique({ where: { id }, select: { status: true } });
   if (!doc) return { ok: false, reason: "not_found" };
   if (doc.status !== "REQUESTED" && doc.status !== "VALIDATED") {
@@ -279,7 +280,7 @@ export async function authorizeDocumentDownload(
   if (!doc) return { ok: false, reason: "not_found" };
 
   const isOwner = doc.requestedById === actor.userId;
-  const canDownloadAny = can(actor.role, "documents:download:any");
+  const canDownloadAny = can(actor, "documents:download:any");
 
   if (!isOwner && !canDownloadAny) {
     return { ok: false, reason: "forbidden" };

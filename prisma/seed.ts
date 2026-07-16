@@ -3,11 +3,11 @@ import "dotenv/config"; // self-contained when run directly via tsx
 import {
   PrismaClient,
   type Prisma,
-  type Role,
   type DocVisibility,
   EmploymentStatus,
   EmploymentType,
 } from "@prisma/client";
+import type { BuiltinRole } from "@/lib/rbac";
 import bcrypt from "bcryptjs";
 import sharp from "sharp";
 import { unified } from "unified";
@@ -47,7 +47,7 @@ const PASSWORD = "password123";
 type Seed = {
   email: string;
   name: string;
-  role: Role;
+  role: BuiltinRole;
   title: string;
   department: string;
   location: string;

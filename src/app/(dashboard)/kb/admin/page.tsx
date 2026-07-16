@@ -49,10 +49,10 @@ export default async function KbAdminPage({
   }>;
 }) {
   const user = await requireUser();
-  if (!can(user.role, "kb:manage")) redirect("/"); // belt-and-suspenders
+  if (!can(user, "kb:manage")) redirect("/"); // belt-and-suspenders
 
   const sp = await searchParams;
-  const caller = { role: user.role };
+  const caller = user;
   const t = await getTranslations("kb");
   const tStatus = await getTranslations("kbStatus");
   const tVis = await getTranslations("kbVisibility");

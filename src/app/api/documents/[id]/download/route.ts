@@ -2,7 +2,7 @@
 // authorizeDocumentDownload (lib/documents.ts) before any storage access.
 // MinIO is never exposed directly — the PDF is proxied server-side,
 // consistent with the KB cover-image proxy (api/kb/images/[...key]).
-import { auth } from "@/lib/auth";
+import { getApiCaller } from "@/lib/session";
 import { authorizeDocumentDownload } from "@/lib/documents";
 import { getObject } from "@/lib/storage";
 
@@ -14,13 +14,13 @@ export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await auth();
-  if (!session?.user) return new Response("Unauthorized", { status: 401 });
+  const caller = await getApiCaller();
+  if (!caller) return new Response("Unauthorized", { status: 401 });
 
   const { id } = await params;
 
   const result = await authorizeDocumentDownload(
-    { userId: session.user.id, role: session.user.role },
+    { userId: caller.id, role: caller.role, permissions: caller.permissions },
     id,
   );
 

@@ -41,9 +41,9 @@
     "userMenu": "Account menu",
     "alerts": "Alerts",
     "audit": "Audit Log",
-    "analytics": "HR Analytics", 
+    "analytics": "HR Analytics",
     "edit": "Edit",
-    "teamAnalytics": "Team Analytics",   
+    "teamAnalytics": "Team Analytics",
     "teamPredictions": "Predictions",
     "engagement": "Engagement",
     "documents": "Documents"
@@ -72,6 +72,7 @@
     "employee:manage": "Manage employee records",
     "admin:settings": "Manage platform settings",
     "kb:manage": "Manage the knowledge base",
+    "profile:edit:self": "Edit own profile and avatar",
     "alerts:read": "View AI alerts",
     "documents:download:any": "Download any generated HR document",
     "documents:request": "Request own HR documents",
@@ -465,7 +466,15 @@
       "KB_DOCUMENT_PUBLISHED": "KB article published",
       "KB_DOCUMENT_UNPUBLISHED": "KB article unpublished",
       "KB_DOCUMENT_ARCHIVED": "KB article archived",
-      "KB_DOCUMENT_DELETED": "KB article deleted"
+      "KB_DOCUMENT_DELETED": "KB article deleted",
+      "ROLE_CREATED": "Role created",
+      "ROLE_UPDATED": "Role updated",
+      "ROLE_DELETED": "Role deleted",
+      "USER_INVITED": "User invited",
+      "USER_UPDATED": "User updated",
+      "USER_ROLE_CHANGED": "Role changed",
+      "USER_DEACTIVATED": "User deactivated",
+      "USER_REACTIVATED": "User reactivated"
     }
   },
   "settings": {
@@ -499,7 +508,9 @@
     "cardAssistantDesc": "Choose which Knowledge Base content the assistant can use.",
     "cardPermissionsDesc": "The role-based permission matrix that gates every surface.",
     "cardAiToolsDesc": "Which AI tools each role is given.",
-    "cardModelsDesc": "The chat models available to the assistant."
+    "cardModelsDesc": "The chat models available to the assistant.",
+    "manageRoles": "Manage roles",
+    "customRole": "Custom"
   },
   "chat": {
     "assistant": "AI Assistant",
@@ -783,7 +794,7 @@
       "rank": "Report #{n}"
     }
   },
-  "engagement":   {
+  "engagement": {
     "teamTitle": "Team Engagement & Burnout",
     "teamDescription": "Early signals of disengagement and burnout for your team. Scores are for support, never punishment — and are never shown to the employee.",
     "adminTitle": "Engagement & Burnout (Company)",

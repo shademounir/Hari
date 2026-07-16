@@ -19,7 +19,7 @@ export default async function AssistantDocumentsPage({ params, searchParams }: P
   const user = await requireUser();
   const { collection } = await params;
   const sp = await searchParams;
-  const caller = { role: user.role, id: user.id };
+  const caller = user;
 
   const col = await getAssistantCollection(caller, collection);
   if (!col) notFound();

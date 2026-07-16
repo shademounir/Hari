@@ -42,7 +42,7 @@
     "alerts": "Alertes",
     "audit": "Journal d'audit",
     "analytics": "Analytique RH",
-    "teamAnalytics": "Analytique équipe",   
+    "teamAnalytics": "Analytique équipe",
     "edit": "Modifier",
     "teamPredictions": "Prédictions",
     "engagement": "Engagement",
@@ -72,6 +72,7 @@
     "employee:manage": "Gérer les dossiers des employés",
     "admin:settings": "Gérer les paramètres de la plateforme",
     "kb:manage": "Gérer la base de connaissances",
+    "profile:edit:self": "Modifier son propre profil et son avatar",
     "alerts:read": "Voir les alertes IA",
     "documents:download:any": "Télécharger tout document RH généré",
     "documents:request": "Demander ses propres documents RH",
@@ -465,7 +466,15 @@
       "KB_DOCUMENT_PUBLISHED": "Article KB publié",
       "KB_DOCUMENT_UNPUBLISHED": "Article KB dépublié",
       "KB_DOCUMENT_ARCHIVED": "Article KB archivé",
-      "KB_DOCUMENT_DELETED": "Article KB supprimé"
+      "KB_DOCUMENT_DELETED": "Article KB supprimé",
+      "ROLE_CREATED": "Rôle créé",
+      "ROLE_UPDATED": "Rôle modifié",
+      "ROLE_DELETED": "Rôle supprimé",
+      "USER_INVITED": "Utilisateur invité",
+      "USER_UPDATED": "Utilisateur modifié",
+      "USER_ROLE_CHANGED": "Rôle changé",
+      "USER_DEACTIVATED": "Utilisateur désactivé",
+      "USER_REACTIVATED": "Utilisateur réactivé"
     }
   },
   "settings": {
@@ -499,7 +508,9 @@
     "cardAssistantDesc": "Choisissez le contenu de la base de connaissances que l’assistant peut utiliser.",
     "cardPermissionsDesc": "La matrice de permissions par rôle qui régit chaque surface.",
     "cardAiToolsDesc": "Les outils IA attribués à chaque rôle.",
-    "cardModelsDesc": "Les modèles de chat disponibles pour l’assistant."
+    "cardModelsDesc": "Les modèles de chat disponibles pour l’assistant.",
+    "manageRoles": "Gérer les rôles",
+    "customRole": "Personnalisé"
   },
   "chat": {
     "assistant": "Assistant IA",
@@ -783,7 +794,7 @@
       "rank": "Collaborateur n°{n}"
     }
   },
-  "engagement":   {
+  "engagement": {
     "teamTitle": "Engagement & épuisement de l'équipe",
     "teamDescription": "Signaux précoces de désengagement et d'épuisement pour votre équipe. Les scores servent à soutenir, jamais à sanctionner — et ne sont jamais montrés à l'employé.",
     "adminTitle": "Engagement & épuisement (Entreprise)",

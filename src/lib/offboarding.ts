@@ -18,8 +18,8 @@ import type {
   OffboardingTaskStatus,
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { can } from "@/lib/rbac";
-import { recordAudit, type AuditActor } from "@/lib/audit";
+import { can, type Actor } from "@/lib/rbac";
+import { recordAudit } from "@/lib/audit";
 
 /**
  * The standard exit checklist. `as const` so step keys stay literal for typed
@@ -103,9 +103,9 @@ export type OffboardingView = {
 
 /** Active employees who don't yet have an offboarding — candidates to start one. */
 export async function listOffboardingCandidates(
-  actor: AuditActor,
+  actor: Actor,
 ): Promise<OffboardingCandidate[]> {
-  if (!can(actor.role, "employee:manage")) return [];
+  if (!can(actor, "employee:manage")) return [];
   const employees = await prisma.employee.findMany({
     where: { status: { not: "TERMINATED" }, offboarding: null },
     orderBy: { user: { name: "asc" } },
@@ -155,10 +155,10 @@ function toView(o: {
 
 /** All offboardings (optionally by state), newest first. Gated on employee:manage. */
 export async function getOffboardings(
-  actor: AuditActor,
+  actor: Actor,
   state?: OffboardingState,
 ): Promise<OffboardingView[]> {
-  if (!can(actor.role, "employee:manage")) return [];
+  if (!can(actor, "employee:manage")) return [];
   const rows = await prisma.offboarding.findMany({
     where: state ? { state } : {},
     orderBy: { createdAt: "desc" },
@@ -178,10 +178,10 @@ export type InitiateResult = "ok" | "forbidden" | "not_found" | "exists";
  * employee can only have one offboarding (`employeeId @unique`).
  */
 export async function initiateOffboarding(
-  actor: AuditActor,
+  actor: Actor,
   input: { employeeId: string; reason: OffboardingReason; lastDay: Date },
 ): Promise<InitiateResult> {
-  if (!can(actor.role, "employee:manage")) return "forbidden";
+  if (!can(actor, "employee:manage")) return "forbidden";
 
   const employee = await prisma.employee.findUnique({
     where: { id: input.employeeId },
@@ -221,11 +221,11 @@ export async function initiateOffboarding(
  * offboarding is still IN_PROGRESS. Returns true on success.
  */
 export async function setOffboardingStepStatus(
-  actor: AuditActor,
+  actor: Actor,
   taskId: string,
   done: boolean,
 ): Promise<boolean> {
-  if (!can(actor.role, "employee:manage")) return false;
+  if (!can(actor, "employee:manage")) return false;
 
   const task = await prisma.offboardingTask.findUnique({
     where: { id: taskId },
@@ -264,10 +264,10 @@ export type CompleteResult = "ok" | "forbidden" | "not_found" | "incomplete" | "
  * atomically so the archive and the state change can't diverge.
  */
 export async function completeOffboarding(
-  actor: AuditActor,
+  actor: Actor,
   offboardingId: string,
 ): Promise<CompleteResult> {
-  if (!can(actor.role, "employee:manage")) return "forbidden";
+  if (!can(actor, "employee:manage")) return "forbidden";
 
   const off = await prisma.offboarding.findUnique({
     where: { id: offboardingId },

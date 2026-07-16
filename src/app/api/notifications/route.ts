@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getApiCaller } from "@/lib/session";
 import { buildNotifications } from "@/lib/notifications";
 
 // Role-scoped bell contents, fetched on demand by the client (mount + on open),
@@ -7,12 +7,9 @@ import { buildNotifications } from "@/lib/notifications";
 export const runtime = "nodejs";
 
 export async function GET() {
-  const session = await auth();
-  if (!session?.user) return new Response("Unauthorized", { status: 401 });
+  const caller = await getApiCaller();
+  if (!caller) return new Response("Unauthorized", { status: 401 });
 
-  const items = await buildNotifications({
-    role: session.user.role,
-    employeeId: session.user.employeeId ?? null,
-  });
+  const items = await buildNotifications(caller);
   return Response.json({ items });
 }

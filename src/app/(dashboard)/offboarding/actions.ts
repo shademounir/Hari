@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireUser } from "@/lib/session";
+import { actorOf, requireUser } from "@/lib/session";
 import { can } from "@/lib/rbac";
 import {
   initiateOffboarding,
@@ -16,8 +16,8 @@ import {
 // checks too) before mutating, and records to the AuditLog for compliance.
 async function requireHr() {
   const user = await requireUser();
-  if (!can(user.role, "employee:manage")) redirect("/");
-  return { userId: user.id, role: user.role };
+  if (!can(user, "employee:manage")) redirect("/");
+  return actorOf(user);
 }
 
 export async function initiateOffboardingAction(formData: FormData): Promise<void> {

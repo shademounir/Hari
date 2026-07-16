@@ -1,6 +1,6 @@
 "use server";
 
-import { requireUser } from "@/lib/session";
+import { actorOf, requireUser } from "@/lib/session";
 import { can } from "@/lib/rbac";
 import { recordAudit, asAuditAction } from "@/lib/audit";
 
@@ -10,9 +10,9 @@ import { recordAudit, asAuditAction } from "@/lib/audit";
 // server render. `filter` is the active action filter, if any (a code, no PII).
 export async function logAuditConsoleViewAction(filter: string | null): Promise<void> {
   const user = await requireUser();
-  if (!can(user.role, "alerts:read")) return;
+  if (!can(user, "alerts:read")) return;
   await recordAudit(
-    { userId: user.id, role: user.role },
+    actorOf(user),
     {
       action: "AUDIT_CONSOLE_VIEWED",
       meta: { filter: asAuditAction(filter) ?? "ALL" },

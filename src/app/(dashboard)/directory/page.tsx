@@ -1,4 +1,5 @@
 import { getTranslations, getLocale } from "next-intl/server";
+import { getRoleLabels } from "@/lib/rbac-server";
 import { requireUser } from "@/lib/session";
 import { getEmployeeDirectory, getEmployeeDirectoryFacets } from "@/lib/hr";
 import { can } from "@/lib/rbac";
@@ -37,24 +38,24 @@ const asArray = (v: string | string[] | undefined): string[] =>
 export default async function DirectoryPage({ searchParams }: Props) {
   const user = await requireUser();
   const params = await searchParams;
-  const caller = { role: user.role, employeeId: user.employeeId };
+  const caller = user;
 
   const t = await getTranslations("directory");
-  const tRoles = await getTranslations("roles");
+  const roleLabels = await getRoleLabels(await getTranslations("roles"));
   const tc = await getTranslations("common");
   const tStatus = await getTranslations("employmentStatus");
   const tType = await getTranslations("employmentTypeLabel");
   const locale = await getLocale();
   const { currency } = await getOrgSettings();
 
-  const showSalary = can(user.role, "salary:read:all");
+  const showSalary = can(user, "salary:read:all");
   // A caller with team-scope (but not company-wide) sees self + direct reports —
   // label the non-self rows so their perimeter is explicit (SCRUM-043).
   const isManagerScope =
-    can(user.role, "directory:read:team") && !can(user.role, "directory:read:all");
-  const scope = can(user.role, "directory:read:all")
+    can(user, "directory:read:team") && !can(user, "directory:read:all");
+  const scope = can(user, "directory:read:all")
     ? t("scopeAll")
-    : can(user.role, "directory:read:team")
+    : can(user, "directory:read:team")
       ? t("scopeTeam")
       : t("scopeSelf");
 
@@ -106,7 +107,7 @@ export default async function DirectoryPage({ searchParams }: Props) {
                         </Badge>
                       )}
                       <Badge variant="secondary" className="text-[10px]">
-                        {tRoles(e.role)}
+                        {roleLabels[e.role] ?? e.role}
                       </Badge>
                     </div>
                     <span className="text-xs text-muted-foreground">{e.email}</span>

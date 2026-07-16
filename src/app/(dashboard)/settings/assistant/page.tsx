@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 export default async function AssistantAccessSettingsPage() {
   const user = await requireUser();
   const t = await getTranslations("kb");
-  const collections = await listAssistantCollections({ role: user.role, id: user.id });
+  const collections = await listAssistantCollections(user);
 
   return (
     <Card>

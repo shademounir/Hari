@@ -58,7 +58,7 @@ export async function getTeamDashboard(
   const rangeStart = startOfDayUtc(now);
   const rangeEnd = addDays(rangeStart, CAPACITY_HORIZON_DAYS);
 
-  if (!can(caller.role, "dashboard:read:team") || scope.employeeIds.length === 0) {
+  if (!can(caller, "dashboard:read:team") || scope.employeeIds.length === 0) {
     const capacity = buildCapacityHeatmap([], rangeStart, rangeEnd, scope.employeeIds.length);
     return {
       kpis: [],

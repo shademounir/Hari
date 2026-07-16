@@ -12,7 +12,7 @@ import { setCollectionAssistantAccess, setDocumentAssistantAccess } from "@/lib/
 // hand-crafted POST can't set an arbitrary value.
 export async function updateOrgSettings(formData: FormData) {
   const user = await requireUser();
-  if (!can(user.role, "admin:settings")) return;
+  if (!can(user, "admin:settings")) return;
 
   const currency = String(formData.get("currency") ?? "");
   const timezone = String(formData.get("timezone") ?? "");
@@ -38,7 +38,7 @@ export async function setCollectionAssistantAction(formData: FormData) {
   const collectionId = String(formData.get("collectionId") ?? "");
   if (!collectionId) return;
   const enabled = String(formData.get("enabled") ?? "") === "true";
-  await setCollectionAssistantAccess({ role: user.role, id: user.id }, collectionId, enabled);
+  await setCollectionAssistantAccess(user, collectionId, enabled);
   revalidatePath("/kb", "layout"); // admin badges read this
   revalidatePath("/settings/assistant", "layout");
 }
@@ -49,7 +49,7 @@ export async function setDocumentAssistantAction(formData: FormData) {
   if (!documentId) return;
   const raw = String(formData.get("override") ?? "inherit");
   const override = raw === "inherit" ? null : raw === "on";
-  await setDocumentAssistantAccess({ role: user.role, id: user.id }, documentId, override);
+  await setDocumentAssistantAccess(user, documentId, override);
   revalidatePath("/kb", "layout");
   revalidatePath("/settings/assistant", "layout");
 }

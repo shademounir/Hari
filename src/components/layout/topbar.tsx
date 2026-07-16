@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { useRoleLabel } from "@/components/role-labels-provider";
 import { Menu, ChevronDown, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -47,12 +48,12 @@ const OPAQUE_ID = /^c[a-z0-9]{24}$/;
 export function Topbar({ user }: { user: NavUser }) {
   const pathname = usePathname();
   const t = useTranslations("nav");
-  const tRoles = useTranslations("roles");
+  const roleLabelOf = useRoleLabel();
   const tSettings = useTranslations("settings");
   const labels = useBreadcrumbLabels();
   const [open, setOpen] = useState(false);
 
-  const roleLabel = tRoles(user.role);
+  const roleLabel = roleLabelOf(user.role);
 
   // Depth-aware breadcrumb built from the shared nav source: top-level page plus
   // any sub-segments. Each sub-segment takes the best label available, in order:
@@ -135,7 +136,7 @@ export function Topbar({ user }: { user: NavUser }) {
       </nav>
 
       <div className="ml-auto flex shrink-0 items-center gap-1 md:gap-2">
-        <CommandSearch role={user.role} />
+        <CommandSearch caller={user} />
         <Notifications />
         <ThemeToggle />
         <LanguageSwitcher />

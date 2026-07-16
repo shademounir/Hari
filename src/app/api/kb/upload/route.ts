@@ -1,5 +1,5 @@
 import sharp from "sharp";
-import { auth } from "@/lib/auth";
+import { getApiCaller } from "@/lib/session";
 import { can } from "@/lib/rbac";
 import { putCover, coverUrl } from "@/lib/storage";
 import { rateLimit } from "@/lib/rate-limit";
@@ -14,12 +14,12 @@ const MAX_UPLOAD_BYTES = 2_000_000; // 2 MB — image-field pre-compresses raste
 const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 
 export async function POST(req: Request) {
-  const session = await auth();
-  if (!session?.user) return new Response("Unauthorized", { status: 401 });
-  if (!can(session.user.role, "kb:manage")) {
+  const caller = await getApiCaller();
+  if (!caller) return new Response("Unauthorized", { status: 401 });
+  if (!can(caller, "kb:manage")) {
     return new Response("Forbidden", { status: 403 });
   }
-  if (!(await rateLimit("kb-upload", session.user.id, 20, 60_000)).ok) {
+  if (!(await rateLimit("kb-upload", caller.id, 20, 60_000)).ok) {
     return new Response("Too many requests", { status: 429 });
   }
 

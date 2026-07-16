@@ -48,9 +48,9 @@ export default async function TeamPage({ searchParams }: Props) {
 
   // Server-side gate — defense in depth beyond the nav filter (which only hides
   // the link) and the data-layer check inside getTeamKpis.
-  if (!can(user.role, "dashboard:read:team")) redirect("/");
+  if (!can(user, "dashboard:read:team")) redirect("/");
 
-  const caller = { role: user.role, employeeId: user.employeeId };
+  const caller = user;
   const params = await searchParams;
   const t = await getTranslations("team");
 

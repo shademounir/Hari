@@ -29,7 +29,7 @@ type Props = {
 // `dashboard:read:company` is held by exactly HR_ADMIN + SUPER_ADMIN.
 export default async function PredictionsPage({ searchParams }: Props) {
   const user = await requireUser();
-  if (!can(user.role, "predictions:read") || !can(user.role, "dashboard:read:company")) {
+  if (!can(user, "predictions:read") || !can(user, "dashboard:read:company")) {
     redirect("/");
   }
 
@@ -56,7 +56,7 @@ export default async function PredictionsPage({ searchParams }: Props) {
     configP,
   ]);
 
-  const canRecalibrate = can(user.role, "predictions:manage");
+  const canRecalibrate = can(user, "predictions:manage");
   const highRiskCount = risk.rows.filter((r) => displayBand(r.score) === "red").length;
 
   // ── Risk-map filtering + pagination (URL-driven) ──────────────────────

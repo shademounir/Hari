@@ -17,7 +17,7 @@ import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { embedText, toVectorLiteral } from "@/lib/ai/embeddings";
-import { visibleDocTiers, type Role } from "@/lib/rbac";
+import { visibleDocTiers, type Subject } from "@/lib/rbac";
 
 export type HandbookHit = {
   id: string;
@@ -45,10 +45,10 @@ export type RetrievalSurface = "assistant" | "reader";
 export async function searchHandbook(
   query: string,
   k = 4,
-  caller: { role: Role },
+  caller: Subject,
   opts: { surface?: RetrievalSurface } = {},
 ): Promise<HandbookHit[]> {
-  const tiers = visibleDocTiers(caller.role);
+  const tiers = visibleDocTiers(caller);
   const surface = opts.surface ?? "assistant";
 
   // The query embedding is BEST-EFFORT. If the embeddings endpoint hiccups

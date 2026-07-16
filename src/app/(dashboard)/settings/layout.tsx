@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/layout/page-header";
 // (Settings → nested sub-items), so there's no secondary nav here.
 export default async function SettingsLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
-  if (!can(user.role, "admin:settings")) redirect("/");
+  if (!can(user, "admin:settings")) redirect("/");
 
   const t = await getTranslations("settings");
 

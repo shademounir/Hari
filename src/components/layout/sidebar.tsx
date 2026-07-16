@@ -6,12 +6,20 @@ import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { can, type Role } from "@/lib/rbac";
+import { can, type Permission, type Role } from "@/lib/rbac";
 import { NAV_ITEMS } from "@/lib/nav-items";
+import { useRoleLabel } from "@/components/role-labels-provider";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { HariMark } from "@/components/brand/logo";
 
-export type NavUser = { name: string; email: string; role: Role };
+// Carries the caller's RESOLVED permissions, not just a role slug: the matrix is
+// data now, so the slug alone doesn't say what the links should show.
+export type NavUser = {
+  name: string;
+  email: string;
+  role: Role;
+  permissions: readonly Permission[];
+};
 
 function initialsOf(name: string) {
   return name
@@ -33,9 +41,9 @@ export function NavBody({
   const pathname = usePathname();
   const t = useTranslations("nav");
   const tSettings = useTranslations("settings");
-  const tRoles = useTranslations("roles");
+  const roleLabel = useRoleLabel();
   const tTop = useTranslations("topbar");
-  const items = NAV_ITEMS.filter((i) => !i.permission || can(user.role, i.permission));
+  const items = NAV_ITEMS.filter((i) => !i.permission || can(user, i.permission));
   const inSection = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   return (
@@ -59,7 +67,7 @@ export function NavBody({
       </div>
 
       <p className="px-5 pb-2 pt-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-on-navy-muted">
-        {tTop("workspace", { role: tRoles(user.role) })}
+        {tTop("workspace", { role: roleLabel(user.role) })}
       </p>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3" aria-label={t("primary")}>
@@ -67,7 +75,7 @@ export function NavBody({
           // Only children the user may actually reach. If a parent's children are
           // all gated away, treat it as a leaf so it still highlights on sub-routes.
           const visibleChildren = (item.children ?? []).filter(
-            (c) => !c.permission || can(user.role, c.permission),
+            (c) => !c.permission || can(user, c.permission),
           );
           const hasChildren = visibleChildren.length > 0;
           // A parent WITH children highlights ONLY on its exact route — the active
@@ -145,7 +153,7 @@ export function NavBody({
           </Avatar>
           <div className="min-w-0 flex-1 leading-tight">
             <p className="truncate text-sm font-semibold text-on-navy">{user.name}</p>
-            <p className="truncate text-xs text-on-navy-muted">{tRoles(user.role)}</p>
+            <p className="truncate text-xs text-on-navy-muted">{roleLabel(user.role)}</p>
           </div>
         </div>
       </div>

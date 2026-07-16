@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
-import { requireUser } from "@/lib/session";
+import { actorOf, requireUser } from "@/lib/session";
 import { can } from "@/lib/rbac";
 import {
   listOffboardingCandidates,
@@ -27,8 +27,8 @@ const REASONS = ["RESIGNATION", "TERMINATION", "END_OF_CONTRACT", "RETIREMENT", 
 export default async function OffboardingPage() {
   const user = await requireUser();
   // Offboarding is HR-only. Gate the whole page server-side.
-  if (!can(user.role, "employee:manage")) redirect("/");
-  const actor = { userId: user.id, role: user.role };
+  if (!can(user, "employee:manage")) redirect("/");
+  const actor = actorOf(user);
   const t = await getTranslations("offboarding");
 
   const [candidates, inProgress, completed] = await Promise.all([

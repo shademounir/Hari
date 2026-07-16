@@ -27,9 +27,9 @@ export default async function HrActivityPage() {
 
   // Server-side gate — defense in depth beyond the nav filter (which only hides
   // the link) and the permission check inside getHrDashboard.
-  if (!can(user.role, "dashboard:read:company")) redirect("/");
+  if (!can(user, "dashboard:read:company")) redirect("/");
 
-  const caller = { role: user.role, employeeId: user.employeeId };
+  const caller = user;
   const t = await getTranslations("hrDashboard");
   const tStatus = await getTranslations("docStatus");
 

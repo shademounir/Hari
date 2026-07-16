@@ -19,13 +19,13 @@ export default async function CollectionPage({ params }: Props) {
 
   // null if missing or nothing the caller may see — same not-found-on-restricted
   // posture as the article page.
-  const col = await getCollection({ role: user.role }, collection);
+  const col = await getCollection(user, collection);
   if (!col) notFound();
 
   const t = await getTranslations("kb");
   const tVis = await getTranslations("kbVisibility");
   const format = await getFormatter();
-  const canManage = can(user.role, "kb:manage");
+  const canManage = can(user, "kb:manage");
 
   return (
     <>

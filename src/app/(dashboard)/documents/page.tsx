@@ -15,7 +15,7 @@ import {
 import { DocumentStatusBadge } from "@/components/documents/document-status-badge";
 import { DocumentQueue } from "@/components/documents/document-queue";
 import { can } from "@/lib/rbac";
-import { requireUser } from "@/lib/session";
+import { actorOf, requireUser } from "@/lib/session";
 import { listOwnDocuments, listDocumentQueue } from "@/lib/documents";
 
 export default async function DocumentsPage({
@@ -24,17 +24,17 @@ export default async function DocumentsPage({
   searchParams: Promise<{ requested?: string }>;
 }) {
   const user = await requireUser();
-  if (!can(user.role, "documents:request")) redirect("/");
+  if (!can(user, "documents:request")) redirect("/");
 
   const t = await getTranslations("documents");
   const format = await getFormatter();
   const params = await searchParams;
   const requested = params.requested === "1";
-  const isHr = can(user.role, "documents:download:any");
+  const isHr = can(user, "documents:download:any");
 
   const [ownDocuments, queue] = await Promise.all([
     listOwnDocuments(user.id),
-    isHr ? listDocumentQueue({ userId: user.id, role: user.role }) : Promise.resolve([]),
+    isHr ? listDocumentQueue(actorOf(user)) : Promise.resolve([]),
   ]);
 
   return (
