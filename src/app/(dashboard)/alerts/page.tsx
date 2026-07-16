@@ -20,14 +20,14 @@ export default async function AlertsPage({
   searchParams: Promise<{ status?: string }>;
 }) {
   const user = await requireUser();
-  if (!can(user.role, "alerts:read")) notFound();
+  if (!can(user, "alerts:read")) notFound();
 
   const { status: raw } = await searchParams;
   const status = isStatus(raw) ? raw : undefined; // undefined = "all"
 
   const [alerts, counts] = await Promise.all([
-    getAlerts({ role: user.role }, status ? { status } : undefined),
-    getAlertStatusCounts({ role: user.role }),
+    getAlerts(user, status ? { status } : undefined),
+    getAlertStatusCounts(user),
   ]);
   const t = await getTranslations("alerts");
 

@@ -13,8 +13,8 @@ import { Settings2, ArrowRight, BookOpen } from "lucide-react";
 export default async function KnowledgeBasePage() {
   const user = await requireUser();
   const t = await getTranslations("kb");
-  const collections = await listCollectionsWithArticles({ role: user.role });
-  const canManage = can(user.role, "kb:manage");
+  const collections = await listCollectionsWithArticles(user);
+  const canManage = can(user, "kb:manage");
 
   return (
     <>

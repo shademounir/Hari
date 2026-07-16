@@ -22,8 +22,8 @@ type Approver = { caller: Caller; userId: string; role: Role };
 
 async function requireApprover(): Promise<Approver> {
   const user = await requireUser();
-  if (!can(user.role, "leave:approve")) redirect("/");
-  const caller: Caller = { role: user.role, employeeId: user.employeeId };
+  if (!can(user, "leave:approve")) redirect("/");
+  const caller: Caller = user;
   return { caller, userId: user.id, role: user.role };
 }
 

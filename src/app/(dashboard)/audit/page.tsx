@@ -27,14 +27,14 @@ export default async function AuditPage({
   searchParams: Promise<{ action?: string }>;
 }) {
   const user = await requireUser();
-  if (!can(user.role, "alerts:read")) notFound();
+  if (!can(user, "alerts:read")) notFound();
 
   const { action: raw } = await searchParams;
   const action = asAuditAction(raw); // undefined = all
   const t = await getTranslations("audit");
 
   const entries = await getAuditLog(
-    { role: user.role },
+    user,
     action ? { action } : undefined,
     200,
   );

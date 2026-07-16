@@ -1,4 +1,4 @@
-import type { Role } from "@/lib/rbac";
+import type { BuiltinRole } from "@/lib/rbac";
 
 // Les quatre comptes de démonstration. Partagés par le script de seed et la page de connexion
 // pour que les boutons "Se connecter en tant que" correspondent toujours à la base de données.
@@ -7,7 +7,7 @@ export const DEMO_PASSWORD = "password123";
 export type DemoUser = {
   email: string;
   name: string;
-  role: Role;
+  role: BuiltinRole;
   title: string;
   department: string;
   location: string;

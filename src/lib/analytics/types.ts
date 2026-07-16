@@ -3,7 +3,8 @@
 // Every model is an aggregate (counts / rates / bands) — no salary-per-person,
 // no PII beyond the review-follow-up list, which is HR-only by gate.
 // ─────────────────────────────────────────────────────────────────────────
-import type { ContractType, DepartureReason, Gender, Role } from "@prisma/client";
+import type { ContractType, DepartureReason, Gender } from "@prisma/client";
+import type { Role } from "@/lib/rbac";
 
 /** A resolved reporting window. Presets collapse to concrete start/end dates. */
 export type PeriodPreset = "month" | "quarter" | "semester" | "year" | "custom";

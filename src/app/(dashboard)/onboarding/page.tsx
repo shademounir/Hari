@@ -21,7 +21,7 @@ import { OnboardingChecklist } from "./onboarding-checklist";
 
 export default async function OnboardingPage() {
   const user = await requireUser();
-  const caller = { role: user.role, employeeId: user.employeeId };
+  const caller = user;
   const t = await getTranslations("onboarding");
 
   const [myTasks, overview] = await Promise.all([
@@ -29,7 +29,7 @@ export default async function OnboardingPage() {
     getOnboardingOverview(caller),
   ]);
   const myProgress = computeProgress(myTasks);
-  const showOverview = can(user.role, "directory:read:all");
+  const showOverview = can(user, "directory:read:all");
 
   return (
     <>

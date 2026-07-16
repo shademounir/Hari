@@ -27,7 +27,7 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
 
 export default async function TimeOffPage() {
   const user = await requireUser();
-  const caller = { role: user.role, employeeId: user.employeeId };
+  const caller = user;
   const t = await getTranslations("timeOff");
   const tType = await getTranslations("leaveType");
 
@@ -70,7 +70,7 @@ export default async function TimeOffPage() {
           <LeaveTable rows={requests} showWho={false} />
         </section>
 
-        {can(user.role, "leave:approve") && (
+        {can(user, "leave:approve") && (
           <section className="space-y-3">
             <h2 className="text-sm font-semibold">
               {t("pendingApprovals")}{" "}

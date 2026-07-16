@@ -28,7 +28,7 @@ vi.mock("@/lib/storage", () => ({
 }));
 
 import { prisma } from "@/lib/prisma";
-import { can } from "@/lib/rbac";
+import { DEFAULT_ROLE_PERMISSIONS, builtinSubject, can } from "@/lib/rbac";
 import {
   generateWorkCertificate,
   rejectDocumentRequest,
@@ -40,7 +40,7 @@ let ownerUserId = "";
 let hrUserId = "";
 let strangerUserId = ""; // a MANAGER — no documents:download:any
 
-const hr: DocumentActor = { userId: "", role: "HR_ADMIN" };
+const hr: DocumentActor = { userId: "", role: "HR_ADMIN", permissions: DEFAULT_ROLE_PERMISSIONS["HR_ADMIN"] };
 
 beforeAll(async () => {
   const users = await prisma.user.findMany({
@@ -58,12 +58,12 @@ afterAll(() => prisma.$disconnect());
 
 describe("documents:download:any permission matrix (gates both fulfillment actions)", () => {
   it("is denied to EMPLOYEE and MANAGER", () => {
-    expect(can("EMPLOYEE", "documents:download:any")).toBe(false);
-    expect(can("MANAGER", "documents:download:any")).toBe(false);
+    expect(can(builtinSubject("EMPLOYEE"), "documents:download:any")).toBe(false);
+    expect(can(builtinSubject("MANAGER"), "documents:download:any")).toBe(false);
   });
   it("is granted to HR_ADMIN and SUPER_ADMIN", () => {
-    expect(can("HR_ADMIN", "documents:download:any")).toBe(true);
-    expect(can("SUPER_ADMIN", "documents:download:any")).toBe(true);
+    expect(can(builtinSubject("HR_ADMIN"), "documents:download:any")).toBe(true);
+    expect(can(builtinSubject("SUPER_ADMIN"), "documents:download:any")).toBe(true);
   });
 });
 
@@ -83,7 +83,7 @@ describe("generateWorkCertificate — real DB, mocked i18n/storage", () => {
     });
     docId = doc.id;
 
-    const stranger: DocumentActor = { userId: strangerUserId, role: "MANAGER" };
+    const stranger: DocumentActor = { userId: strangerUserId, role: "MANAGER", permissions: DEFAULT_ROLE_PERMISSIONS["MANAGER"] };
     const result = await generateWorkCertificate(stranger, docId);
     expect(result).toEqual({ ok: false, reason: "forbidden" });
 
@@ -170,7 +170,7 @@ describe("rejectDocumentRequest — real DB", () => {
     });
     docId = doc.id;
 
-    const stranger: DocumentActor = { userId: strangerUserId, role: "MANAGER" };
+    const stranger: DocumentActor = { userId: strangerUserId, role: "MANAGER", permissions: DEFAULT_ROLE_PERMISSIONS["MANAGER"] };
     const result = await rejectDocumentRequest(stranger, docId, "not my call");
     expect(result).toEqual({ ok: false, reason: "forbidden" });
 

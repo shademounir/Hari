@@ -18,9 +18,9 @@ export default async function EditDocumentPage({
   params: Promise<{ id: string }>;
 }) {
   const user = await requireUser();
-  if (!can(user.role, "kb:manage")) redirect("/");
+  if (!can(user, "kb:manage")) redirect("/");
   const { id } = await params;
-  const caller = { role: user.role };
+  const caller = user;
 
   const [doc, collections] = await Promise.all([
     getDocumentForAdmin(caller, id),
@@ -38,7 +38,7 @@ export default async function EditDocumentPage({
         action={updateDocumentAction}
           submitLabel={t("save")}
           published={doc.status === "PUBLISHED"}
-          canSetAssistant={can(user.role, "admin:settings")}
+          canSetAssistant={can(user, "admin:settings")}
           status={doc.status}
           viewHref={doc.status === "PUBLISHED" ? `/kb/${doc.collection.slug}/${doc.slug}` : undefined}
           lifecycle={{

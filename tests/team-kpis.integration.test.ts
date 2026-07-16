@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { DEFAULT_ROLE_PERMISSIONS } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
+import { permissionsForRole } from "@/lib/rbac-server";
 import {
   bulkDecideLeaveRequests,
   getMyLeaveRequests,
@@ -20,8 +22,8 @@ import {
 //       fix it was write-only.
 
 const callers: Record<"manager" | "hr", Caller> = {
-  manager: { role: "MANAGER", employeeId: null },
-  hr: { role: "HR_ADMIN", employeeId: null },
+  manager: { role: "MANAGER", permissions: DEFAULT_ROLE_PERMISSIONS["MANAGER"], employeeId: null },
+  hr: { role: "HR_ADMIN", permissions: DEFAULT_ROLE_PERMISSIONS["HR_ADMIN"], employeeId: null },
 };
 const KEY_BY_EMAIL: Record<string, keyof typeof callers> = {
   "manager@hari.ma": "manager",
@@ -34,7 +36,11 @@ beforeAll(async () => {
     include: { employee: { select: { id: true } } },
   });
   for (const u of users) {
-    callers[KEY_BY_EMAIL[u.email]] = { role: u.role, employeeId: u.employee!.id };
+    callers[KEY_BY_EMAIL[u.email]] = {
+      role: u.role,
+      permissions: await permissionsForRole(u.role),
+      employeeId: u.employee!.id,
+    };
   }
 });
 

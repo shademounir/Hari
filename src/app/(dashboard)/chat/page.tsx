@@ -9,7 +9,7 @@ export default async function ChatPage() {
   const models = getAvailableChatModels();
   return (
     <div className="h-full">
-      <Chat user={{ name: user.name, role: user.role }} models={models} />
+      <Chat user={user} models={models} />
     </div>
   );
 }

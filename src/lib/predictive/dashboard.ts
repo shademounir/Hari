@@ -5,6 +5,7 @@
 // appear — only the derived factor contributions that drove a score.
 // ─────────────────────────────────────────────────────────────────────────
 import "server-only";
+import { SYSTEM_SUBJECT } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
 import type { FactorContribution, RiskBand } from "./departure-risk";
 import {
@@ -89,7 +90,7 @@ export async function getRiskMap(asOf: Date = new Date()): Promise<RiskMap> {
     }));
   } else if (activeCount > 0) {
     source = "live";
-    const candidates = await getPredictionCandidates({ role: "SUPER_ADMIN", employeeId: null });
+    const candidates = await getPredictionCandidates({ ...SYSTEM_SUBJECT, employeeId: null });
     const config = await getActiveModelConfig();
     const scored = await scoreCandidates(candidates, { asOf, config });
     rows = scored.map((s) => ({

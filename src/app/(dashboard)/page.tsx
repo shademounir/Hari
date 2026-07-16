@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { getRoleLabels } from "@/lib/rbac-server";
 import { requireUser } from "@/lib/session";
 import { getEmployeeDirectory, getLeaveBalances, getPendingApprovals } from "@/lib/hr";
 import { can } from "@/lib/rbac";
@@ -11,9 +12,9 @@ import { Users, CalendarCheck, Plane, Bot, ArrowRight } from "lucide-react";
 
 export default async function OverviewPage() {
   const user = await requireUser();
-  const caller = { role: user.role, employeeId: user.employeeId };
+  const caller = user;
   const t = await getTranslations("dashboard");
-  const tRoles = await getTranslations("roles");
+  const roleLabels = await getRoleLabels(await getTranslations("roles"));
   const tLeave = await getTranslations("leaveType");
 
   const [directory, balances, approvals] = await Promise.all([
@@ -32,14 +33,14 @@ export default async function OverviewPage() {
     <>
       <PageHeader
         title={t("welcome", { name: user.name.split(" ")[0] })}
-        description={t("signedInAs", { role: tRoles(user.role) })}
+        description={t("signedInAs", { role: roleLabels[user.role] ?? user.role })}
       />
       <div className="space-y-6 p-4 md:p-8">
         {/* Stat cards */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <StatCard
             icon={<Users className="size-5" />}
-            label={can(user.role, "directory:read:all") ? t("peopleInCompany") : t("peopleYouCanSee")}
+            label={can(user, "directory:read:all") ? t("peopleInCompany") : t("peopleYouCanSee")}
             value={String(directory.length)}
           />
           <StatCard
@@ -47,7 +48,7 @@ export default async function OverviewPage() {
             label={t("vacationDaysLeft")}
             value={vacation ? `${vacation.remainingDays}` : "—"}
           />
-          {can(user.role, "leave:approve") && (
+          {can(user, "leave:approve") && (
             <StatCard
               icon={<CalendarCheck className="size-5" />}
               label={t("pendingApprovals")}

@@ -12,11 +12,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-EMPLOYEE
-MANAGER
-HR_ADMIN
-SUPER_ADMIN
+/// A role is data, not an enum: super admins define custom roles at runtime.
+/// `permissions` is NULL on a built-in role, meaning "use the code defaults" in
+/// `lib/rbac.ts` (DEFAULT_ROLE_PERMISSIONS) — so the built-in matrix has exactly
+/// one source of truth and this table can never drift from it. "Reset to
+/// defaults" is just setting it back to NULL. A custom role always carries an
+/// explicit array. Unknown strings in that array are dropped on read, so the
+/// permission VOCABULARY stays code-defined and a form can't invent one.
+model Role {
+slug String @id // "EMPLOYEE", "AUDITOR" — the stable key stored on User.role
+label String // display name; user data, untranslated (like KbCollection.name)
+description String?
+builtIn Boolean @default(false) // built-ins can't be deleted and their slug is immutable
+rank Int @default(0) // display order
+permissions Json? // Permission[] — NULL on a built-in = use the code defaults
+updatedById String? // raw id, audit-style (no FK) — matches PredictiveWeightConfig
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+users User[]
 }
 
 enum LeaveType {
@@ -39,7 +52,15 @@ name String
 // Nullable so passwordless-only accounts (magic link / OTP / Google) can exist
 // without a password                                                                ; credentials login simply fails when it is null.
 passwordHash String?
-role Role @default(EMPLOYEE)
+// The role SLUG, and the FK to it. `onDelete: Restrict` makes "reassign the
+// users before deleting a role" a database guarantee, not just a UI check.
+role String @default("EMPLOYEE")
+roleRef Role @relation(fields: [role], references: [slug], onDelete: Restrict)
+// Account state, distinct from Employee.status: offboarding ARCHIVES the employee
+// record, this disables the LOGIN. Enforced in both credentials authorize()
+// callbacks, the Google signIn callback, and per-request in requireUser().
+active Boolean @default(true)
+deactivatedAt DateTime?
 emailVerified DateTime? // set the first time an email OTP / magic link is confirmed
 employee Employee?
 createdAt DateTime @default(now())
@@ -54,6 +75,10 @@ alertsResolved Alert[] @relation("AlertResolved")
 // HARI-88: document generation back-relations.
 documentsRequested GeneratedDocument[] @relation("DocumentRequester")
 documentsValidated GeneratedDocument[] @relation("DocumentValidator")
+
+// Prisma doesn't index relation scalars on PostgreSQL. The admin user list
+// filters by role, and the Restrict FK checks it on every role delete.
+@@index([role])
 }
 
 /// HR profile / org data.
@@ -338,7 +363,10 @@ createdAt DateTime @default(now())
 conversationId String // opaque client uuid grouping a chat — not content
 user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 userId String?
-role Role // actor role, denormalized so it survives user deletion
+// Actor role SLUG, denormalized so it survives user deletion. Deliberately a
+// plain String with NO FK to Role: a historical event must survive the role
+// itself being deleted, so readers fall back to the raw slug for a label.
+role String
 kind AiEventKind
 model String?
 inputTokens Int?
@@ -454,6 +482,18 @@ KB_DOCUMENT_PUBLISHED
 KB_DOCUMENT_UNPUBLISHED
 KB_DOCUMENT_ARCHIVED
 KB_DOCUMENT_DELETED
+// Configurable RBAC (admin:settings) — editing a role rewrites what EVERY holder
+// of it may do, so it is the most sensitive action on the trail.
+ROLE_CREATED
+ROLE_UPDATED
+ROLE_DELETED
+// User management (employee:manage). Roles are codes, not PII, so a role change
+// records meta: { from, to } — never the target's name or email.
+USER_INVITED
+USER_UPDATED
+USER_ROLE_CHANGED
+USER_DEACTIVATED
+USER_REACTIVATED
 }
 
 /// SCRUM-064: a minimal audit trail of sensitive admin/security actions (alert
@@ -466,7 +506,9 @@ model AuditLog {
 id String @id @default(cuid())
 createdAt DateTime @default(now())
 actorId String? // who performed it (raw id                                       ; kept even if the user is later deleted)
-actorRole Role // denormalized so the trail survives user deletion
+// Actor role SLUG, denormalized so the trail survives user deletion. Plain
+// String with NO FK, for the same reason as AiEvent.role.
+actorRole String
 action AuditAction
 targetType String? // e.g. "Alert"
 targetId String? // opaque id of the target — never content
@@ -824,6 +866,10 @@ enum AuthTokenType {
 PASSWORD_RESET
 MAGIC_LINK
 EMAIL_OTP
+// Onboarding an invited account: HR provisions the User/Employee, this token
+// lets them set their first password. Provisioning still happens server-side —
+// sign-in never creates an account.
+INVITE
 }
 
 model AuthToken {

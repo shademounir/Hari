@@ -13,9 +13,9 @@ export default async function EditCollectionPage({
   params: Promise<{ id: string }>;
 }) {
   const user = await requireUser();
-  if (!can(user.role, "kb:manage")) redirect("/");
+  if (!can(user, "kb:manage")) redirect("/");
   const { id } = await params;
-  const collection = await getCollectionForAdmin({ role: user.role }, id);
+  const collection = await getCollectionForAdmin(user, id);
   if (!collection) notFound();
 
   const t = await getTranslations("kb");

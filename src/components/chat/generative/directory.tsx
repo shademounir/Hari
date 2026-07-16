@@ -2,6 +2,7 @@ import { Mail, MapPin, Briefcase } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useTranslations, useLocale } from "next-intl";
+import { useRoleLabel } from "@/components/role-labels-provider";
 import { type Role } from "@/lib/rbac";
 import { formatCurrency } from "@/lib/utils";
 import { useOrgSettings } from "@/components/org-settings-provider";
@@ -22,7 +23,7 @@ type Person = {
 export function DirectoryCards({ people }: { people: Person[] }) {
   const t = useTranslations("directoryCard");
   const tCommon = useTranslations("common");
-  const tRoles = useTranslations("roles");
+  const roleLabel = useRoleLabel();
   const locale = useLocale();
   const { currency } = useOrgSettings();
   if (people.length === 0) {
@@ -59,7 +60,7 @@ export function DirectoryCards({ people }: { people: Person[] }) {
               <p className="flex items-center gap-1.5">
                 <Briefcase className="size-3" /> {p.department}
                 <Badge variant="secondary" className="ml-1 text-[10px]">
-                  {tRoles(p.role)}
+                  {roleLabel(p.role)}
                 </Badge>
               </p>
               <p className="flex items-center gap-1.5">

@@ -144,7 +144,7 @@ export async function setMyOnboardingStatus(
  * before each new hire has opened their own checklist.
  */
 export async function getOnboardingOverview(caller: Caller): Promise<OnboardingOverviewRow[]> {
-  if (!can(caller.role, "directory:read:all")) return [];
+  if (!can(caller, "directory:read:all")) return [];
 
   const employees = await prisma.employee.findMany({
     where: { status: { not: "TERMINATED" } },

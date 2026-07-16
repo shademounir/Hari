@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Role } from "@/lib/rbac";
+import { builtinSubject, type BuiltinRole } from "@/lib/rbac";
 
 // Server actions read identity from the session and gate on the real RBAC matrix.
 // Mock the session (to drive the role) and Prisma/data-layer (so the valid
@@ -33,8 +33,17 @@ import {
 } from "@/app/(dashboard)/analytics/predictions/actions";
 import type { RiskWeights } from "@/lib/predictive/departure-risk";
 
-function asRole(role: Role) {
-  requireUser.mockResolvedValue({ id: "u1", role, employeeId: null, email: "x@hari.ma", name: "X" });
+function asRole(role: BuiltinRole) {
+  // requireUser now returns a resolved Subject: role + the permissions that role
+  // effectively holds. The RBAC matrix itself is never mocked, so `can()` runs for
+  // real against the built-in defaults.
+  requireUser.mockResolvedValue({
+    id: "u1",
+    email: "x@hari.ma",
+    name: "X",
+    employeeId: null,
+    ...builtinSubject(role),
+  });
 }
 
 // Ten equal weights → sum 1.0 (valid); scale to break the sum.

@@ -27,7 +27,8 @@ import "server-only";
 import type { LeaveType, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { createAlert } from "@/lib/alerts";
-import { can, type Role } from "@/lib/rbac";
+import { can, SYSTEM_SUBJECT } from "@/lib/rbac";
+import type { Caller } from "@/lib/hr";
 import {
   computeDepartureRisk,
   DEFAULT_THRESHOLDS,
@@ -401,14 +402,11 @@ function toCandidate(e: Prisma.EmployeeGetPayload<{ select: typeof candidateSele
  * This is the authorization boundary for WHICH employees enter the risk board;
  * anonymization of the RESULT is a separate concern applied by the tool.
  */
-export async function getPredictionCandidates(caller: {
-  role: Role;
-  employeeId: string | null;
-}): Promise<RiskCandidate[]> {
+export async function getPredictionCandidates(caller: Caller): Promise<RiskCandidate[]> {
   let where: Prisma.EmployeeWhereInput;
-  if (can(caller.role, "directory:read:all")) {
+  if (can(caller, "directory:read:all")) {
     where = { status: "ACTIVE" };
-  } else if (can(caller.role, "directory:read:team") && caller.employeeId) {
+  } else if (can(caller, "directory:read:team") && caller.employeeId) {
     where = { status: "ACTIVE", managerId: caller.employeeId };
   } else {
     return [];
@@ -465,8 +463,9 @@ export type DailyScoringSummary = {
  * Called by the cron route (which owns authentication).
  */
 export async function runDailyRiskScoring(asOf: Date = new Date()): Promise<DailyScoringSummary> {
-  // System scope: SUPER_ADMIN holds directory:read:all → the whole active company.
-  const candidates = await getPredictionCandidates({ role: "SUPER_ADMIN", employeeId: null });
+  // System scope — matrix-independent on purpose, so editing SUPER_ADMIN in the
+  // role editor can never silently narrow the nightly run to nobody.
+  const candidates = await getPredictionCandidates({ ...SYSTEM_SUBJECT, employeeId: null });
   const config = await getActiveModelConfig();
   const scored = await scoreCandidates(candidates, { asOf, config });
 

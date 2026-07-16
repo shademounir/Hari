@@ -24,8 +24,8 @@ import { DocVisibility, type AuditAction } from "@prisma/client";
 // a hand-crafted POST can't bypass the matrix or set an invalid enum value.
 async function requireManager() {
   const user = await requireUser();
-  if (!can(user.role, "kb:manage")) redirect("/");
-  return { role: user.role, id: user.id }; // id stamps authorship
+  if (!can(user, "kb:manage")) redirect("/");
+  return user; // id stamps authorship
 }
 
 // KB mutations change what the AI RAG serves org-wide, so they belong on the

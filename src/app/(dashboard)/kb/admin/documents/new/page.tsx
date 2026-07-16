@@ -9,9 +9,9 @@ import { createDocumentAction } from "../../actions";
 
 export default async function NewDocumentPage() {
   const user = await requireUser();
-  if (!can(user.role, "kb:manage")) redirect("/");
+  if (!can(user, "kb:manage")) redirect("/");
   const t = await getTranslations("kb");
-  const collections = await listCollectionsForAdmin({ role: user.role });
+  const collections = await listCollectionsForAdmin(user);
 
   return (
     <div className="flex flex-col lg:h-full">
@@ -19,7 +19,7 @@ export default async function NewDocumentPage() {
       <DocumentForm
         action={createDocumentAction}
         submitLabel={t("createDocument")}
-        canSetAssistant={can(user.role, "admin:settings")}
+        canSetAssistant={can(user, "admin:settings")}
         collections={collections.map((c) => ({
           id: c.id,
           name: c.name,

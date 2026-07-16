@@ -53,7 +53,7 @@ function cardFrom(key: HrKpiKey, value: number, points: TrendPoint[]): HrKpiCard
  * a consistent shell without special-casing authorization.
  */
 export async function getHrDashboard(caller: Caller, now: Date): Promise<HrDashboardModel> {
-  if (!can(caller.role, "dashboard:read:company")) {
+  if (!can(caller, "dashboard:read:company")) {
     return { kpis: [], refusalRatePct: 0, docStatusCounts: EMPTY_DOC_STATUS_COUNTS };
   }
 

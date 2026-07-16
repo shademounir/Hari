@@ -7,7 +7,8 @@
 // Recording is best-effort: it must never throw into or block the chat stream,
 // so every write is wrapped and failures are logged, not propagated.
 // ─────────────────────────────────────────────────────────────────────────
-import type { AiEventKind, Prisma, Role } from "@prisma/client";
+import type { AiEventKind, Prisma } from "@prisma/client";
+import type { Role } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
 
 export type RecordAiEventInput = {

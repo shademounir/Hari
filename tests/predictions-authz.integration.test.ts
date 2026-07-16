@@ -9,15 +9,16 @@
 // no other test failing — this pins it. Needs a seeded DB (npm run db:seed).
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { prisma } from "@/lib/prisma";
+import { permissionsForRole } from "@/lib/rbac-server";
+import { DEFAULT_ROLE_PERMISSIONS } from "@/lib/rbac";
 import { getPredictionCandidates } from "@/lib/predictive/data-layer";
-import type { Role } from "@/lib/rbac";
+import type { Caller } from "@/lib/hr";
 
-type Caller = { role: Role; employeeId: string | null };
 const callers: Record<"employee" | "manager" | "hr" | "admin", Caller> = {
-  employee: { role: "EMPLOYEE", employeeId: null },
-  manager: { role: "MANAGER", employeeId: null },
-  hr: { role: "HR_ADMIN", employeeId: null },
-  admin: { role: "SUPER_ADMIN", employeeId: null },
+  employee: { role: "EMPLOYEE", permissions: DEFAULT_ROLE_PERMISSIONS["EMPLOYEE"], employeeId: null },
+  manager: { role: "MANAGER", permissions: DEFAULT_ROLE_PERMISSIONS["MANAGER"], employeeId: null },
+  hr: { role: "HR_ADMIN", permissions: DEFAULT_ROLE_PERMISSIONS["HR_ADMIN"], employeeId: null },
+  admin: { role: "SUPER_ADMIN", permissions: DEFAULT_ROLE_PERMISSIONS["SUPER_ADMIN"], employeeId: null },
 };
 const KEY_BY_EMAIL: Record<string, keyof typeof callers> = {
   "collaborateur@hari.ma": "employee",
@@ -32,7 +33,11 @@ beforeAll(async () => {
     include: { employee: { select: { id: true } } },
   });
   for (const u of users) {
-    callers[KEY_BY_EMAIL[u.email]] = { role: u.role, employeeId: u.employee?.id ?? null };
+    callers[KEY_BY_EMAIL[u.email]] = {
+      role: u.role,
+      permissions: await permissionsForRole(u.role),
+      employeeId: u.employee?.id ?? null,
+    };
   }
 });
 

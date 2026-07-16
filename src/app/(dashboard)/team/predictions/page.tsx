@@ -19,18 +19,15 @@ import { RiskBandBadge, displayBand } from "@/components/predictions/risk-band-b
 // HR/Admins are sent to the full company board instead.
 export default async function TeamPredictionsPage() {
   const user = await requireUser();
-  if (!can(user.role, "predictions:read")) redirect("/");
-  if (can(user.role, "dashboard:read:company")) redirect("/analytics/predictions");
+  if (!can(user, "predictions:read")) redirect("/");
+  if (can(user, "dashboard:read:company")) redirect("/analytics/predictions");
 
   const t = await getTranslations("predictions.team");
   const tb = await getTranslations("predictions.band");
   const tf = await getTranslations("predictions.factor");
 
   const now = new Date();
-  const candidates = await getPredictionCandidates({
-    role: user.role,
-    employeeId: user.employeeId,
-  });
+  const candidates = await getPredictionCandidates(user);
   const config = await getActiveModelConfig();
   const scored = candidates.length ? await scoreCandidates(candidates, { asOf: now, config }) : [];
   const highRisk = scored.filter((s) => displayBand(s.score) === "red").length;

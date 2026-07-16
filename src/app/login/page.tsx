@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { auth, googleEnabled } from "@/lib/auth";
+import { googleEnabled } from "@/lib/auth";
+import { getApiCaller } from "@/lib/session";
 import { DEMO_USERS, DEMO_PASSWORD } from "@/lib/demo-users";
 import { loginAs } from "./actions";
 import { CredentialsForm } from "./credentials-form";
@@ -19,8 +20,12 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<{ reset?: string }>;
 }) {
-  const session = await auth();
-  if (session?.user) redirect("/");
+  // Bounce an already-signed-in visitor to the dashboard — but ask lib/session,
+  // not auth(). A deactivated (or deleted) user still holds a VALID JWT: auth()
+  // would say "signed in", we would send them to /, requireUser() would find no
+  // caller and send them back here — an infinite redirect. The resolved caller is
+  // the only honest answer to "are you signed in".
+  if (await getApiCaller()) redirect("/");
 
   const { reset } = await searchParams;
   const t = await getTranslations("login");

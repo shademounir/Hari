@@ -1,6 +1,6 @@
 import { describe, it, expect, afterAll } from "vitest";
 import { prisma } from "@/lib/prisma";
-import { can } from "@/lib/rbac";
+import { builtinSubject, can } from "@/lib/rbac";
 import {
   OFFBOARDING_TEMPLATE,
   computeProgress,
@@ -15,7 +15,7 @@ import {
 // it archives the employee (status → TERMINATED, never a delete) and writes the
 // lifecycle to the AuditLog (metadata only).
 
-const HR = { userId: "offb-test-hr", role: "HR_ADMIN" as const };
+const HR = { userId: "offb-test-hr", ...builtinSubject("HR_ADMIN") };
 const cleanup = { users: [] as string[], employees: [] as string[], audits: [] as string[] };
 
 afterAll(async () => {
@@ -63,11 +63,11 @@ describe("offboarding — pure helpers + RBAC gating", () => {
   });
 
   it("only HR (employee:manage) can act; others are blocked", async () => {
-    expect(can("EMPLOYEE", "employee:manage")).toBe(false);
-    expect(can("MANAGER", "employee:manage")).toBe(false);
-    expect(can("HR_ADMIN", "employee:manage")).toBe(true);
+    expect(can(builtinSubject("EMPLOYEE"), "employee:manage")).toBe(false);
+    expect(can(builtinSubject("MANAGER"), "employee:manage")).toBe(false);
+    expect(can(builtinSubject("HR_ADMIN"), "employee:manage")).toBe(true);
 
-    const emp = { userId: "e", role: "EMPLOYEE" as const };
+    const emp = { userId: "e", ...builtinSubject("EMPLOYEE") };
     expect(await listOffboardingCandidates(emp)).toEqual([]);
     expect(await getOffboardings(emp)).toEqual([]);
     expect(

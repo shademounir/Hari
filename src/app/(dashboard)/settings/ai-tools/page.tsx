@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
-import { ROLES } from "@/lib/rbac";
-import { TOOL_CATALOGUE, toolsForRole } from "@/lib/ai/tools";
+import { getRbacMatrix, getRoleLabels, subjectOf } from "@/lib/rbac-server";
+import { TOOL_CATALOGUE, toolsForSubject } from "@/lib/ai/tools";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -17,6 +17,13 @@ export default async function AiToolsSettingsPage() {
   const tRoles = await getTranslations("roles");
   const tSummary = await getTranslations("tools.summary");
 
+  // Driven by the EFFECTIVE matrix: this table answers "what can the assistant do
+  // for each role", and revoking a permission in the editor has to move it. It is
+  // the same TOOL_CATALOGUE filter buildHrTools applies per turn.
+  const matrix = await getRbacMatrix();
+  const labels = await getRoleLabels(tRoles);
+  const toolsByRole = new Map(matrix.roles.map((r) => [r.slug, new Set(toolsForSubject(subjectOf(r)))]));
+
   return (
     <Card>
       <CardHeader>
@@ -29,8 +36,8 @@ export default async function AiToolsSettingsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead className="min-w-[16rem]">{t("tool")}</TableHead>
-                {ROLES.map((r) => (
-                  <TableHead key={r} className="text-center">{tRoles(r)}</TableHead>
+                {matrix.roles.map((r) => (
+                  <TableHead key={r.slug} className="text-center">{labels[r.slug]}</TableHead>
                 ))}
               </TableRow>
             </TableHeader>
@@ -41,10 +48,10 @@ export default async function AiToolsSettingsPage() {
                     <code className="text-xs font-medium">{tool.name}</code>
                     <p className="text-xs text-muted-foreground">{tSummary(tool.name)}</p>
                   </TableCell>
-                  {ROLES.map((r) => (
-                    <TableCell key={r} className="text-center">
-                      {toolsForRole(r).includes(tool.name) ? (
-                        <><Check aria-hidden className="mx-auto size-4 text-green-600" /><span className="sr-only">{t("allowed")}</span></>
+                  {matrix.roles.map((r) => (
+                    <TableCell key={r.slug} className="text-center">
+                      {toolsByRole.get(r.slug)?.has(tool.name) ? (
+                        <><Check aria-hidden className="mx-auto size-4 text-primary" /><span className="sr-only">{t("allowed")}</span></>
                       ) : (
                         <><X aria-hidden className="mx-auto size-4 text-muted-foreground/40" /><span className="sr-only">{t("notAllowed")}</span></>
                       )}

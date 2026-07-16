@@ -1,7 +1,7 @@
 // HARI-122 — CSV export for the HR analytics sections. Same RBAC gate + scope
 // as the dashboard (getHrAnalytics returns null → 403), so the export can never
 // reveal more than the page. `?section=` picks which filtered dataset to emit.
-import { auth } from "@/lib/auth";
+import { getApiCaller } from "@/lib/session";
 import { getHrAnalytics } from "@/lib/analytics";
 import { parseAnalyticsFilters } from "@/lib/analytics/scope";
 
@@ -21,18 +21,14 @@ function toCsv(header: string[], rows: Cell[][]): string {
 }
 
 export async function GET(req: Request) {
-  const session = await auth();
-  if (!session?.user) return new Response("Unauthorized", { status: 401 });
+  const caller = await getApiCaller();
+  if (!caller) return new Response("Unauthorized", { status: 401 });
 
   const url = new URL(req.url);
   const section = url.searchParams.get("section") ?? "overview";
   const filters = parseAnalyticsFilters(url.searchParams);
 
-  const model = await getHrAnalytics(
-    { role: session.user.role, employeeId: session.user.employeeId },
-    filters,
-    new Date(),
-  );
+  const model = await getHrAnalytics(caller, filters, new Date());
   if (!model) return new Response("Forbidden", { status: 403 });
 
   let csv: string;

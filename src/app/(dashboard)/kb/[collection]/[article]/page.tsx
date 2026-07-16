@@ -17,7 +17,7 @@ type Props = { params: Promise<{ collection: string; article: string }> };
 export default async function ArticlePage({ params }: Props) {
   const user = await requireUser();
   const { collection, article } = await params;
-  const caller = { role: user.role, id: user.id };
+  const caller = user;
 
   // Returns null for not-found / unpublished / above the caller's tier — a
   // guessed or stale URL is indistinguishable from a missing page.

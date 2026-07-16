@@ -11,7 +11,8 @@
 // AiEvent is metadata-only by schema: we write role/model/token counts/codes —
 // NEVER names, message content, or salary.
 // ─────────────────────────────────────────────────────────────────────────
-import type { AiEventKind, LeaveStatus, LeaveType, PrismaClient, Role } from "@prisma/client";
+import type { AiEventKind, LeaveStatus, LeaveType, PrismaClient } from "@prisma/client";
+import type { Role } from "@/lib/rbac";
 // Shared with the KPI layer + test factory (relative path — the seed already
 // imports src modules this way and runs under tsx, which has no `@/` alias).
 import { startOfDayUtc, addDays } from "../src/lib/kpi/time";

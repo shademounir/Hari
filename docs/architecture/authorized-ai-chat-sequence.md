@@ -44,7 +44,10 @@ the role and scopes the target **before** any database access:
 
 ### Authorization gate
 
-The Route Handler's **first** action is `auth()`. With no valid session it returns
+The Route Handler's **first** action is `getApiCaller()` — which resolves the
+caller's role and permissions from the DATABASE, not from the token (the JWT
+carries identity only, so a demotion applies on the next request). With no valid
+session — or a deactivated account — it returns
 `401 Unauthorized` and the turn ends before any model call, so chat is never served
 to an unauthenticated caller. On success it reads `role`, `employeeId`, and `name`
 from the session. The client never supplies the role, so it can't be forged
@@ -81,7 +84,7 @@ a model can't spin indefinitely.
 The toolset is filtered up front: `buildHrTools(caller)` advertises **only** the
 tools the role may use (driven by `TOOL_CATALOGUE`), so an out-of-scope tool is never
 offered and the model can't attempt it. Each tool's `execute` still re-checks
-`can(role, permission)` **before** touching the database (`src/lib/ai/tools.ts`), as
+`can(caller, permission)` **before** touching the database (`src/lib/ai/tools.ts`), as
 defense in depth. The branches:
 
 - **Refused.** The target is out of scope (another team's request, say). Non-elevated
@@ -118,7 +121,7 @@ by `searchHandbook`.
 Two enforcement points, both server-side:
 
 1. **Transport gate.** `auth()` rejects unauthenticated requests with `401`.
-2. **Capability gate.** Every tool re-checks `can(role, permission)` from the single
+2. **Capability gate.** Every tool re-checks `can(caller, permission)` from the single
    matrix in `lib/rbac.ts` *before* any data access, and the data layer re-scopes and
    redacts on top of that.
 

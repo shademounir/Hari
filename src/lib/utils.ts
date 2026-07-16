@@ -15,3 +15,13 @@ export function formatCurrency(value: number, currency: string, locale: string) 
     maximumFractionDigits: 0,
   }).format(value)
 }
+
+/** "Nadia Benali" → "NB". The avatar fallback when there's no picture. */
+export function initialsOf(name: string): string {
+  return name
+    .split(" ")
+    .map((s) => s[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}

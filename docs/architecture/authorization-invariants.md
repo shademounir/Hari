@@ -36,18 +36,44 @@ prose and the UI renders nothing.
 | **Identity** | "Who is acting?" | The session, via the closed-over `caller`. Never a tool argument. | If the model could pass `employeeId` it could act as anyone, so "self" tools (`getLeaveBalance`, self-`getPayslip`, `requestTimeOff`) take no id. |
 | **Selection** | "Which record?" | A tool argument, but one the server authorizes against the caller's scope. | Viewing another person's payslip or a leave request legitimately needs an id; the server re-checks the id is reachable for this caller. |
 
-`caller` is built once in `src/app/api/chat/route.ts` from the Auth.js session
-(`{ role, employeeId, name }`) and captured by `buildHrTools(caller)`. A tool
-closure cannot see anything the session didn't put there.
+`caller` is built once per request in `lib/session.ts` (`requireUser` /
+`getApiCaller`) and captured by `buildHrTools(caller)`. A tool closure cannot see
+anything the session didn't put there.
+
+It is a **`Subject`**: `{ role, permissions }`, with the permissions already
+resolved against the live matrix, so `can(caller, …)` stays synchronous (it runs
+inside client renders and Prisma where-builders, neither of which can await).
+
+**The JWT carries identity only.** Role and permissions are read from the database
+on every request, because a role claim on a 30-day token cannot be revoked —
+Auth.js's `updateAge` re-signs the token without re-running `authorize`, so a
+stale role would simply be copied forward and a demotion would take up to a month
+to apply. One indexed read (deduped by React `cache()`) buys a demotion that takes
+effect on the caller's next request. `role` and `employeeId` are deliberately
+absent from the Session type, so reading a stale one is a compile error.
 
 ## The invariants
 
 1. **Identity from the session, never from the model.** Tools read
    `caller.employeeId`; they do not accept it as input. (`route.ts`, `tools.ts`)
 
-2. **One RBAC matrix gates everything.** `lib/rbac.ts` (`ROLE_PERMISSIONS` +
-   `can()`) is the only source of "who may do what". It gates the UI/sidebar, the
-   dashboard pages, and the AI tools alike.
+2. **One RBAC matrix gates everything — and it is data.** `lib/rbac.ts` defines
+   the permission *vocabulary* (`PERMISSIONS`) and the built-in *defaults*
+   (`DEFAULT_ROLE_PERMISSIONS`). The **effective** matrix is resolved from the
+   `Role` table by `lib/rbac-server.ts` (`getRbacMatrix`), which a super admin
+   edits at `/settings/roles`. Whatever it resolves to gates the UI/sidebar, the
+   dashboard pages, and the AI tools alike — there is still exactly one matrix.
+
+   Two properties keep that safe:
+   - **Roles are data; permissions are code.** Every permission is read by a
+     literal somewhere that enforces it, so one no code reads would enforce
+     nothing. `Permission` stays a compile-time union, and the resolver filters
+     every DB-sourced list through `isPermission` — so an admin **cannot invent a
+     permission through a form**. This is what preserves the
+     `engagement:read:self` prohibition by construction rather than vigilance.
+   - **Resolution only narrows.** A built-in row with `permissions = NULL` means
+     "use the code defaults"; unknown strings are dropped; an unknown role slug
+     resolves to **no permissions at all** (never the defaults). Fail closed.
 
 3. **Tools are advertised per role; irrelevant tools are never injected.**
    `buildHrTools(caller)` returns only the tools whose gating permission the role
@@ -86,6 +112,11 @@ When you add a tool, verify each line:
 - [ ] **Add a `TOOL_CATALOGUE` row** with the permission that gates advertising it.
       That alone makes it appear only for roles that hold the permission, and both
       the prompt's capability list and the injected toolset update automatically.
+      If the permission is **new**, add it to `PERMISSIONS` and to the built-in
+      roles in `DEFAULT_ROLE_PERMISSIONS`, plus a `permissions.<key>` label in
+      **both** message catalogs. Existing custom-role rows simply won't list it —
+      the resolver only honors what a row names, so a new permission is opt-in for
+      custom roles and default-on for the built-ins that declare it.
 - [ ] **Identity is not an input.** If the tool acts on the current user, read
       `caller.employeeId`; don't add an `employeeId` parameter for self-actions.
 - [ ] **Re-check the permission before running** (defense in depth): wrap with
@@ -136,11 +167,64 @@ Enforcement points (all server-side):
   authoring forms cannot change it (separation of duties).
 - **Managing** is gated by `kb:manage` (HR_ADMIN/SUPER_ADMIN). Admin pages redirect
   non-holders; every server action **and** every `lib/kb.ts` admin function
-  re-checks `can(role,"kb:manage")` (defense in depth), and form inputs (slug,
+  re-checks `can(caller,"kb:manage")` (defense in depth), and form inputs (slug,
   visibility, status) are validated against allowed values before any write.
 - Citation URLs are built **server-side from the DB** (article/collection slug +
   heading anchor); the model only emits a `[n]` number, so a citation can never
   point somewhere the model invented.
+
+## Roles & users (HARI-RBAC)
+
+Roles are rows, not an enum, and the matrix is editable. The same shape as the KB
+section above: a governed overlay on a code-defined vocabulary.
+
+- **The vocabulary is closed.** `PERMISSIONS` in `lib/rbac.ts` is the only set of
+  strings the app enforces. `isPermission` is the single filter every DB-sourced
+  permission list passes through, so a form cannot introduce one.
+- **`permissions = NULL` on a built-in = the code defaults.** So `lib/rbac.ts`
+  stays the one source of truth for the shipped matrix, the migration that seeds
+  the table cannot drift from it, and "Reset to defaults" is just writing NULL
+  back (`Prisma.DbNull` — a JSON `null` would read as "a role with no permissions"
+  and silently strip them all).
+- **Nesting is no longer global.** `EMPLOYEE ⊂ MANAGER ⊂ HR_ADMIN ⊂ SUPER_ADMIN`
+  holds for the built-in DEFAULTS (pinned by `tests/rbac.test.ts`) and nowhere
+  else: a custom role breaks containment by design. The editor treats it as
+  advisory.
+- **`visibleDocTiers` couples KB access to `directory:read:*`.** Granting
+  "view the whole company" also grants HR_ONLY handbook articles, to the reader
+  and the assistant alike. The role editor says so inline, at the checkbox — it is
+  the least obvious consequence of an edit and the UI is the only place a human
+  meets it.
+
+Enforcement points (all server-side, in the data layer — the UI only mirrors them,
+because a hand-crafted POST never sees it):
+
+- **Editing roles / the matrix** is gated by `admin:settings` (Super Admin) in
+  `lib/roles.ts`. **Managing people** — invite, edit, re-role, deactivate — is
+  gated by `employee:manage` (HR) in `lib/users.ts`. That split is the separation
+  of duties.
+- **No escalation.** A caller may only **grant** a permission, or **assign** a
+  role, whose permissions are a subset of their own. Revoking is always allowed —
+  the matrix may narrow, never widen past the person editing it. Without this the
+  split above is decoration: HR could mint a super admin and become one.
+- **No lockout.** `SUPER_ADMIN` always keeps `admin:settings`, and no save, role
+  change, or deactivation may leave zero **active** users holding it. `/settings`
+  is the only door to the editor.
+- **No self-modification.** You cannot change your own role or deactivate
+  yourself (mirrors the no-self-rating guard in `team/engagement/actions.ts`).
+- **Built-ins persist.** Their slug is immutable and they cannot be deleted; a
+  custom role cannot shadow one. A role with holders cannot be deleted — the
+  `ON DELETE RESTRICT` FK guarantees that even if a check is missed.
+- **Sensitive fields follow the READ rules.** `salary` is only writable by a
+  caller holding `salary:read:all`; the field is omitted from the write rather
+  than zeroed, so someone who never saw it cannot wipe it.
+- **Every mutation is audited** (`ROLE_*`, `USER_*`). Role slugs and permission
+  keys are **codes, not PII**, so `meta: { from, to }` is contract-compliant — a
+  name or email there would not be.
+
+`AiEvent.role` and `AuditLog.actorRole` are plain strings with **no FK**: they are
+denormalized precisely so history survives deletion, and an FK would break the
+trail the moment a custom role is removed. Readers fall back to the raw slug.
 
 ## What is intentionally not here
 
@@ -151,6 +235,12 @@ Enforcement points (all server-side):
   machinery without closing a real hole in a starter. If this goes to production
   with untrusted tenants, that's the first upgrade to make; it slots in at the tool
   boundary and the `lib/hr` resolution step.
-- **Audit logging / real alerting.** Refusals are silent today. If added, the single
-  choke point is `withPermission`, plus the inline checks in `getPayslip` and
-  `approveLeave`, since every refusal already passes through there.
+- **Audit logging of REFUSALS.** Sensitive *actions* are on the trail
+  (`lib/audit.ts` — including every role and user change), but a refusal is still
+  silent. If you want them, the single choke point is `withPermission`, plus the
+  inline checks in `getPayslip` and `approveLeave`, since every refusal already
+  passes through there.
+- **Per-permission delegation.** A caller may only grant what they hold (below),
+  which is a coarse rule: it cannot express "HR may assign MANAGER but not
+  HR_ADMIN" when HR holds everything MANAGER does. If that distinction matters,
+  it slots into `canAssignRole` in `lib/users.ts`.

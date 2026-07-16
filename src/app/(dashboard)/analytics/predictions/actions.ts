@@ -101,7 +101,7 @@ function asPromptData(s: string): string {
  */
 export async function simulateRecruitmentAction(input: SimulateInput): Promise<SimulateResult> {
   const user = await requireUser();
-  if (!can(user.role, "dashboard:read:company")) return { ok: false, error: "forbidden" };
+  if (!can(user, "dashboard:read:company")) return { ok: false, error: "forbidden" };
 
   const parsed = InputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
@@ -210,7 +210,7 @@ const TransitionInputSchema = z.object({
  */
 export async function generateTransitionPlan(input: TransitionPlanInput): Promise<TransitionResult> {
   const user = await requireUser();
-  if (!can(user.role, "dashboard:read:company")) return { ok: false, error: "forbidden" };
+  if (!can(user, "dashboard:read:company")) return { ok: false, error: "forbidden" };
 
   const parsed = TransitionInputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "ai_unavailable" };
@@ -281,7 +281,7 @@ export type SaveWeightsResult =
  */
 export async function saveWeightConfigAction(weights: RiskWeights): Promise<SaveWeightsResult> {
   const user = await requireUser();
-  if (!can(user.role, "predictions:manage")) return { ok: false, error: "forbidden" };
+  if (!can(user, "predictions:manage")) return { ok: false, error: "forbidden" };
 
   const parsed = WeightsSchema.safeParse(weights);
   if (!parsed.success) return { ok: false, error: "invalid" };

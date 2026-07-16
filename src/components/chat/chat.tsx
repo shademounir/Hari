@@ -10,7 +10,8 @@ import {
   DEFAULT_MODEL_ID,
   CHAT_ERROR_CODES,
 } from "@/lib/ai/providers";
-import { can, type Role } from "@/lib/rbac";
+import { can, type Subject } from "@/lib/rbac";
+import { useRoleLabel } from "@/components/role-labels-provider";
 import { ChatMessage } from "./message";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -75,12 +76,12 @@ const KNOWN_ERROR_CODES = new Set<string>(CHAT_ERROR_CODES);
 
 // Starter prompts, gated by capability so we never offer a role something its
 // tools can't deliver (e.g. the team directory to a self-only employee).
-function suggestionKeysFor(role: Role): string[] {
+function suggestionKeysFor(caller: Subject): string[] {
   return [
     "suggestion1", // handbook — everyone
     "suggestion2", // own leave balance — everyone
-    can(role, "directory:read:team") ? "suggestion3" : "suggestionMyProfile",
-    can(role, "leave:approve") ? "suggestionApprovals" : "suggestion4",
+    can(caller, "directory:read:team") ? "suggestion3" : "suggestionMyProfile",
+    can(caller, "leave:approve") ? "suggestionApprovals" : "suggestion4",
   ];
 }
 
@@ -88,11 +89,11 @@ export function Chat({
   user,
   models,
 }: {
-  user: { name: string; role: Role };
+  user: Subject & { name: string };
   models: ChatModel[];
 }) {
   const t = useTranslations("chat");
-  const tRoles = useTranslations("roles");
+  const roleLabel = useRoleLabel();
   const [modelId, setModelId] = useState(DEFAULT_MODEL_ID);
   const [input, setInput] = useState("");
   // Opaque id grouping this chat's server-side AiEvents; reset on New Chat.
@@ -119,7 +120,7 @@ export function Chat({
   });
 
   const busy = status === "submitted" || status === "streaming";
-  const suggestionKeys = suggestionKeysFor(user.role);
+  const suggestionKeys = suggestionKeysFor(user);
   // Once the assistant ends the chat, the composer is locked until New Chat.
   const closedReason = deriveClosedReason(messages);
 
@@ -191,7 +192,7 @@ export function Chat({
           <Bot className="size-4 shrink-0 text-primary" />
           <span className="truncate font-medium">{t("assistant")}</span>
           <Badge variant="secondary" className="shrink-0">
-            {tRoles(user.role)}
+            {roleLabel(user.role)}
           </Badge>
         </div>
         <div className="flex shrink-0 items-center gap-2">

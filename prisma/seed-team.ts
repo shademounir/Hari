@@ -10,7 +10,8 @@
 // Login: any email below + password "password123", or magic link / OTP.
 // ─────────────────────────────────────────────────────────────────────────
 import { PrismaClient } from "@prisma/client";
-import type { Role, Gender, RiskBand, LeaveType, LeaveStatus } from "@prisma/client";
+import type { Gender, RiskBand, LeaveType, LeaveStatus } from "@prisma/client";
+import type { BuiltinRole } from "@/lib/rbac";
 import bcrypt from "bcryptjs";
 import fs from "node:fs";
 
@@ -33,7 +34,7 @@ export const TEAM_PASSWORD = "password123";
 type Person = {
   email: string;
   name: string;
-  role: Role;
+  role: BuiltinRole;
   title: string;
   department: string;
   location: string;

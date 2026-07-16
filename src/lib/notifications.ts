@@ -1,6 +1,6 @@
-import { getPendingApprovals, getMyLeaveRequests } from "@/lib/hr";
+import { getPendingApprovals, getMyLeaveRequests, type Caller } from "@/lib/hr";
 import { getOpenAlerts, alertDetail } from "@/lib/alerts";
-import { can, type Role } from "@/lib/rbac";
+import { can } from "@/lib/rbac";
 import type { AlertKind, AlertSeverity } from "@prisma/client";
 
 // Structured bell items — role-scoped, deduped, NOT localized. The client
@@ -34,17 +34,14 @@ export type NotificationItem =
       href: string;
     };
 
-export async function buildNotifications(caller: {
-  role: Role;
-  employeeId: string | null;
-}): Promise<NotificationItem[]> {
+export async function buildNotifications(caller: Caller): Promise<NotificationItem[]> {
   const [approvals, myRequests, alerts] = await Promise.all([
     getPendingApprovals(caller),
     caller.employeeId ? getMyLeaveRequests(caller.employeeId) : Promise.resolve([]),
     // getOpenAlerts already returns [] for roles without `alerts:read`; guard here
     // too so we skip the query entirely for the common non-admin case.
-    can(caller.role, "alerts:read")
-      ? getOpenAlerts({ role: caller.role })
+    can(caller, "alerts:read")
+      ? getOpenAlerts(caller)
       : Promise.resolve([]),
   ]);
 

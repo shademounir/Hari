@@ -38,7 +38,7 @@ vi.mock("next-intl/server", () => ({
 }));
 
 import { prisma } from "@/lib/prisma";
-import { can } from "@/lib/rbac";
+import { DEFAULT_ROLE_PERMISSIONS, builtinSubject, can } from "@/lib/rbac";
 import { getObject, deleteObject } from "@/lib/storage";
 import {
   authorizeDocumentDownload,
@@ -51,7 +51,7 @@ let ownerUserId = "";
 let hrUserId = "";
 let strangerUserId = ""; // a MANAGER — neither owner nor documents:download:any
 
-const hr: DocumentActor = { userId: "", role: "HR_ADMIN" };
+const hr: DocumentActor = { userId: "", role: "HR_ADMIN", permissions: DEFAULT_ROLE_PERMISSIONS["HR_ADMIN"] };
 
 beforeAll(async () => {
   const users = await prisma.user.findMany({
@@ -121,7 +121,7 @@ describe("SCRUM-084: full attestation journey — request → generate → downl
     }
 
     // 3. Owner downloads (SCRUM-082) — GENERATED → DOWNLOADED on first fetch.
-    const owner: DocumentActor = { userId: ownerUserId, role: "EMPLOYEE" };
+    const owner: DocumentActor = { userId: ownerUserId, role: "EMPLOYEE", permissions: DEFAULT_ROLE_PERMISSIONS["EMPLOYEE"] };
     const download = await authorizeDocumentDownload(owner, docId);
     expect(download.ok).toBe(true);
     if (download.ok) {
@@ -145,8 +145,8 @@ describe("SCRUM-084: full attestation journey — request → generate → downl
     });
     docId = doc.id;
 
-    expect(can("MANAGER", "documents:download:any")).toBe(false);
-    const stranger: DocumentActor = { userId: strangerUserId, role: "MANAGER" };
+    expect(can(builtinSubject("MANAGER"), "documents:download:any")).toBe(false);
+    const stranger: DocumentActor = { userId: strangerUserId, role: "MANAGER", permissions: DEFAULT_ROLE_PERMISSIONS["MANAGER"] };
     const result = await authorizeDocumentDownload(stranger, docId);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.reason).toBe("forbidden");
@@ -163,7 +163,7 @@ describe("SCRUM-084: full attestation journey — request → generate → downl
     });
     docId = doc.id;
 
-    const stranger: DocumentActor = { userId: strangerUserId, role: "MANAGER" };
+    const stranger: DocumentActor = { userId: strangerUserId, role: "MANAGER", permissions: DEFAULT_ROLE_PERMISSIONS["MANAGER"] };
     expect(await generateWorkCertificate(stranger, docId)).toEqual({ ok: false, reason: "forbidden" });
     expect(await rejectDocumentRequest(stranger, docId, "not my call")).toEqual({
       ok: false,

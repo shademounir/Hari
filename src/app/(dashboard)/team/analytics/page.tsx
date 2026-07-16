@@ -17,7 +17,7 @@ export default async function TeamAnalyticsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const user = await requireUser();
-  if (!can(user.role, "analytics:team")) redirect("/");
+  if (!can(user, "analytics:team")) redirect("/");
 
   const sp = new URLSearchParams();
   for (const [k, v] of Object.entries(await searchParams)) if (typeof v === "string") sp.set(k, v);
@@ -28,7 +28,7 @@ export default async function TeamAnalyticsPage({
     getTranslations("leaveType"),
   ]);
 
-  const caller = { role: user.role, employeeId: user.employeeId };
+  const caller = user;
   const model = await getTeamAnalytics(caller, filters, new Date());
   if (!model) redirect("/");
 

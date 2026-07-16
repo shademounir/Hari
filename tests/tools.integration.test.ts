@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { prisma } from "@/lib/prisma";
-import { buildHrTools, toolsForRole, type ToolCaller } from "@/lib/ai/tools";
+import { buildHrTools, toolsForSubject, type ToolCaller } from "@/lib/ai/tools";
+import { permissionsForRole } from "@/lib/rbac-server";
 
 // Minimal ToolCallOptions stub for invoking tool.execute directly.
 const OPTS = { toolCallId: "test", messages: [] } as never;
@@ -28,6 +29,8 @@ beforeAll(async () => {
   for (const u of users) {
     callers[CALLER_KEY_BY_EMAIL[u.email]] = {
       role: u.role,
+      // Resolved from the LIVE matrix, exactly as api/chat/route.ts does per turn.
+      permissions: await permissionsForRole(u.role),
       employeeId: u.employee!.id,
       name: u.name,
       userId: u.id,
@@ -274,10 +277,36 @@ describe("tool catalogue — irrelevant tools aren't injected per role", () => {
     expect(names).toContain("approveLeave");
   });
 
-  it("toolsForRole matches what buildHrTools actually exposes", () => {
+  it("toolsForSubject matches what buildHrTools actually exposes", () => {
     for (const c of [callers.employee, callers.manager, callers.hr]) {
-      expect(toolsForRole(c.role).sort()).toEqual(Object.keys(buildHrTools(c)).sort());
+      expect(toolsForSubject(c).sort()).toEqual(Object.keys(buildHrTools(c)).sort());
     }
+  });
+});
+
+describe("multi-scope tools follow ANY directory/payslip read (custom roles)", () => {
+  // A custom role can hold `directory:read:all` WITHOUT the narrow `:self` — the
+  // built-ins nest, custom roles need not. The tool's scope is decided inside
+  // (directoryWhere / getPayslip), so it must be offered on any read in the family;
+  // gating on `:self` alone would let such a role browse the whole directory in the
+  // UI while the assistant refused it.
+  it("a role with only directory:read:all is offered getEmployeeDirectory", () => {
+    expect(toolsForSubject({ role: "AUDITOR", permissions: ["directory:read:all"] })).toContain(
+      "getEmployeeDirectory",
+    );
+  });
+
+  it("a role with only payslip:read:any is offered getPayslip", () => {
+    expect(toolsForSubject({ role: "PAYROLL", permissions: ["payslip:read:any"] })).toContain(
+      "getPayslip",
+    );
+  });
+
+  it("and the directory tool actually runs (not refused) for a directory:read:all-only caller", async () => {
+    const caller: ToolCaller = { ...callers.hr, role: "AUDITOR", permissions: ["directory:read:all"] };
+    const out = await call(buildHrTools(caller).getEmployeeDirectory, {});
+    expect(out.refused).toBeUndefined();
+    expect(out.count).toBeGreaterThan(0);
   });
 });
 

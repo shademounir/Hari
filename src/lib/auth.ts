@@ -3,7 +3,6 @@ import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import type { Role } from "@/lib/rbac";
 import { normalizeEmail, verifyAuthToken } from "@/lib/auth/tokens";
 import { rateLimit, rateLimitPeek, clientIp } from "@/lib/rate-limit";
 import type { AuthTokenType } from "@prisma/client";
@@ -23,11 +22,18 @@ export const googleEnabled = Boolean(
   process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET,
 );
 
-/** Load a user by email with the fields the session needs. */
+/** Load a user by email with the fields sign-in needs. */
 async function loadUser(email: string) {
   return prisma.user.findUnique({
     where: { email: normalizeEmail(email) },
-    include: { employee: { select: { id: true } } },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      passwordHash: true,
+      active: true,
+      emailVerified: true,
+    },
   });
 }
 
@@ -61,7 +67,9 @@ const providers: NextAuthConfig["providers"] = [
 
       const user = await loadUser(email);
       // Passwordless-only accounts have no hash → credentials login can't apply.
-      if (!user?.passwordHash) {
+      // A deactivated account is refused here, indistinguishably from a bad
+      // password (no enumeration signal) and before bcrypt runs.
+      if (!user?.passwordHash || !user.active) {
         await recordFailure();
         return null;
       }
@@ -72,13 +80,7 @@ const providers: NextAuthConfig["providers"] = [
         return null;
       }
 
-      return {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role as Role,
-        employeeId: user.employee?.id ?? null,
-      };
+      return { id: user.id, name: user.name, email: user.email };
     },
   }),
 
@@ -99,7 +101,9 @@ const providers: NextAuthConfig["providers"] = [
       if (!res.ok) return null;
 
       const user = await loadUser(email);
-      if (!user) return null; // only pre-provisioned accounts may sign in
+      // Only pre-provisioned, active accounts may sign in. Consuming a valid
+      // token is not enough: deactivating an account must close this door too.
+      if (!user?.active) return null;
 
       // First successful passwordless confirm proves the address.
       if (!user.emailVerified) {
@@ -108,13 +112,7 @@ const providers: NextAuthConfig["providers"] = [
           .catch(() => {});
       }
 
-      return {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role as Role,
-        employeeId: user.employee?.id ?? null,
-      };
+      return { id: user.id, name: user.name, email: user.email };
     },
   }),
 ];
@@ -124,55 +122,51 @@ if (googleEnabled) {
   providers.push(Google({ allowDangerousEmailAccountLinking: true }));
 }
 
-// Auth.js v5 (JWT sessions — required for the Credentials providers). The session
-// carries id + role + employeeId so RBAC checks and AI tools can scope data with
-// no per-request DB round-trip.
+// Auth.js v5 (JWT sessions — required for the Credentials providers).
+//
+// The token carries IDENTITY ONLY (`sub`). Role and permissions are resolved per
+// request from the database in `lib/session.ts`, because a role claim on a
+// 30-day token cannot be revoked: `updateAge` re-signs the token without
+// re-running `authorize`, so a stale role would just be copied forward. Trading
+// one indexed read per request (deduped by React `cache()`) for a demotion that
+// actually takes effect is the right side of that bargain.
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
   pages: { signIn: "/login" },
   trustHost: true,
   providers,
   callbacks: {
-    // Google: only pre-provisioned employees may sign in. An unknown Google
-    // account is rejected here (HR creates accounts; sign-in never creates one).
+    // Google: only pre-provisioned, ACTIVE employees may sign in. An unknown or
+    // deactivated Google account is rejected here (HR creates accounts; sign-in
+    // never creates one).
     async signIn({ account, user }) {
       if (account?.provider === "google") {
         const email = normalizeEmail(user?.email ?? "");
         if (!email) return false;
         const known = await prisma.user.findUnique({
           where: { email },
-          select: { id: true },
+          select: { active: true },
         });
-        return Boolean(known);
+        return Boolean(known?.active);
       }
       return true;
     },
-    // Capture role/employeeId on the token at sign-in. Credentials/passwordless
-    // authorize already return them; for Google we resolve OUR user by email and
-    // rebind the subject to our user id (id on `token.sub`).
+    // Google authenticates by email, so rebind the subject to OUR user id — every
+    // downstream lookup keys off `token.sub`. Nothing else is captured: role and
+    // employeeId are resolved per request from the database, not carried here.
     async jwt({ token, user, account }) {
-      if (user) {
-        if (account?.provider === "google") {
-          const dbUser = await loadUser(user.email ?? "");
-          if (dbUser) {
-            token.sub = dbUser.id;
-            token.name = dbUser.name;
-            token.role = dbUser.role;
-            token.employeeId = dbUser.employee?.id ?? null;
-          }
-        } else {
-          token.role = user.role;
-          token.employeeId = user.employeeId;
+      if (user && account?.provider === "google") {
+        const dbUser = await loadUser(user.email ?? "");
+        if (dbUser) {
+          token.sub = dbUser.id;
+          token.name = dbUser.name;
         }
       }
       return token;
     },
-    // Pure projection of the token onto the session — no DB.
+    // Identity only. `lib/session.ts` resolves role + permissions from the DB.
     session({ session, token }) {
-      if (!session.user) return session;
-      session.user.id = token.sub as string;
-      session.user.role = token.role as Role;
-      session.user.employeeId = (token.employeeId as string | null) ?? null;
+      if (session.user) session.user.id = token.sub as string;
       return session;
     },
   },

@@ -16,6 +16,7 @@ import {
 
 const BUCKET = process.env.S3_BUCKET ?? "kb-images";
 const COVER_URL_PREFIX = "/api/kb/images/";
+const AVATAR_URL_PREFIX = "/api/avatars/";
 
 const s3 = new S3Client({
   region: process.env.S3_REGION ?? "us-east-1",
@@ -98,6 +99,33 @@ function extFor(contentType: string): string {
   if (ct.includes("jpeg") || ct.includes("jpg")) return "jpg";
   if (ct.includes("gif")) return "gif";
   return "bin";
+}
+
+/**
+ * Upload an avatar; returns the object key (e.g. `avatars/<uuid>.webp`).
+ *
+ * A separate prefix from covers on purpose: the two are served by different
+ * proxies with different rules. A cover is decorative and public-by-unguessable-
+ * key; a face is personal data, so `api/avatars/[...key]` requires a session.
+ */
+export async function putAvatar(bytes: Uint8Array | Buffer, contentType: string): Promise<string> {
+  await ensureBucket();
+  const key = `avatars/${randomUUID()}.${extFor(contentType)}`;
+  await s3.send(
+    new PutObjectCommand({ Bucket: BUCKET, Key: key, Body: bytes, ContentType: contentType }),
+  );
+  return key;
+}
+
+/** Turn a stored avatar key into its same-origin proxy path. */
+export function avatarUrl(key: string): string {
+  return `${AVATAR_URL_PREFIX}${key}`;
+}
+
+/** Parse a stored avatar URL back to its object key (null if not a proxy path). */
+export function keyFromAvatarUrl(url: string | null | undefined): string | null {
+  if (!url || !url.startsWith(AVATAR_URL_PREFIX)) return null;
+  return url.slice(AVATAR_URL_PREFIX.length);
 }
 
 /** Upload a cover image; returns the object key (e.g. `covers/<uuid>.webp`). */

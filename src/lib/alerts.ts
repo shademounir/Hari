@@ -9,10 +9,11 @@
 // ─────────────────────────────────────────────────────────────────────────
 import type { AlertKind, AlertSeverity, AlertStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { can, type Role } from "@/lib/rbac";
+import { can, type Actor, type Subject } from "@/lib/rbac";
 
 /** The signed-in user acting on alerts. Reads need only the role; triage stamps the userId. */
-export type AlertActor = { role: Role; userId: string };
+/** Who acknowledged / resolved an alert. */
+export type AlertActor = Actor;
 
 export type AlertView = {
   id: string;
@@ -133,8 +134,8 @@ const toView = (a: AlertRow): AlertView => ({
 });
 
 /** Open (un-resolved) alerts for the bell. Empty unless the caller may read alerts. */
-export async function getOpenAlerts(actor: { role: Role }, limit = 20): Promise<AlertView[]> {
-  if (!can(actor.role, "alerts:read")) return [];
+export async function getOpenAlerts(actor: Subject, limit = 20): Promise<AlertView[]> {
+  if (!can(actor, "alerts:read")) return [];
   const rows = await prisma.alert.findMany({
     where: { status: { not: "RESOLVED" } },
     orderBy: { createdAt: "desc" },
@@ -147,9 +148,9 @@ export async function getOpenAlerts(actor: { role: Role }, limit = 20): Promise<
 export type AlertStatusCounts = { OPEN: number; ACKNOWLEDGED: number; RESOLVED: number; all: number };
 
 /** Per-status totals for the /alerts filter tabs. Zeroed unless the caller may read alerts. */
-export async function getAlertStatusCounts(actor: { role: Role }): Promise<AlertStatusCounts> {
+export async function getAlertStatusCounts(actor: Subject): Promise<AlertStatusCounts> {
   const counts: AlertStatusCounts = { OPEN: 0, ACKNOWLEDGED: 0, RESOLVED: 0, all: 0 };
-  if (!can(actor.role, "alerts:read")) return counts;
+  if (!can(actor, "alerts:read")) return counts;
   const grouped = await prisma.alert.groupBy({ by: ["status"], _count: { _all: true } });
   for (const g of grouped) {
     counts[g.status] = g._count._all;
@@ -160,11 +161,11 @@ export async function getAlertStatusCounts(actor: { role: Role }): Promise<Alert
 
 /** Full alert list for the /alerts page, optionally filtered by status. */
 export async function getAlerts(
-  actor: { role: Role },
+  actor: Subject,
   filter?: { status?: AlertStatus },
   limit = 100,
 ): Promise<AlertView[]> {
-  if (!can(actor.role, "alerts:read")) return [];
+  if (!can(actor, "alerts:read")) return [];
   const rows = await prisma.alert.findMany({
     where: filter?.status ? { status: filter.status } : undefined,
     orderBy: { createdAt: "desc" },
@@ -176,7 +177,7 @@ export async function getAlerts(
 
 /** Move an OPEN alert to ACKNOWLEDGED, stamping who did it. No-op if not permitted. */
 export async function acknowledgeAlert(actor: AlertActor, id: string): Promise<boolean> {
-  if (!can(actor.role, "alerts:read")) return false;
+  if (!can(actor, "alerts:read")) return false;
   const res = await prisma.alert.updateMany({
     where: { id, status: "OPEN" },
     data: { status: "ACKNOWLEDGED", ackById: actor.userId },
@@ -190,7 +191,7 @@ export async function acknowledgeAlert(actor: AlertActor, id: string): Promise<b
  * distinct in the audit.
  */
 export async function resolveAlert(actor: AlertActor, id: string): Promise<boolean> {
-  if (!can(actor.role, "alerts:read")) return false;
+  if (!can(actor, "alerts:read")) return false;
   const res = await prisma.alert.updateMany({
     where: { id, status: { not: "RESOLVED" } },
     data: { status: "RESOLVED", resolvedAt: new Date(), resolvedById: actor.userId },
@@ -204,7 +205,7 @@ export async function resolveAlert(actor: AlertActor, id: string): Promise<boole
  * "closed by mistake" case. No-op unless the caller may read alerts.
  */
 export async function reopenAlert(actor: AlertActor, id: string): Promise<boolean> {
-  if (!can(actor.role, "alerts:read")) return false;
+  if (!can(actor, "alerts:read")) return false;
   const res = await prisma.alert.updateMany({
     where: { id, status: "RESOLVED" },
     data: { status: "OPEN", resolvedAt: null, resolvedById: null, ackById: null },

@@ -14,7 +14,7 @@
 import { tool } from "ai";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { can, PERMISSION_LABELS, type Permission, type Role } from "@/lib/rbac";
+import { can, PERMISSION_LABELS, type Permission, type Subject } from "@/lib/rbac";
 import {
   getEmployeeDirectory,
   filterDirectory,
@@ -33,8 +33,11 @@ import {
 import { getEngagementBoard } from "@/lib/engagement/data-layer";
 import { isoDateInTimeZone } from "@/lib/datetime";
 
-export type ToolCaller = {
-  role: Role;
+// The acting identity, resolved once per turn in api/chat/route.ts from the
+// session + the live RBAC matrix and closed over by every tool. It IS a Subject,
+// so the per-tool can() checks read an already-resolved permission set — and a
+// permission revoked in the editor stops advertising its tools on the next turn.
+export type ToolCaller = Subject & {
   employeeId: string | null;
   name: string;
   // The signed-in user's id — needed to attribute audit-trail entries for write
@@ -68,7 +71,7 @@ function withPermission<I, O>(
   fn: (input: I) => Promise<O>,
 ): (input: I) => Promise<O | Refusal | Failure> {
   return async (input: I) => {
-    if (!can(caller.role, permission)) {
+    if (!can(caller, permission)) {
       return refused(`That action isn't available to your role (needs "${PERMISSION_LABELS[permission]}").`);
     }
     // Throw-guard (defense in depth): an unexpected throw (e.g. a DB error) must
@@ -83,6 +86,37 @@ function withPermission<I, O>(
     }
   };
 }
+
+// Some tools serve a whole scope family — the directory tool works for
+// `directory:read:self|team|all`, the payslip tool for `payslip:read:self|any`
+// — and the SCOPE is decided inside (directoryWhere, getPayslip), not by which
+// one permission is held. Gating them on the narrowest (`:self`) assumed the
+// built-in nesting; a custom role with only `directory:read:all` would see the
+// whole directory in the UI yet be refused here. This runs if the caller holds
+// ANY of the family, matching what `buildHrTools` advertises for these tools.
+function withAnyPermission<I, O>(
+  caller: ToolCaller,
+  permissions: readonly Permission[],
+  fn: (input: I) => Promise<O>,
+): (input: I) => Promise<O | Refusal | Failure> {
+  const held = permissions.find((p) => can(caller, p));
+  if (!held) {
+    const label = PERMISSION_LABELS[permissions[0]];
+    return async () => refused(`That action isn't available to your role (needs "${label}").`);
+  }
+  return withPermission(caller, held, fn);
+}
+
+// The scope families the two multi-scope tools accept (see withAnyPermission).
+const DIRECTORY_READS = [
+  "directory:read:self",
+  "directory:read:team",
+  "directory:read:all",
+] as const satisfies readonly Permission[];
+const PAYSLIP_READS = [
+  "payslip:read:self",
+  "payslip:read:any",
+] as const satisfies readonly Permission[];
 
 // Case-insensitive enum: models sometimes emit "vacation"/"approve" — uppercase
 // before validating so we don't hand the user a spurious tool error.
@@ -144,7 +178,7 @@ function buildAllHrTools(caller: ToolCaller, timezone = "UTC") {
   // Only callers who can read anyone's pay get a target parameter; everyone else
   // gets a self-only payslip tool with no `employeeId` field — so the agent
   // can't even attempt to query another person's payslip.
-  const canReadAnyPayslip = can(caller.role, "payslip:read:any");
+  const canReadAnyPayslip = can(caller, "payslip:read:any");
 
   // Running citation counter, shared across every searchHandbook call in THIS
   // request (the tools object lives for the whole multi-step stream). It makes
@@ -286,7 +320,7 @@ function buildAllHrTools(caller: ToolCaller, timezone = "UTC") {
           .nullish()
           .describe("Optional case-insensitive substring to filter by."),
       }),
-      execute: withPermission(caller, "directory:read:self", async ({ filter }) => {
+      execute: withAnyPermission(caller, DIRECTORY_READS, async ({ filter }) => {
         const people = filterDirectory(await getEmployeeDirectory(caller), filter);
         return { count: people.length, people };
       }),
@@ -378,7 +412,7 @@ function buildAllHrTools(caller: ToolCaller, timezone = "UTC") {
         // tool, but a requestId outside their team is still refused here.) Guard the
         // null case explicitly: a caller with no employeeId must never match a
         // report whose managerId is also null (`null !== null` is false).
-        const companyWide = can(caller.role, "directory:read:all");
+        const companyWide = can(caller, "directory:read:all");
         if (!companyWide && (!caller.employeeId || req.employee.managerId !== caller.employeeId)) {
           return refused("That request is for someone outside your team, so you can't action it.");
         }
@@ -397,11 +431,7 @@ function buildAllHrTools(caller: ToolCaller, timezone = "UTC") {
         // so the status flip, the balance deduction, and the scope check can never
         // diverge by channel. It re-checks scope + PENDING atomically and deducts
         // the balance on approval (idempotent under races).
-        const ok = await decideLeaveRequest(
-          { role: caller.role, employeeId: caller.employeeId },
-          requestId,
-          status,
-        );
+        const ok = await decideLeaveRequest(caller, requestId, status);
         if (!ok) {
           // Lost a race, or scope narrowed between the read above and the write.
           return fail("request_not_pending", "That request could no longer be actioned.");
@@ -444,9 +474,9 @@ function buildAllHrTools(caller: ToolCaller, timezone = "UTC") {
               .nullish()
               .describe("An employeeId returned by getEmployeeDirectory — omit for your own."),
           }),
-          // Wrapped in withPermission like every other data tool (defense in depth);
-          // the data layer additionally enforces the self-vs-any distinction.
-          execute: withPermission(caller, "payslip:read:self", async ({ employeeId }) => {
+          // Any payslip-read permission unlocks the tool (defense in depth); the
+          // data layer additionally enforces the self-vs-any distinction.
+          execute: withAnyPermission(caller, PAYSLIP_READS, async ({ employeeId }) => {
             const result = await getPayslip(caller, employeeId);
             if (result.ok) return { payslip: result.payslip };
             return refused("No payslip found for an employee you can view.");
@@ -456,7 +486,7 @@ function buildAllHrTools(caller: ToolCaller, timezone = "UTC") {
           description:
             "Get the current user's own PAY summary: gross pay, tax, and net pay (money only — NOT vacation or leave balances; use getLeaveBalances for those).",
           inputSchema: z.object({}),
-          execute: withPermission(caller, "payslip:read:self", async () => {
+          execute: withAnyPermission(caller, PAYSLIP_READS, async () => {
             const result = await getPayslip(caller); // self only — no target accepted
             if (result.ok) return { payslip: result.payslip };
             return refused("No payslip is linked to your account.");
@@ -484,7 +514,7 @@ function buildAllHrTools(caller: ToolCaller, timezone = "UTC") {
           .describe("How many top-risk people to return (default 3)."),
       }),
       execute: withPermission(caller, "predictions:read", async ({ limit }) => {
-        const anonymized = !can(caller.role, "directory:read:all"); // managers → anonymized
+        const anonymized = !can(caller, "directory:read:all"); // managers → anonymized
         const candidates = await getPredictionCandidates(caller);
         if (candidates.length === 0) {
           return { scope: anonymized ? "team" : "company", anonymized, totalEvaluated: 0, highRiskCount: 0, atRisk: [] };
@@ -552,7 +582,7 @@ function buildAllHrTools(caller: ToolCaller, timezone = "UTC") {
         }
 
         const board = await getEngagementBoard(caller); // scope-enforced + self-excluded
-        const companyWide = can(caller.role, "engagement:read:all");
+        const companyWide = can(caller, "engagement:read:all");
         const scope = companyWide ? "company" : "team";
 
         // Managers get AGGREGATE, anonymized team insight only — never a per-person
@@ -623,26 +653,47 @@ export const TOOL_CATALOGUE = [
   { name: "endConversation", permission: null }, // safety valve — every role
 
   { name: "searchHandbook", permission: "handbook:read" },
-  { name: "getEmployeeDirectory", permission: "directory:read:self" },
+  // Any directory-read scope is offered the tool; the SCOPE (self/team/company)
+  // is decided inside by directoryWhere. Gating on the narrowest `:self` alone
+  // would refuse a custom role holding only `directory:read:all` a lookup its own
+  // UI already allows.
+  { name: "getEmployeeDirectory", permission: DIRECTORY_READS },
   { name: "getLeaveBalances", permission: "leave:read:self" },
   { name: "requestTimeOff", permission: "leave:request" },
   { name: "listPendingApprovals", permission: "leave:approve" },
   { name: "approveLeave", permission: "leave:approve" },
-  // `payslip:read:self` gates ADVERTISING the tool; the elevated variant's
-  // `employeeId` target is unlocked separately by `payslip:read:any` (above).
-  { name: "getPayslip", permission: "payslip:read:self" },
+  // Any payslip-read scope; the elevated variant's `employeeId` target is unlocked
+  // separately by `payslip:read:any` inside the tool.
+  { name: "getPayslip", permission: PAYSLIP_READS },
   { name: "predictDepartures", permission: "predictions:read" },
   { name: "getEngagementRisk", permission: "engagement:read:team" },
-] as const satisfies readonly { name: ToolName; permission: Permission | null }[];
+] as const satisfies readonly {
+  name: ToolName;
+  permission: Permission | readonly Permission[] | null;
+}[];
 
-/** Does this role get the catalogue entry? `null` permission = always (utility). */
-function roleHasTool(role: Role, permission: Permission | null): boolean {
-  return permission === null || can(role, permission);
+/**
+ * Does this subject get the catalogue entry? `null` = always (utility); an array
+ * = ANY-of (the tool serves a whole scope family, gated inside — see
+ * withAnyPermission); a single permission = that one.
+ */
+function subjectHasTool(
+  subject: Subject,
+  permission: Permission | readonly Permission[] | null,
+): boolean {
+  if (permission === null) return true;
+  if (Array.isArray(permission)) return permission.some((p) => can(subject, p));
+  return can(subject, permission as Permission);
 }
 
-/** Tool names a role is offered — handy for the settings UI and tests. */
-export function toolsForRole(role: Role): ToolName[] {
-  return TOOL_CATALOGUE.filter((t) => roleHasTool(role, t.permission)).map((t) => t.name);
+/**
+ * Tool names a subject is offered — handy for the settings UI and tests. Takes a
+ * resolved Subject rather than a role slug, so it reflects the LIVE matrix: a
+ * custom role holding `leave:approve` is offered `approveLeave`, and revoking a
+ * permission stops advertising its tools on the next turn.
+ */
+export function toolsForSubject(subject: Subject): ToolName[] {
+  return TOOL_CATALOGUE.filter((t) => subjectHasTool(subject, t.permission)).map((t) => t.name);
 }
 
 /**
@@ -657,7 +708,7 @@ export function buildHrTools(
   opts: { timezone?: string } = {},
 ): Partial<AllHrTools> {
   const all = buildAllHrTools(caller, opts.timezone);
-  const allowed = TOOL_CATALOGUE.filter((t) => roleHasTool(caller.role, t.permission)).map(
+  const allowed = TOOL_CATALOGUE.filter((t) => subjectHasTool(caller, t.permission)).map(
     (t) => [t.name, all[t.name]] as const,
   );
   return Object.fromEntries(allowed) as Partial<AllHrTools>;

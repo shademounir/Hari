@@ -1,6 +1,6 @@
 import { describe, it, expect, afterAll } from "vitest";
 import { prisma } from "@/lib/prisma";
-import { can } from "@/lib/rbac";
+import { DEFAULT_ROLE_PERMISSIONS, builtinSubject, can } from "@/lib/rbac";
 import {
   ONBOARDING_TEMPLATE,
   computeProgress,
@@ -64,15 +64,15 @@ describe("onboarding — pure helpers", () => {
 
 describe("onboarding — RBAC gating (no DB access)", () => {
   it("only HR_ADMIN / SUPER_ADMIN can read the company overview", () => {
-    expect(can("EMPLOYEE", "directory:read:all")).toBe(false);
-    expect(can("MANAGER", "directory:read:all")).toBe(false);
-    expect(can("HR_ADMIN", "directory:read:all")).toBe(true);
-    expect(can("SUPER_ADMIN", "directory:read:all")).toBe(true);
+    expect(can(builtinSubject("EMPLOYEE"), "directory:read:all")).toBe(false);
+    expect(can(builtinSubject("MANAGER"), "directory:read:all")).toBe(false);
+    expect(can(builtinSubject("HR_ADMIN"), "directory:read:all")).toBe(true);
+    expect(can(builtinSubject("SUPER_ADMIN"), "directory:read:all")).toBe(true);
   });
 
   it("getOnboardingOverview returns [] for roles without directory:read:all", async () => {
-    expect(await getOnboardingOverview({ role: "EMPLOYEE", employeeId: null })).toEqual([]);
-    expect(await getOnboardingOverview({ role: "MANAGER", employeeId: null })).toEqual([]);
+    expect(await getOnboardingOverview({ role: "EMPLOYEE", permissions: DEFAULT_ROLE_PERMISSIONS["EMPLOYEE"], employeeId: null })).toEqual([]);
+    expect(await getOnboardingOverview({ role: "MANAGER", permissions: DEFAULT_ROLE_PERMISSIONS["MANAGER"], employeeId: null })).toEqual([]);
   });
 });
 
@@ -113,7 +113,7 @@ describe("onboarding — checklist lifecycle (metadata only)", () => {
     const tasks = await getMyOnboarding(employeeId);
     await setMyOnboardingStatus(employeeId, tasks[0].id, "DONE");
 
-    const overview = await getOnboardingOverview({ role: "HR_ADMIN", employeeId: null });
+    const overview = await getOnboardingOverview({ role: "HR_ADMIN", permissions: DEFAULT_ROLE_PERMISSIONS["HR_ADMIN"], employeeId: null });
     const row = overview.find((r) => r.employeeId === employeeId);
     expect(row).toBeDefined();
     expect(row!.progress.total).toBe(ONBOARDING_TEMPLATE.length);

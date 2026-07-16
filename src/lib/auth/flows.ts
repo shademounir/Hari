@@ -89,6 +89,32 @@ export async function issuePasswordReset(rawEmail: string): Promise<IssueResult>
   return revealSecretsInUi ? { ok: true, devLink: link } : { ok: true };
 }
 
+/**
+ * Invite an already-provisioned account to set its first password.
+ *
+ * Mirrors issuePasswordReset, with two deliberate differences: no
+ * anti-enumeration silence (the caller is an authenticated HR admin who just
+ * created this account, so there is nothing to leak), and a much longer TTL —
+ * the recipient isn't waiting at their desk. Sign-in still never creates an
+ * account; this only opens the door to one HR already made.
+ */
+export async function issueInvite(rawEmail: string): Promise<IssueResult> {
+  const email = normalizeEmail(rawEmail);
+  if (!email) return { ok: true };
+  const { secret } = await createAuthToken("INVITE", email);
+  const base = await getBaseUrl();
+  const link = `${base}/reset-password?email=${encodeURIComponent(email)}&token=${secret}&kind=INVITE`;
+  const days = Math.round(TOKEN_TTL_MINUTES.INVITE / (60 * 24));
+  await sendAuthEmail({
+    to: email,
+    subject: "HARI — Bienvenue / Welcome",
+    text:
+      `Votre compte HARI est prêt. Choisissez votre mot de passe (lien valide ${days} jours) :\n${link}\n\n` +
+      `Your HARI account is ready. Choose your password (link valid ${days} days):\n${link}\n`,
+  });
+  return revealSecretsInUi ? { ok: true, devLink: link } : { ok: true };
+}
+
 export async function issueMagicLink(rawEmail: string): Promise<IssueResult> {
   const email = normalizeEmail(rawEmail);
   if (!email) return { ok: true };

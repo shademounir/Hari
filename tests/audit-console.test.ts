@@ -1,5 +1,6 @@
 import { describe, it, expect, afterAll } from "vitest";
 import { prisma } from "@/lib/prisma";
+import { builtinSubject } from "@/lib/rbac";
 import {
   recordAudit,
   getAuditLog,
@@ -56,14 +57,14 @@ describe("audit console — filtered read-back (metadata only)", () => {
 
     // Filtering by action returns only that action, for this actor.
     const approvals = await getAuditLog(
-      { role: "SUPER_ADMIN" },
+      builtinSubject("SUPER_ADMIN"),
       { action: "LEAVE_APPROVED", actorId: ACTOR },
     );
     expect(approvals.length).toBeGreaterThanOrEqual(1);
     expect(approvals.every((e) => e.action === "LEAVE_APPROVED")).toBe(true);
 
     const views = await getAuditLog(
-      { role: "HR_ADMIN" },
+      builtinSubject("HR_ADMIN"),
       { action: "AUDIT_CONSOLE_VIEWED", actorId: ACTOR },
     );
     expect(views.some((e) => e.id === viewedId)).toBe(true);
@@ -73,7 +74,7 @@ describe("audit console — filtered read-back (metadata only)", () => {
   });
 
   it("stays gated: non-privileged roles read nothing", async () => {
-    expect(await getAuditLog({ role: "EMPLOYEE" }, { action: "LEAVE_APPROVED" })).toEqual([]);
-    expect(await getAuditLog({ role: "MANAGER" })).toEqual([]);
+    expect(await getAuditLog(builtinSubject("EMPLOYEE"), { action: "LEAVE_APPROVED" })).toEqual([]);
+    expect(await getAuditLog(builtinSubject("MANAGER"))).toEqual([]);
   });
 });

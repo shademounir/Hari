@@ -18,10 +18,10 @@ export type AnalyticsScope = {
 
 /** Null when the caller holds neither analytics permission. */
 export function resolveAnalyticsScope(caller: Caller): AnalyticsScope | null {
-  if (can(caller.role, "analytics:full")) {
+  if (can(caller, "analytics:full")) {
     return { where: {}, companyWide: true, canPayroll: true };
   }
-  if (can(caller.role, "analytics:team")) {
+  if (can(caller, "analytics:team")) {
     const self = caller.employeeId ?? "__none__";
     return {
       where: { OR: [{ id: self }, { managerId: self }] },

@@ -16,12 +16,17 @@ export async function resetPasswordAction(
   const token = String(formData.get("token") ?? "");
   const password = String(formData.get("password") ?? "");
   const confirm = String(formData.get("confirm") ?? "");
+  // An invite sets the FIRST password; a reset replaces one. Same one-time-token
+  // mechanic, different copy — so the kind rides on the form and is narrowed to
+  // the two that may set a password here (never MAGIC_LINK / EMAIL_OTP, which are
+  // sign-in secrets and must not be spendable on a password change).
+  const kind = String(formData.get("kind") ?? "") === "INVITE" ? "INVITE" : "PASSWORD_RESET";
   const t = await getTranslations("auth");
 
   if (password.length < 8) return { error: t("passwordTooShort") };
   if (password !== confirm) return { error: t("passwordMismatch") };
 
-  const res = await verifyAuthToken("PASSWORD_RESET", email, token);
+  const res = await verifyAuthToken(kind, email, token);
   if (!res.ok) {
     return { error: res.reason === "expired" ? t("linkExpired") : t("linkInvalid") };
   }
@@ -29,7 +34,12 @@ export async function resetPasswordAction(
   const passwordHash = await bcrypt.hash(password, 10);
   await prisma.user.update({
     where: { email: normalizeEmail(email) },
-    data: { passwordHash },
+    data: {
+      passwordHash,
+      // Consuming an invite proves the address, exactly as the passwordless
+      // providers treat their first successful confirm.
+      ...(kind === "INVITE" ? { emailVerified: new Date() } : {}),
+    },
   });
-  redirect("/login?reset=1");
+  redirect(kind === "INVITE" ? "/login?welcome=1" : "/login?reset=1");
 }
