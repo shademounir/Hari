@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { requireUser, actorOf } from "@/lib/session";
 import { can, isBuiltinRole, DEFAULT_ROLE_PERMISSIONS } from "@/lib/rbac";
 import { getRole } from "@/lib/roles";
-import { getRoleLabels } from "@/lib/rbac-server";
+import { getRoleDescriptions, getRoleLabels } from "@/lib/rbac-server";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RoleEditor } from "@/components/settings/role-editor";
@@ -21,7 +21,11 @@ export default async function EditRolePage({
   if (!role) notFound();
 
   const t = await getTranslations("settings");
-  const labels = await getRoleLabels(await getTranslations("roles"));
+  const tRoles = await getTranslations("roles");
+  const [labels, descriptions] = await Promise.all([
+    getRoleLabels(tRoles),
+    getRoleDescriptions(tRoles),
+  ]);
 
   return (
     <Card>
@@ -41,8 +45,10 @@ export default async function EditRolePage({
         <RoleEditor
           role={{
             slug: role.slug,
-            label: role.label,
-            description: role.description,
+            // Built-ins show HARI's translated copy (read-only); custom roles show
+            // their own, which is user data.
+            label: labels[role.slug] ?? role.label,
+            description: descriptions[role.slug] ?? null,
             builtIn: role.builtIn,
             usesDefaults: role.usesDefaults,
             permissions: role.permissions,

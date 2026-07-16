@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { Plus, ChevronRight } from "lucide-react";
 import { actorOf, requireUser } from "@/lib/session";
 import { isBuiltinRole } from "@/lib/rbac";
-import { getRoleLabels } from "@/lib/rbac-server";
+import { getRoleDescriptions, getRoleLabels } from "@/lib/rbac-server";
 import { listRolesWithUsage } from "@/lib/roles";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button-link";
@@ -25,9 +25,11 @@ export default async function RolesSettingsPage() {
   const user = await requireUser();
   const t = await getTranslations("settings");
 
-  const [roles, labels] = await Promise.all([
+  const tRoles = await getTranslations("roles");
+  const [roles, labels, descriptions] = await Promise.all([
     listRolesWithUsage(actorOf(user)),
-    getRoleLabels(await getTranslations("roles")),
+    getRoleLabels(tRoles),
+    getRoleDescriptions(tRoles),
   ]);
   const hasCustom = roles.some((r) => !r.builtIn);
 
@@ -76,8 +78,8 @@ export default async function RolesSettingsPage() {
                         <Badge variant="outline">{t("customized")}</Badge>
                       )}
                     </div>
-                    {r.description && (
-                      <p className="mt-0.5 text-xs text-muted-foreground">{r.description}</p>
+                    {descriptions[r.slug] && (
+                      <p className="mt-0.5 text-xs text-muted-foreground">{descriptions[r.slug]}</p>
                     )}
                     <code className="text-xs text-muted-foreground">{r.slug}</code>
                   </TableCell>

@@ -180,7 +180,14 @@ export async function updateRole(
   const current = matrix.bySlug[input.slug];
   if (!current) return { ok: false, error: "not_found" };
 
-  const label = input.label.trim().slice(0, 60);
+  // A built-in's NAME and DESCRIPTION are HARI's own copy: they are translated
+  // from the `roles.*` catalog, so a value written here would never be displayed.
+  // Silently accepting one would be a lie; they are simply not editable. What you
+  // customize about a built-in is its PERMISSIONS.
+  const label = current.builtIn ? current.label : input.label.trim().slice(0, 60);
+  const description = current.builtIn
+    ? current.description
+    : input.description?.trim().slice(0, 200) || null;
   if (!label) return { ok: false, error: "invalid" };
 
   // Reset only means anything for a built-in — it is the code defaults it reverts to.
@@ -209,7 +216,7 @@ export async function updateRole(
       where: { slug: current.slug },
       data: {
         label,
-        description: input.description?.trim().slice(0, 200) || null,
+        description,
         // Prisma.DbNull writes a SQL NULL. A plain `null` would store the JSON
         // value `null`, which the resolver reads as "a custom role with no
         // permissions" rather than "a built-in using the code defaults" —

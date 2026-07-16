@@ -68,9 +68,10 @@ export function RoleEditor({ role, grantable, defaultsFor }: Props) {
     return [...m];
   }, []);
 
+  const copyEditable = !role?.builtIn;
   const dirty =
-    label !== (role?.label ?? "") ||
-    description !== (role?.description ?? "") ||
+    (copyEditable &&
+      (label !== (role?.label ?? "") || description !== (role?.description ?? ""))) ||
     selected.size !== (role?.permissions.length ?? 0) ||
     (role?.permissions ?? []).some((p) => !selected.has(p));
 
@@ -138,7 +139,9 @@ export function RoleEditor({ role, grantable, defaultsFor }: Props) {
             placeholder={t("roleNamePlaceholder")}
             maxLength={60}
             required
-            disabled={pending}
+            // A built-in's name is translated from the roles.* catalog, so a value
+            // typed here would never be displayed. The server ignores it too.
+            disabled={role?.builtIn || pending}
           />
         </label>
 
@@ -170,8 +173,11 @@ export function RoleEditor({ role, grantable, defaultsFor }: Props) {
           placeholder={t("roleDescriptionPlaceholder")}
           maxLength={200}
           rows={2}
-          disabled={pending}
+          disabled={role?.builtIn || pending}
         />
+        {role?.builtIn && (
+          <span className="block text-xs text-muted-foreground">{t("builtInCopyHint")}</span>
+        )}
       </label>
 
       {/* Permissions, grouped by domain */}

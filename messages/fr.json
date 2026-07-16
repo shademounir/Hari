@@ -52,7 +52,13 @@
     "EMPLOYEE": "Collaborateur",
     "MANAGER": "Manager",
     "HR_ADMIN": "Admin RH",
-    "SUPER_ADMIN": "Super Admin"
+    "SUPER_ADMIN": "Super Admin",
+    "description": {
+      "EMPLOYEE": "Libre-service : profil, congés, bulletins de paie et guide de l'entreprise.",
+      "MANAGER": "Tout ce que fait un collaborateur, plus son équipe directe.",
+      "HR_ADMIN": "RH à l'échelle de l'entreprise : annuaire, paie, analytique, base de connaissances.",
+      "SUPER_ADMIN": "Admin RH, plus les paramètres, les rôles et les permissions."
+    }
   },
   "permissions": {
     "directory:read:self": "Voir son propre profil",
@@ -560,7 +566,8 @@
     "usersColumn": "Personnes",
     "roleColumn": "Rôle",
     "navUsers": "Personnes",
-    "cardUsersDesc": "Invitez des personnes, changez les rôles et désactivez des comptes."
+    "cardUsersDesc": "Invitez des personnes, changez les rôles et désactivez des comptes.",
+    "builtInCopyHint": "HARI fournit le nom et la description de ce rôle, traduits. Ce que vous modifiez ici, ce sont ses permissions."
   },
   "chat": {
     "assistant": "Assistant IA",

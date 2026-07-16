@@ -171,3 +171,21 @@ export async function getRoleLabels(
     matrix.roles.map((r) => [r.slug, r.builtIn && isBuiltinRole(r.slug) ? t(r.slug) : r.label]),
   );
 }
+
+/**
+ * Slug → description, same split as `getRoleLabels`: a built-in's description is
+ * HARI's own copy and is translated; a custom role's is user data.
+ *
+ * `t` resolves the `roles` namespace, so a built-in reads `description.<SLUG>`.
+ */
+export async function getRoleDescriptions(
+  t: (key: `description.${BuiltinRole}`) => string,
+): Promise<Record<Role, string | null>> {
+  const matrix = await getRbacMatrix();
+  return Object.fromEntries(
+    matrix.roles.map((r) => [
+      r.slug,
+      r.builtIn && isBuiltinRole(r.slug) ? t(`description.${r.slug}` as const) : r.description,
+    ]),
+  );
+}

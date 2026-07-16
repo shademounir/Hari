@@ -52,7 +52,13 @@
     "EMPLOYEE": "Employee",
     "MANAGER": "Manager",
     "HR_ADMIN": "HR Admin",
-    "SUPER_ADMIN": "Super Admin"
+    "SUPER_ADMIN": "Super Admin",
+    "description": {
+      "EMPLOYEE": "Self-service: own profile, leave, payslips, and the handbook.",
+      "MANAGER": "Everything an employee can do, plus their direct reports.",
+      "HR_ADMIN": "Company-wide HR: directory, payroll, analytics, knowledge base.",
+      "SUPER_ADMIN": "HR Admin, plus platform settings, roles, and permissions."
+    }
   },
   "permissions": {
     "directory:read:self": "View own profile",
@@ -560,7 +566,8 @@
     "usersColumn": "People",
     "roleColumn": "Role",
     "navUsers": "People",
-    "cardUsersDesc": "Invite people, change roles, and deactivate accounts."
+    "cardUsersDesc": "Invite people, change roles, and deactivate accounts.",
+    "builtInCopyHint": "HARI ships this role's name and description, translated. What you change here is what it can do."
   },
   "chat": {
     "assistant": "AI Assistant",
