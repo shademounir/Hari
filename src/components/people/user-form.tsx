@@ -52,6 +52,9 @@ export function UserForm({
   isSelf?: boolean;
 }) {
   const t = useTranslations("users");
+  // The same labels the directory renders — "full time" was a toLowerCase() of the
+  // enum, which is neither the app's copy nor translatable.
+  const tType = useTranslations("employmentTypeLabel");
   const router = useRouter();
   const [pending, start] = useTransition();
   const [v, setV] = useState<UserFormValues>(values);
@@ -171,7 +174,7 @@ export function UserForm({
           >
             {employmentTypes.map((e) => (
               <option key={e} value={e}>
-                {e.replace("_", " ").toLowerCase()}
+                {tType(e)}
               </option>
             ))}
           </select>
