@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { DEFAULT_ROLE_PERMISSIONS } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
+import { permissionsForRole } from "@/lib/rbac-server";
 import { getTeamLeaveRequests, getTeamScope, type Caller } from "@/lib/hr";
 
 // SCRUM-071 Increment C — proves the URL filters can only ever NARROW within the
@@ -8,9 +10,9 @@ import { getTeamLeaveRequests, getTeamScope, type Caller } from "@/lib/hr";
 // getTeamLeaveRequests scopes by getTeamScope FIRST and validates filter values.
 
 const callers: Record<"employee" | "manager" | "hr", Caller> = {
-  employee: { role: "EMPLOYEE", employeeId: null },
-  manager: { role: "MANAGER", employeeId: null },
-  hr: { role: "HR_ADMIN", employeeId: null },
+  employee: { role: "EMPLOYEE", permissions: DEFAULT_ROLE_PERMISSIONS["EMPLOYEE"], employeeId: null },
+  manager: { role: "MANAGER", permissions: DEFAULT_ROLE_PERMISSIONS["MANAGER"], employeeId: null },
+  hr: { role: "HR_ADMIN", permissions: DEFAULT_ROLE_PERMISSIONS["HR_ADMIN"], employeeId: null },
 };
 
 const KEY_BY_EMAIL: Record<string, keyof typeof callers> = {
@@ -25,7 +27,11 @@ beforeAll(async () => {
     include: { employee: { select: { id: true } } },
   });
   for (const u of users) {
-    callers[KEY_BY_EMAIL[u.email]] = { role: u.role, employeeId: u.employee!.id };
+    callers[KEY_BY_EMAIL[u.email]] = {
+      role: u.role,
+      permissions: await permissionsForRole(u.role),
+      employeeId: u.employee!.id,
+    };
   }
 });
 

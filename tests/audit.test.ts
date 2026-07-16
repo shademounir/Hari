@@ -1,6 +1,6 @@
 import { describe, it, expect, afterAll } from "vitest";
 import { prisma } from "@/lib/prisma";
-import { can } from "@/lib/rbac";
+import { builtinSubject, can } from "@/lib/rbac";
 import { recordAudit, getAuditLog } from "@/lib/audit";
 
 // SCRUM-064 — the AuditLog trail of sensitive admin actions. Reads are gated on
@@ -17,21 +17,21 @@ afterAll(async () => {
 
 describe("audit — RBAC gating (no DB access)", () => {
   it("only HR_ADMIN / SUPER_ADMIN can read the audit trail", () => {
-    expect(can("EMPLOYEE", "alerts:read")).toBe(false);
-    expect(can("MANAGER", "alerts:read")).toBe(false);
-    expect(can("HR_ADMIN", "alerts:read")).toBe(true);
-    expect(can("SUPER_ADMIN", "alerts:read")).toBe(true);
+    expect(can(builtinSubject("EMPLOYEE"), "alerts:read")).toBe(false);
+    expect(can(builtinSubject("MANAGER"), "alerts:read")).toBe(false);
+    expect(can(builtinSubject("HR_ADMIN"), "alerts:read")).toBe(true);
+    expect(can(builtinSubject("SUPER_ADMIN"), "alerts:read")).toBe(true);
   });
 
   it("getAuditLog returns [] for roles without alerts:read (early return, no DB)", async () => {
-    expect(await getAuditLog({ role: "EMPLOYEE" })).toEqual([]);
-    expect(await getAuditLog({ role: "MANAGER" })).toEqual([]);
+    expect(await getAuditLog(builtinSubject("EMPLOYEE"))).toEqual([]);
+    expect(await getAuditLog(builtinSubject("MANAGER"))).toEqual([]);
   });
 });
 
 describe("audit — record + read roundtrip (metadata only, no PII)", () => {
   it("records a sensitive action and reads it back for Admin/HR", async () => {
-    const actor = { userId: "audit-test-actor", role: "SUPER_ADMIN" as const };
+    const actor = { userId: "audit-test-actor", ...builtinSubject("SUPER_ADMIN") };
     const id = await recordAudit(actor, {
       action: "ALERT_RESOLVED",
       targetType: "Alert",
@@ -42,7 +42,7 @@ describe("audit — record + read roundtrip (metadata only, no PII)", () => {
     expect(id).toBeTruthy();
     if (id) createdIds.push(id);
 
-    const rows = await getAuditLog({ role: "HR_ADMIN" }, { actorId: "audit-test-actor" });
+    const rows = await getAuditLog(builtinSubject("HR_ADMIN"), { actorId: "audit-test-actor" });
     const entry = rows.find((r) => r.id === id);
     expect(entry).toBeDefined();
     expect(entry!.action).toBe("ALERT_RESOLVED");

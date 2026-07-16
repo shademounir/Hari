@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { prisma } from "@/lib/prisma";
-import { buildHrTools, toolsForRole, type ToolCaller } from "@/lib/ai/tools";
+import { buildHrTools, toolsForSubject, type ToolCaller } from "@/lib/ai/tools";
+import { permissionsForRole } from "@/lib/rbac-server";
 
 // Minimal ToolCallOptions stub for invoking tool.execute directly.
 const OPTS = { toolCallId: "test", messages: [] } as never;
@@ -28,6 +29,8 @@ beforeAll(async () => {
   for (const u of users) {
     callers[CALLER_KEY_BY_EMAIL[u.email]] = {
       role: u.role,
+      // Resolved from the LIVE matrix, exactly as api/chat/route.ts does per turn.
+      permissions: await permissionsForRole(u.role),
       employeeId: u.employee!.id,
       name: u.name,
       userId: u.id,
@@ -274,9 +277,9 @@ describe("tool catalogue — irrelevant tools aren't injected per role", () => {
     expect(names).toContain("approveLeave");
   });
 
-  it("toolsForRole matches what buildHrTools actually exposes", () => {
+  it("toolsForSubject matches what buildHrTools actually exposes", () => {
     for (const c of [callers.employee, callers.manager, callers.hr]) {
-      expect(toolsForRole(c.role).sort()).toEqual(Object.keys(buildHrTools(c)).sort());
+      expect(toolsForSubject(c).sort()).toEqual(Object.keys(buildHrTools(c)).sort());
     }
   });
 });

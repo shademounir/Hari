@@ -5,16 +5,17 @@
 // aggregate shapes (fixed-length trend series, non-negative rates, band totals).
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { prisma } from "@/lib/prisma";
-import { can } from "@/lib/rbac";
+import { permissionsForRole } from "@/lib/rbac-server";
+import { DEFAULT_ROLE_PERMISSIONS, builtinSubject, can } from "@/lib/rbac";
 import { getHrAnalytics, getTeamAnalytics } from "@/lib/analytics";
 import { resolveAnalyticsScope } from "@/lib/analytics/scope";
 import type { Caller } from "@/lib/hr";
 
 const callers: Record<"employee" | "manager" | "hr" | "admin", Caller> = {
-  employee: { role: "EMPLOYEE", employeeId: null },
-  manager: { role: "MANAGER", employeeId: null },
-  hr: { role: "HR_ADMIN", employeeId: null },
-  admin: { role: "SUPER_ADMIN", employeeId: null },
+  employee: { role: "EMPLOYEE", permissions: DEFAULT_ROLE_PERMISSIONS["EMPLOYEE"], employeeId: null },
+  manager: { role: "MANAGER", permissions: DEFAULT_ROLE_PERMISSIONS["MANAGER"], employeeId: null },
+  hr: { role: "HR_ADMIN", permissions: DEFAULT_ROLE_PERMISSIONS["HR_ADMIN"], employeeId: null },
+  admin: { role: "SUPER_ADMIN", permissions: DEFAULT_ROLE_PERMISSIONS["SUPER_ADMIN"], employeeId: null },
 };
 const KEY_BY_EMAIL: Record<string, keyof typeof callers> = {
   "collaborateur@hari.ma": "employee",
@@ -29,7 +30,11 @@ beforeAll(async () => {
     include: { employee: { select: { id: true } } },
   });
   for (const u of users) {
-    callers[KEY_BY_EMAIL[u.email]] = { role: u.role, employeeId: u.employee?.id ?? null };
+    callers[KEY_BY_EMAIL[u.email]] = {
+      role: u.role,
+      permissions: await permissionsForRole(u.role),
+      employeeId: u.employee?.id ?? null,
+    };
   }
 });
 
@@ -37,12 +42,12 @@ afterAll(() => prisma.$disconnect());
 
 describe("analytics permission gates", () => {
   it("EMPLOYEE holds neither analytics permission; higher roles do", () => {
-    expect(can("EMPLOYEE", "analytics:team")).toBe(false);
-    expect(can("EMPLOYEE", "analytics:full")).toBe(false);
-    expect(can("MANAGER", "analytics:team")).toBe(true);
-    expect(can("MANAGER", "analytics:full")).toBe(false);
-    expect(can("HR_ADMIN", "analytics:full")).toBe(true);
-    expect(can("SUPER_ADMIN", "analytics:full")).toBe(true);
+    expect(can(builtinSubject("EMPLOYEE"), "analytics:team")).toBe(false);
+    expect(can(builtinSubject("EMPLOYEE"), "analytics:full")).toBe(false);
+    expect(can(builtinSubject("MANAGER"), "analytics:team")).toBe(true);
+    expect(can(builtinSubject("MANAGER"), "analytics:full")).toBe(false);
+    expect(can(builtinSubject("HR_ADMIN"), "analytics:full")).toBe(true);
+    expect(can(builtinSubject("SUPER_ADMIN"), "analytics:full")).toBe(true);
   });
 });
 

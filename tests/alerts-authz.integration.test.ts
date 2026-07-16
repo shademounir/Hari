@@ -9,13 +9,13 @@
 // distinguish from "nothing was checked at all".
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from "vitest";
 import { prisma } from "@/lib/prisma";
-import { can } from "@/lib/rbac";
+import { DEFAULT_ROLE_PERMISSIONS, builtinSubject, can } from "@/lib/rbac";
 import { acknowledgeAlert, resolveAlert, reopenAlert, type AlertActor } from "@/lib/alerts";
 
 const actors: Record<"employee" | "manager" | "hr", AlertActor> = {
-  employee: { role: "EMPLOYEE", userId: "" },
-  manager: { role: "MANAGER", userId: "" },
-  hr: { role: "HR_ADMIN", userId: "" },
+  employee: { role: "EMPLOYEE", permissions: DEFAULT_ROLE_PERMISSIONS["EMPLOYEE"], userId: "" },
+  manager: { role: "MANAGER", permissions: DEFAULT_ROLE_PERMISSIONS["MANAGER"], userId: "" },
+  hr: { role: "HR_ADMIN", permissions: DEFAULT_ROLE_PERMISSIONS["HR_ADMIN"], userId: "" },
 };
 const KEY_BY_EMAIL: Record<string, keyof typeof actors> = {
   "collaborateur@hari.ma": "employee",
@@ -37,10 +37,10 @@ afterAll(() => prisma.$disconnect());
 
 describe("alerts:read permission gate (console access)", () => {
   it("only HR_ADMIN / SUPER_ADMIN can open the console", () => {
-    expect(can("EMPLOYEE", "alerts:read")).toBe(false);
-    expect(can("MANAGER", "alerts:read")).toBe(false);
-    expect(can("HR_ADMIN", "alerts:read")).toBe(true);
-    expect(can("SUPER_ADMIN", "alerts:read")).toBe(true);
+    expect(can(builtinSubject("EMPLOYEE"), "alerts:read")).toBe(false);
+    expect(can(builtinSubject("MANAGER"), "alerts:read")).toBe(false);
+    expect(can(builtinSubject("HR_ADMIN"), "alerts:read")).toBe(true);
+    expect(can(builtinSubject("SUPER_ADMIN"), "alerts:read")).toBe(true);
   });
 });
 

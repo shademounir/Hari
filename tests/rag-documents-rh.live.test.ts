@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { prisma } from "@/lib/prisma";
+import { builtinSubject } from "@/lib/rbac";
 import { searchHandbook } from "@/lib/rag";
 
 // SCRUM-058 — Tester le RAG sur les documents RH validés (corpus FR SCRUM-050).
@@ -64,7 +65,7 @@ d("SCRUM-058 — RAG sur les documents RH validés (live)", () => {
     "répond depuis une source validée : $question",
     async ({ question, expectedSlug, sectionRe }) => {
       if (!corpusSeeded) return;
-      const hits = await searchHandbook(question, 3, { role: "EMPLOYEE" });
+      const hits = await searchHandbook(question, 3, builtinSubject("EMPLOYEE"));
 
       // (1) Des sources sont remontées, et la meilleure vient du corpus RH validé.
       expect(hits.length).toBeGreaterThan(0);
@@ -94,8 +95,8 @@ d("SCRUM-058 — RAG sur les documents RH validés (live)", () => {
       // Le modèle reformule parfois la question en anglais : les deux corpus
       // doivent désormais s'accorder sur 18 jours ouvrables (conflit résolu).
       // On inspecte le top-3 (les chunks réellement fournis à l'assistant).
-      const fr = await searchHandbook("combien de jours de congé annuel", 3, { role: "EMPLOYEE" });
-      const en = await searchHandbook("annual leave days per year", 3, { role: "EMPLOYEE" });
+      const fr = await searchHandbook("combien de jours de congé annuel", 3, builtinSubject("EMPLOYEE"));
+      const en = await searchHandbook("annual leave days per year", 3, builtinSubject("EMPLOYEE"));
 
       expect(fr.some((h) => /18/.test(h.content))).toBe(true);
       expect(en.some((h) => /18/.test(h.content))).toBe(true);
@@ -111,9 +112,7 @@ d("SCRUM-058 — RAG sur les documents RH validés (live)", () => {
       if (!corpusSeeded) return;
       // Les bandes salariales (HR_ONLY, collection hr-internal) ne doivent jamais
       // remonter pour un EMPLOYEE, même sur une requête qui les vise.
-      const hits = await searchHandbook("grille des salaires et bandes de rémunération", 5, {
-        role: "EMPLOYEE",
-      });
+      const hits = await searchHandbook("grille des salaires et bandes de rémunération", 5, builtinSubject("EMPLOYEE"));
       expect(hits.every((h) => h.collectionSlug !== "hr-internal")).toBe(true);
     },
     45_000,

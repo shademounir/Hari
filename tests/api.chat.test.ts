@@ -2,9 +2,13 @@
 // docs/06-tests/tests.md ("no client-side authorization"): an unauthenticated
 // request must be rejected by the server before any model/tool code runs.
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { DEFAULT_ROLE_PERMISSIONS } from "@/lib/rbac";
 
-const authMock = vi.fn();
-vi.mock("@/lib/auth", () => ({ auth: authMock }));
+// The route resolves its caller through lib/session, which reads role +
+// permissions from the DB rather than trusting the JWT — so that, not auth(), is
+// the seam to stub. A null caller means "signed out OR deactivated".
+const callerMock = vi.fn();
+vi.mock("@/lib/session", () => ({ getApiCaller: callerMock }));
 
 const streamTextMock = vi.fn();
 vi.mock("ai", () => ({
@@ -35,14 +39,14 @@ vi.mock("@/lib/settings", () => ({
 }));
 
 beforeEach(() => {
-  authMock.mockReset();
+  callerMock.mockReset();
   streamTextMock.mockReset();
   getChatModelMock.mockClear();
 });
 
 describe("POST /api/chat", () => {
   it("rejects an unauthenticated request with 401, before touching the model", async () => {
-    authMock.mockResolvedValue(null);
+    callerMock.mockResolvedValue(null);
     const { POST } = await import("@/app/api/chat/route");
 
     const res = await POST(
@@ -57,8 +61,13 @@ describe("POST /api/chat", () => {
   });
 
   it("streams a response for an authenticated session, scoped to the caller's role", async () => {
-    authMock.mockResolvedValue({
-      user: { role: "EMPLOYEE", employeeId: "emp-1", name: "Ada" },
+    callerMock.mockResolvedValue({
+      id: "u-1",
+      name: "Ada",
+      email: "ada@hari.ma",
+      role: "EMPLOYEE",
+      permissions: DEFAULT_ROLE_PERMISSIONS["EMPLOYEE"],
+      employeeId: "emp-1",
     });
     streamTextMock.mockReturnValue({
       toUIMessageStreamResponse: () => new Response("ok", { status: 200 }),
@@ -80,7 +89,14 @@ describe("POST /api/chat", () => {
   });
 
   it("falls back to the default model when the requested modelKey isn't available in this env", async () => {
-    authMock.mockResolvedValue({ user: { role: "EMPLOYEE", employeeId: "emp-1", name: "Ada" } });
+    callerMock.mockResolvedValue({
+      id: "u-1",
+      name: "Ada",
+      email: "ada@hari.ma",
+      role: "EMPLOYEE",
+      permissions: DEFAULT_ROLE_PERMISSIONS["EMPLOYEE"],
+      employeeId: "emp-1",
+    });
     streamTextMock.mockReturnValue({ toUIMessageStreamResponse: () => new Response("ok", { status: 200 }) });
 
     const { POST } = await import("@/app/api/chat/route");
@@ -97,7 +113,7 @@ describe("POST /api/chat", () => {
   });
 
   it("returns the session_expired code (not 'Unauthorized') on an expired session", async () => {
-    authMock.mockResolvedValue(null);
+    callerMock.mockResolvedValue(null);
     const { POST } = await import("@/app/api/chat/route");
     const res = await POST(
       new Request("http://localhost/api/chat", { method: "POST", body: JSON.stringify({ messages: [] }) }),

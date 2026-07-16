@@ -6,7 +6,7 @@
 // the owner's first download.
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from "vitest";
 import { prisma } from "@/lib/prisma";
-import { can } from "@/lib/rbac";
+import { DEFAULT_ROLE_PERMISSIONS, builtinSubject, can } from "@/lib/rbac";
 import { authorizeDocumentDownload, type DocumentActor } from "@/lib/documents";
 
 // ── actors ────────────────────────────────────────────────────────────────────
@@ -14,9 +14,9 @@ import { authorizeDocumentDownload, type DocumentActor } from "@/lib/documents";
 // "stranger" = another employee (we reuse the manager's userId — no role check there)
 // "hr" = HR_ADMIN who can download anything
 const actors: Record<"owner" | "stranger" | "hr", DocumentActor> = {
-  owner:    { userId: "", role: "EMPLOYEE" },
-  stranger: { userId: "stranger-user-id",  role: "EMPLOYEE" },
-  hr:       { userId: "", role: "HR_ADMIN" },
+  owner:    { userId: "", role: "EMPLOYEE", permissions: DEFAULT_ROLE_PERMISSIONS["EMPLOYEE"] },
+  stranger: { userId: "stranger-user-id", role: "EMPLOYEE", permissions: DEFAULT_ROLE_PERMISSIONS["EMPLOYEE"] },
+  hr:       { userId: "", role: "HR_ADMIN", permissions: DEFAULT_ROLE_PERMISSIONS["HR_ADMIN"] },
 };
 
 beforeAll(async () => {
@@ -35,12 +35,12 @@ afterAll(() => prisma.$disconnect());
 // ── RBAC matrix (pure, no DB) ─────────────────────────────────────────────────
 describe("documents:download:any permission matrix", () => {
   it("is denied to EMPLOYEE and MANAGER", () => {
-    expect(can("EMPLOYEE", "documents:download:any")).toBe(false);
-    expect(can("MANAGER",  "documents:download:any")).toBe(false);
+    expect(can(builtinSubject("EMPLOYEE"), "documents:download:any")).toBe(false);
+    expect(can(builtinSubject("MANAGER"),  "documents:download:any")).toBe(false);
   });
   it("is granted to HR_ADMIN and SUPER_ADMIN", () => {
-    expect(can("HR_ADMIN",    "documents:download:any")).toBe(true);
-    expect(can("SUPER_ADMIN", "documents:download:any")).toBe(true);
+    expect(can(builtinSubject("HR_ADMIN"),    "documents:download:any")).toBe(true);
+    expect(can(builtinSubject("SUPER_ADMIN"), "documents:download:any")).toBe(true);
   });
 });
 

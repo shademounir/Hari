@@ -2,15 +2,16 @@
 // — "activité IA et documents"). 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { prisma } from "@/lib/prisma";
-import { can } from "@/lib/rbac";
+import { permissionsForRole } from "@/lib/rbac-server";
+import { DEFAULT_ROLE_PERMISSIONS, builtinSubject, can } from "@/lib/rbac";
 import { getHrDashboard } from "@/lib/kpi/hr-dashboard";
 import type { Caller } from "@/lib/hr";
 
 const callers: Record<"employee" | "manager" | "hr" | "admin", Caller> = {
-  employee: { role: "EMPLOYEE", employeeId: null },
-  manager: { role: "MANAGER", employeeId: null },
-  hr: { role: "HR_ADMIN", employeeId: null },
-  admin: { role: "SUPER_ADMIN", employeeId: null },
+  employee: { role: "EMPLOYEE", permissions: DEFAULT_ROLE_PERMISSIONS["EMPLOYEE"], employeeId: null },
+  manager: { role: "MANAGER", permissions: DEFAULT_ROLE_PERMISSIONS["MANAGER"], employeeId: null },
+  hr: { role: "HR_ADMIN", permissions: DEFAULT_ROLE_PERMISSIONS["HR_ADMIN"], employeeId: null },
+  admin: { role: "SUPER_ADMIN", permissions: DEFAULT_ROLE_PERMISSIONS["SUPER_ADMIN"], employeeId: null },
 };
 const KEY_BY_EMAIL: Record<string, keyof typeof callers> = {
   "collaborateur@hari.ma": "employee",
@@ -25,7 +26,11 @@ beforeAll(async () => {
     include: { employee: { select: { id: true } } },
   });
   for (const u of users) {
-    callers[KEY_BY_EMAIL[u.email]] = { role: u.role, employeeId: u.employee?.id ?? null };
+    callers[KEY_BY_EMAIL[u.email]] = {
+      role: u.role,
+      permissions: await permissionsForRole(u.role),
+      employeeId: u.employee?.id ?? null,
+    };
   }
 });
 
@@ -33,10 +38,10 @@ afterAll(() => prisma.$disconnect());
 
 describe("dashboard:read:company permission gate", () => {
   it("only HR_ADMIN / SUPER_ADMIN hold dashboard:read:company", () => {
-    expect(can("EMPLOYEE", "dashboard:read:company")).toBe(false);
-    expect(can("MANAGER", "dashboard:read:company")).toBe(false);
-    expect(can("HR_ADMIN", "dashboard:read:company")).toBe(true);
-    expect(can("SUPER_ADMIN", "dashboard:read:company")).toBe(true);
+    expect(can(builtinSubject("EMPLOYEE"), "dashboard:read:company")).toBe(false);
+    expect(can(builtinSubject("MANAGER"), "dashboard:read:company")).toBe(false);
+    expect(can(builtinSubject("HR_ADMIN"), "dashboard:read:company")).toBe(true);
+    expect(can(builtinSubject("SUPER_ADMIN"), "dashboard:read:company")).toBe(true);
   });
 });
 

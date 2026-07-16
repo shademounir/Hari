@@ -1,26 +1,26 @@
 import { describe, it, expect } from "vitest";
-import { can } from "@/lib/rbac";
+import { DEFAULT_ROLE_PERMISSIONS, builtinSubject, can } from "@/lib/rbac";
 import { getOpenAlerts, getAlerts, reopenAlert, alertDetail } from "@/lib/alerts";
 
 describe("alerts — RBAC gating", () => {
   it("only HR_ADMIN / SUPER_ADMIN hold alerts:read", () => {
-    expect(can("EMPLOYEE", "alerts:read")).toBe(false);
-    expect(can("MANAGER", "alerts:read")).toBe(false);
-    expect(can("HR_ADMIN", "alerts:read")).toBe(true);
-    expect(can("SUPER_ADMIN", "alerts:read")).toBe(true);
+    expect(can(builtinSubject("EMPLOYEE"), "alerts:read")).toBe(false);
+    expect(can(builtinSubject("MANAGER"), "alerts:read")).toBe(false);
+    expect(can(builtinSubject("HR_ADMIN"), "alerts:read")).toBe(true);
+    expect(can(builtinSubject("SUPER_ADMIN"), "alerts:read")).toBe(true);
   });
 
   // These early-return before touching the database, so they need no Postgres.
   it("read helpers return [] for roles without alerts:read (no DB access)", async () => {
-    expect(await getOpenAlerts({ role: "EMPLOYEE" })).toEqual([]);
-    expect(await getOpenAlerts({ role: "MANAGER" })).toEqual([]);
-    expect(await getAlerts({ role: "EMPLOYEE" })).toEqual([]);
-    expect(await getAlerts({ role: "MANAGER" }, { status: "OPEN" })).toEqual([]);
+    expect(await getOpenAlerts(builtinSubject("EMPLOYEE"))).toEqual([]);
+    expect(await getOpenAlerts(builtinSubject("MANAGER"))).toEqual([]);
+    expect(await getAlerts(builtinSubject("EMPLOYEE"))).toEqual([]);
+    expect(await getAlerts(builtinSubject("MANAGER"), { status: "OPEN" })).toEqual([]);
   });
 
   it("triage helpers no-op for roles without alerts:read (no DB access)", async () => {
-    expect(await reopenAlert({ role: "EMPLOYEE", userId: "u1" }, "any")).toBe(false);
-    expect(await reopenAlert({ role: "MANAGER", userId: "u1" }, "any")).toBe(false);
+    expect(await reopenAlert({ role: "EMPLOYEE", permissions: DEFAULT_ROLE_PERMISSIONS["EMPLOYEE"], userId: "u1" }, "any")).toBe(false);
+    expect(await reopenAlert({ role: "MANAGER", permissions: DEFAULT_ROLE_PERMISSIONS["MANAGER"], userId: "u1" }, "any")).toBe(false);
   });
 });
 

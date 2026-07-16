@@ -1,4 +1,5 @@
 import { describe, it, expect, afterAll } from "vitest";
+import { builtinSubject } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
 import { searchHandbook } from "@/lib/rag";
 
@@ -17,9 +18,7 @@ d("RAG over the handbook (live embeddings via OpenRouter)", () => {
       return;
     }
     // HR admin sees every tier; the handbook is ALL_EMPLOYEES so any role works.
-    const hits = await searchHandbook("what is the parental leave policy?", 3, {
-      role: "HR_ADMIN",
-    });
+    const hits = await searchHandbook("what is the parental leave policy?", 3, builtinSubject("HR_ADMIN"));
     expect(hits.length).toBeGreaterThan(0);
     expect(hits[0].section).toMatch(/parental/i);
     expect(hits[0].similarity).toBeGreaterThan(0.4);

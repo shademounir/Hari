@@ -19,9 +19,12 @@ import {
   setCollectionAssistantAccess,
   setDocumentAssistantAccess,
 } from "@/lib/kb";
-import type { Role } from "@/lib/rbac";
+import { builtinSubject, type BuiltinRole } from "@/lib/rbac";
 
-const as = (role: Role) => ({ role });
+// A KbCaller for a role, holding that role's built-in permissions. The KB gates
+// on the resolved permission set (visibleDocTiers derives from directory:read:*),
+// not on the slug — a role slug alone no longer says what it may read.
+const as = (role: BuiltinRole) => builtinSubject(role);
 
 afterAll(() => prisma.$disconnect());
 
@@ -34,7 +37,7 @@ const DRAFT = { collection: "employee-handbook", slug: "relocation-policy" };
 
 describe("KB reader access control (getArticle / IDOR)", () => {
   it("everyone can read an ALL_EMPLOYEES article", async () => {
-    for (const role of ["EMPLOYEE", "MANAGER", "HR_ADMIN"] as Role[]) {
+    for (const role of ["EMPLOYEE", "MANAGER", "HR_ADMIN"] as BuiltinRole[]) {
       expect(await getArticle(as(role), ALL.collection, ALL.slug)).not.toBeNull();
     }
   });
@@ -176,7 +179,7 @@ describe("assistant access (super-admin policy)", () => {
   });
 
   it("the reader's search still enforces the tier — it drops the assistant gate, not the tier gate", async () => {
-    for (const role of ["EMPLOYEE", "MANAGER"] as Role[]) {
+    for (const role of ["EMPLOYEE", "MANAGER"] as BuiltinRole[]) {
       const hits = (await searchKb(as(role), "salary bands midpoint", 50)).map((h) => h.articleSlug);
       expect(hits).not.toContain("compensation-bands");
     }
